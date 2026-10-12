@@ -124,7 +124,7 @@ def patch_cmake_strip(samp_dir: Path):
 
 def patch_main_cpp(samp_dir: Path):
     main_cpp = samp_dir / "main.cpp"
-    txt = main_cpp.read_text(encoding="utf-8", errors="ignore")
+    txt = main_cpp.read_text(encoding="utf-8-sig", errors="ignore").replace("\ufeff", "")
 
     if '#include "lockdown.h"' not in txt:
         txt = '#include "lockdown.h"\n' + txt

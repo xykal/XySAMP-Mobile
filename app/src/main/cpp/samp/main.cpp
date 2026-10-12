@@ -1,5 +1,5 @@
 #include "lockdown.h"
-﻿#include <jni.h>
+#include <jni.h>
 #include <pthread.h>
 #include <syscall.h>
 

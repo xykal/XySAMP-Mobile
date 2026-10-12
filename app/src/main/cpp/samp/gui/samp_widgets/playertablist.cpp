@@ -1,4 +1,4 @@
-﻿#include "../gui.h"
+#include "../gui.h"
 #include "../../game/game.h"
 #include "../../net/netgame.h"
 #include "../../main.h"
