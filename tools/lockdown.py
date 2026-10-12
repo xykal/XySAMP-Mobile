@@ -678,7 +678,7 @@ stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
 
 bool g_bPlaySAMP = false;"""
 
-    txt, count = old_block_pattern.subn(new_block, txt, count=1)
+    txt, count = old_block_pattern.subn(lambda _: new_block, txt, count=1)
     if count == 0:
         raise RuntimeError("Gagal mem-patch blok NvUtilInit_hook / NvFOpen di hooks.cpp")
 
@@ -756,7 +756,7 @@ void InstallSpecialHooks()
 
     CHook::InlineHook("_Z7NvFOpenPKcS0_bb", &NvFOpen_hook, &NvFOpen_orig);"""
 
-    txt, count2 = old_urez_pattern.subn(new_urez, txt, count=1)
+    txt, count2 = old_urez_pattern.subn(lambda _: new_urez, txt, count=1)
     if count2 == 0:
         raise RuntimeError("Gagal mem-patch InstallSpecialHooks di hooks.cpp")
 

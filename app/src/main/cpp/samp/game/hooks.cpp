@@ -1377,12 +1377,12 @@ char lastFile[256];
 static FILE* FOpenCaseInsensitive(const char* baseDir, const char* relPath)
 {
     if (!baseDir || !relPath) return nullptr;
-    while (*relPath == '/' || *relPath == '\') relPath++;
+    while (*relPath == '/' || *relPath == '\\') relPath++;
 
     char fullPath[512];
     snprintf(fullPath, sizeof(fullPath), "%s%s", baseDir, relPath);
     for (char* p = fullPath; *p; ++p) {
-        if (*p == '\') *p = '/';
+        if (*p == '\\') *p = '/';
     }
     FILE* f = fopen(fullPath, "rb");
     if (f) return f;
@@ -1392,10 +1392,10 @@ static FILE* FOpenCaseInsensitive(const char* baseDir, const char* relPath)
     size_t i = 0;
     for (; relPath[i] && i < sizeof(lowerRel) - 1; ++i) {
         char c = relPath[i];
-        if (c == '\') c = '/';
+        if (c == '\\') c = '/';
         lowerRel[i] = (char)tolower((unsigned char)c);
     }
-    lowerRel[i] = ' ';
+    lowerRel[i] = '\0';
     snprintf(fullPath, sizeof(fullPath), "%s%s", baseDir, lowerRel);
     f = fopen(fullPath, "rb");
     if (f) return f;
@@ -1405,14 +1405,14 @@ static FILE* FOpenCaseInsensitive(const char* baseDir, const char* relPath)
     snprintf(curPath, sizeof(curPath), "%s", baseDir);
     size_t baseLen = strlen(curPath);
     if (baseLen > 0 && curPath[baseLen - 1] == '/') {
-        curPath[baseLen - 1] = ' ';
+        curPath[baseLen - 1] = '\0';
     }
 
     char tempRel[256];
     strncpy(tempRel, relPath, sizeof(tempRel) - 1);
-    tempRel[sizeof(tempRel) - 1] = ' ';
+    tempRel[sizeof(tempRel) - 1] = '\0';
     for (char* p = tempRel; *p; ++p) {
-        if (*p == '\') *p = '/';
+        if (*p == '\\') *p = '/';
     }
 
     char* saveptr = nullptr;
@@ -1429,7 +1429,7 @@ static FILE* FOpenCaseInsensitive(const char* baseDir, const char* relPath)
             }
         }
         closedir(dir);
-        if (matched[0] == ' ') return nullptr;
+        if (matched[0] == '\0') return nullptr;
         size_t curLen = strlen(curPath);
         snprintf(curPath + curLen, sizeof(curPath) - curLen, "/%s", matched);
         token = strtok_r(nullptr, "/", &saveptr);
@@ -1471,7 +1471,7 @@ stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
     }
 
     strncpy(lastFile, r1, sizeof(lastFile) - 1);
-    lastFile[sizeof(lastFile) - 1] = ' ';
+    lastFile[sizeof(lastFile) - 1] = '\0';
 
     const char* baseDir = (g_pszStorage && g_pszStorage[0]) ? g_pszStorage : "/storage/emulated/0/GTA/";
     const char* sampOverride = nullptr;
