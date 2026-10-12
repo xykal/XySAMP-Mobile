@@ -189,6 +189,7 @@ def patch_netrpc_cpp(samp_dir: Path):
 
     handler_code = """
 // --- XySAMP Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
+static int RPC_ClientCheck = 103;
 void ClientCheck(RPCParameters *rpcParams)
 {
     if (!pNetGame) return;

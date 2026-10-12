@@ -1495,6 +1495,7 @@ void EditObject(RPCParameters *rpcParams) {
 
 
 // --- XySAMP Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
+static int RPC_ClientCheck = 103;
 void ClientCheck(RPCParameters *rpcParams)
 {
     if (!pNetGame) return;
