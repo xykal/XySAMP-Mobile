@@ -115,10 +115,10 @@ jobs:
             echo "KEY_PASSWORD=android123" >> $GITHUB_ENV
           fi
 
-      - name: Build Signed Release & Debug APK
+      - name: Build Signed Release APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Bundel Paket Jadi 1 (APK Client + Gate Server + Keystore)
         run: |

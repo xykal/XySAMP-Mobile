@@ -697,6 +697,13 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                 if fb_dep in asrc and f"// {fb_dep}" not in asrc:
                     asrc = asrc.replace(fb_dep, f"// {fb_dep}")
 
+        if 'pickFirsts.add("**/*.so")' not in asrc:
+            asrc = asrc.replace(
+                'jniLibs {\n            excludes.add("META-INF/*")',
+                'jniLibs {\n            excludes.add("META-INF/*")\n            pickFirsts.add("**/*.so")',
+                1,
+            )
+
         # Inject signingConfigs if not present
         if 'signingConfigs {' not in asrc and 'create("release")' not in asrc:
             signing_block = """    signingConfigs {

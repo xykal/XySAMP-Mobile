@@ -28,6 +28,7 @@ android {
     packaging {
         jniLibs {
             excludes.add("META-INF/*")
+            pickFirsts.add("**/*.so")
         }
         resources {
             excludes.add("META-INF/*")
