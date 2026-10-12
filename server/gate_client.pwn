@@ -35,7 +35,7 @@ forward OnClientCheckResponse(playerid, actionid, memaddr, retndata);
 // HANDSHAKE_KEY wajib SAMA PERSIS dengan LOCK_HANDSHAKE_KEY di lockdown.h
 #define ENABLE_HANDSHAKE        1
 #define HANDSHAKE_ACTION        0x48
-#define HANDSHAKE_KEY           0x5A3C9E71
+#define HANDSHAKE_KEY           0x00000000
 
 // --- pesan tendang & grace period --------------------------------------------
 #define KICK_WRONG_CLIENT       "Server ini cuma bisa dimasukin lewat APK client resmi."

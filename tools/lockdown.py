@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """
-lockdown.py - Patcher lengkap client SA-MP Mobile (fork kuzia15/SAMP-Mobile branch GTA-2.11)
-jadi client private khusus SATU server + sinkronisasi gate server-side + siap build GitHub Actions.
-
-Yang dilakuin:
-  1. Tulis  app/src/main/cpp/samp/lockdown.h  (host/port/tag/name/handshake_key hardcoded)
-  2. Patch  cpp/samp/settings.cpp  -> auto-generate settings.ini + kunci host/port/version + sanitasi nick
-  3. Patch  cpp/samp/net/netrpc.cpp -> aktifin Lapis 3 Handshake RPC_ClientCheck (ID 103)
-  4. Patch  layout/main_activity.xml & MainActivity.java -> tambah input Nickname di launcher + Bahasa Indonesia
-  5. Patch  res/values/strings.xml -> nama app & branding
-  6. Patch  build.gradle.kts & app/build.gradle.kts -> bersihin Firebase/repo mati + tambah signingConfigs release
-  7. Sinkron server/gate_client.pwn -> samain CLIENT_TAG & HANDSHAKE_KEY otomatis
-
-Idempotent: aman dijalanin berkali-kali.
+lockdown.py - Patcher Security & Lockdown SA-MP Mobile (fork kuzia15/SAMP-Mobile GTA-2.11)
+Fitur:
+  1. XOR-Obfuscated Host, Tag, & Default Nick di lockdown.h (Anti-strings & Anti-HexEdit)
+  2. Zero-Leak di settings.cpp, settings.ini, logcat.txt, dan classes.dex (IP & Tag tidak bocor)
+  3. Lapis 3 Handshake (RPC_ClientCheck ID 103) + Anti-Frida / Anti-Ptrace / Anti-GameGuardian
+  4. APK Signing Certificate Pinning (SHA-256 check di MainActivity.java - Anti-Repackage/MT Manager)
+  5. R8 Code Shrinking & Obfuscation (isMinifyEnabled=true, isShrinkResources=true) + Strip Native Symbols
+  6. Input Nickname di Launcher + Bahasa Indonesia + Sinkronisasi server/gate_client.pwn
 """
 
 import argparse
@@ -34,25 +29,18 @@ HS_END = "// <<< LOCKDOWN:HANDSHAKE-END"
 OVERRIDE_BLOCK = """
 \t""" + MARK_BEGIN + """
 #if !LOCK_ALLOW_INI_OVERRIDE
-\t// Host, port, dan tag client dikunci di level binary.
-\tstrncpy(m_Settings.szHost, LOCK_SERVER_HOST, MAX_SETTINGS_STRING);
-\tm_Settings.szHost[MAX_SETTINGS_STRING] = '\\0';
+\t// Decode host, port, dan tag dari XOR byte array di RAM (anti-strings & anti-hexedit)
+\tLockdown_DecodeHost(m_Settings.szHost, MAX_SETTINGS_STRING);
 \tm_Settings.iPort = LOCK_SERVER_PORT;
-
-\tstrncpy(m_Settings.szVersion, LOCK_CLIENT_TAG, MAX_SETTINGS_STRING);
-\tm_Settings.szVersion[MAX_SETTINGS_STRING] = '\\0';
+\tLockdown_DecodeTag(m_Settings.szVersion, MAX_SETTINGS_STRING);
 
 \t// nickname random internal (__android_xxxx) -> ganti jadi default kita
 \tif (m_Settings.szNickName[0] == '\\0' ||
 \t\tstrncmp(m_Settings.szNickName, "__android_", 10) == 0)
 \t{
-\t\tstrncpy(m_Settings.szNickName, LOCK_CLIENT_NAME, 24);
-\t\tm_Settings.szNickName[24] = '\\0';
+\t\tLockdown_DecodeName(m_Settings.szNickName, 24);
 \t}
 \tLockdown_SanitizeNick(m_Settings.szNickName, 24);
-
-\tLog("LOCKDOWN aktif -> %s:%d | tag=%s | nick=%s",
-\t\tm_Settings.szHost, m_Settings.iPort, m_Settings.szVersion, m_Settings.szNickName);
 #endif
 \t""" + MARK_END + """
 """
@@ -63,8 +51,6 @@ static int RPC_ClientCheck = 103;
 
 void ClientCheck(RPCParameters *rpcParams)
 {
-\tLog::traceLastFunc("[RPC-IN] ClientCheck");
-
 \tunsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
 \tint iBitLength = rpcParams->numberOfBitsOfData;
 \tRakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
@@ -79,6 +65,10 @@ void ClientCheck(RPCParameters *rpcParams)
 
 #if LOCK_HANDSHAKE_ENABLE
 \tuint32_t dwReplyAddr = dwAddress ^ (uint32_t)LOCK_HANDSHAKE_KEY;
+\t// Jika terdeteksi debugger / Frida / APK dimodifikasi, acak jawaban biar server langsung kick
+\tif (Lockdown_IsTampered()) {
+\t\tdwReplyAddr ^= 0xDEADCAFEu;
+\t}
 \tuint8_t byteReplyChecksum = (uint8_t)(((dwReplyAddr) ^ (dwReplyAddr >> 8) ^ (dwReplyAddr >> 16) ^ (dwReplyAddr >> 24) ^ byteType) & 0xFF);
 #else
 \tuint32_t dwReplyAddr = dwAddress;
@@ -119,6 +109,41 @@ NICKNAME_XML_WIDGET = """
         android:elevation="6dp" />
 """
 
+PROGUARD_RULES = """# =============================================================================
+#  R8 / ProGuard Security & JNI Keep Rules for XySAMP Mobile
+# =============================================================================
+-optimizationpasses 5
+-allowaccessmodification
+-repackageclasses 'x'
+
+# Hapus log debug/verbose/info di build release biar ga bocor di logcat
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
+
+# Keep semua class & method JNI yang dipanggil dari libsamp.so & libGame.so
+-keep class com.nvidia.devtech.** { *; }
+-keep class com.wardrumstudios.utils.** { *; }
+-keep class com.rockstargames.** { *; }
+-keep class com.gta.game.** { *; }
+-keep class com.gta.launcher.activity.MainActivity { *; }
+-keep class com.bytedance.shadowhook.** { *; }
+
+# Keep native methods
+-keepclasseswithmembernames,includedescriptorclasses class * {
+    native <methods>;
+}
+
+-dontwarn javax.servlet.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**
+-dontwarn org.openjsse.**
+-dontwarn com.google.firebase.**
+-dontwarn com.joom.paranoid.**
+"""
+
 
 def log(msg):
     print(f"  [+] {msg}")
@@ -143,14 +168,24 @@ def write(p: Path, s: str):
 def sanitize_nick(name: str) -> str:
     clean = re.sub(r"\s+", "_", name.strip())
     clean = re.sub(r"[^A-Za-z0-9_\[\]\$=()@\.]", "", clean)
-    return (clean or "Warga_Baru")[:20]
+    return (clean or "Warga_XyVerse")[:20]
 
 
-def patch_settings_cpp(repo: Path, host: str, port: int, tag: str):
+def xor_encode_bytes(text: str, seed: int):
+    raw = text.encode("utf-8")
+    enc = []
+    for i, b in enumerate(raw):
+        mask = (seed + i * 37) & 0xFF
+        enc.append(f"0x{(b ^ mask):02X}")
+    if not enc:
+        enc = ["0x00"]
+    return ", ".join(enc), len(raw)
+
+
+def patch_settings_cpp(repo: Path, port: int):
     p = repo / "app/src/main/cpp/samp/settings.cpp"
     src = read(p)
 
-    # 1. include lockdown.h
     if '#include "lockdown.h"' not in src:
         anchor = '#include "settings.h"'
         if anchor not in src:
@@ -158,7 +193,6 @@ def patch_settings_cpp(repo: Path, host: str, port: int, tag: str):
         src = src.replace(anchor, anchor + '\n#include "lockdown.h"', 1)
         log("settings.cpp: + include lockdown.h")
 
-    # 2. bikin settings.ini kalau belum ada, sebelum INIReader
     if "Lockdown_EnsureDefaultIni" not in src:
         anchor = "INIReader reader(buff);"
         if anchor not in src:
@@ -172,22 +206,21 @@ def patch_settings_cpp(repo: Path, host: str, port: int, tag: str):
         src = src.replace(anchor, repl, 1)
         log("settings.cpp: + auto-generate settings.ini")
 
-    # 3. blok override host/port/version (replace kalau udah ada biar selalu up-to-date)
     if MARK_BEGIN in src and MARK_END in src:
         pattern = re.compile(re.escape(MARK_BEGIN) + r".*?" + re.escape(MARK_END), re.S)
         src = pattern.sub(OVERRIDE_BLOCK.strip(), src, count=1)
-        log("settings.cpp: blok override di-update")
+        log("settings.cpp: blok XOR decode override di-update (zero-leak)")
     else:
         anchor = 'm_Settings.bAutoAim = reader.GetBoolean("client", "autoaim", false);'
         if anchor not in src:
             fail("anchor bAutoAim nggak ketemu di settings.cpp")
         src = src.replace(anchor, anchor + "\n" + OVERRIDE_BLOCK, 1)
-        log("settings.cpp: + blok override host/port/tag + sanitasi nick")
+        log("settings.cpp: + blok XOR decode override host/port/tag")
 
-    # 4. ganti fallback host & port bawaan fork
+    # Jangan taruh host asli di fallback INIReader supaya string IP ga muncul di .rodata
     src = re.sub(
         r'reader\.Get\("client",\s*"host",\s*"[^"]*"\)',
-        f'reader.Get("client", "host", "{host}")',
+        'reader.Get("client", "host", "127.0.0.1")',
         src,
     )
     src = re.sub(
@@ -213,12 +246,13 @@ def patch_netrpc_cpp(repo: Path):
     if HS_BEGIN in src and HS_END in src:
         pattern = re.compile(re.escape(HS_BEGIN) + r".*?" + re.escape(HS_END), re.S)
         src = pattern.sub(HANDSHAKE_RPC_BLOCK.strip(), src, count=1)
+        log("netrpc.cpp: handler ClientCheck + Anti-Tamper di-update")
     else:
         anchor = "void RegisterRPCs(RakClientInterface *pRakClient)"
         if anchor not in src:
             fail("anchor RegisterRPCs nggak ketemu di netrpc.cpp")
         src = src.replace(anchor, HANDSHAKE_RPC_BLOCK + "\n" + anchor, 1)
-        log("netrpc.cpp: + handler ClientCheck (Lapis 3 Handshake RPC 103)")
+        log("netrpc.cpp: + handler ClientCheck (Lapis 3 Handshake + Anti-Tamper)")
 
     if "RegisterAsRemoteProcedureCall(&RPC_ClientCheck, ClientCheck)" not in src:
         if "// RPC_ClientCheckResponse" in src:
@@ -249,12 +283,12 @@ def patch_netrpc_cpp(repo: Path):
     write(p, src)
 
 
-def patch_launcher_nickname(repo: Path, host: str, port: int, tag: str, default_name: str):
+def patch_launcher_nickname(repo: Path, port: int, default_name: str, cert_sha256: str):
     xml_path = repo / "app/src/main/res/layout/main_activity.xml"
     if xml_path.exists():
         xml_src = read(xml_path)
         if "@+id/nicknameInput" not in xml_src:
-            anchor = "<Button\n        android:id=\"@+id/startButton\""
+            anchor = '<Button\n        android:id="@+id/startButton"'
             if anchor not in xml_src:
                 anchor = "</RelativeLayout>"
                 xml_src = xml_src.replace(anchor, NICKNAME_XML_WIDGET + "\n" + anchor, 1)
@@ -267,13 +301,18 @@ def patch_launcher_nickname(repo: Path, host: str, port: int, tag: str, default_
     if not java_path.exists():
         return
 
+    clean_sha = cert_sha256.replace(":", "").strip().lower()
+
     java_content = f"""package com.gta.launcher.activity;
 
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.content.pm.SigningInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -281,7 +320,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -304,6 +342,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -311,10 +350,11 @@ public class MainActivity extends AppCompatActivity {{
     private static final String PREFS_NAME = "samp_launcher_prefs";
     private static final String KEY_NICKNAME = "player_nickname";
     private static final String INI_PATH = "/storage/emulated/0/GTA/SAMP/settings.ini";
+    private static final String TAMPER_FILE = "/storage/emulated/0/GTA/SAMP/.tampered";
     private static final String DEFAULT_NICK = "{default_name}";
-    private static final String LOCKED_HOST = "{host}";
     private static final int LOCKED_PORT = {port};
-    private static final String LOCKED_TAG = "{tag}";
+    // SHA-256 Official Release Keystore Pinning (Anti-Repackage / Anti-Mod APK)
+    private static final String EXPECTED_CERT_SHA256 = "{clean_sha}";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Button startButton;
@@ -364,13 +404,63 @@ public class MainActivity extends AppCompatActivity {{
             setFullScreenMode();
             setContentView(R.layout.main_activity);
             initViews();
+            if (!verifyOfficialSignature()) {{
+                markTampered(true);
+                Toast.makeText(this, "PERINGATAN: APK telah dimodifikasi / bukan rilis resmi!", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }} else {{
+                markTampered(false);
+            }}
             loadSavedNickname();
             setupClickListeners();
             checkAndRequestStoragePermission();
         }} catch (Exception e) {{
-            Log.e("MainActivity", "Critical error in onCreate: " + e.getMessage(), e);
             finish();
         }}
+    }}
+
+    private boolean verifyOfficialSignature() {{
+        if (EXPECTED_CERT_SHA256 == null || EXPECTED_CERT_SHA256.isEmpty()) {{
+            return true;
+        }}
+        try {{
+            PackageInfo pkgInfo = getPackageManager().getPackageInfo(
+                    getPackageName(),
+                    PackageManager.GET_SIGNING_CERTIFICATES
+            );
+            SigningInfo signingInfo = pkgInfo.signingInfo;
+            if (signingInfo == null) return false;
+            Signature[] sigs = signingInfo.hasMultipleSigners()
+                    ? signingInfo.getApkContentsSigners()
+                    : signingInfo.getSigningCertificateHistory();
+            if (sigs == null || sigs.length == 0) return false;
+
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(sigs[0].toByteArray());
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {{
+                hex.append(String.format("%02x", b & 0xff));
+            }}
+            return EXPECTED_CERT_SHA256.equalsIgnoreCase(hex.toString());
+        }} catch (Exception e) {{
+            return false;
+        }}
+    }}
+
+    private void markTampered(boolean tampered) {{
+        try {{
+            File f = new File(TAMPER_FILE);
+            if (tampered) {{
+                File p = f.getParentFile();
+                if (p != null && !p.exists()) p.mkdirs();
+                try (FileOutputStream fos = new FileOutputStream(f)) {{
+                    fos.write(1);
+                }}
+            }} else if (f.exists()) {{
+                f.delete();
+            }}
+        }} catch (Exception ignored) {{ }}
     }}
 
     private void initViews() {{
@@ -431,12 +521,13 @@ public class MainActivity extends AppCompatActivity {{
             }}
 
             if (!ini.exists()) {{
+                // Jangan pernah tulis IP atau Tag rahasia ke settings.ini
                 String content = "[client]\\n"
                         + "name=" + nick + "\\n"
-                        + "host=" + LOCKED_HOST + "\\n"
+                        + "host=127.0.0.1\\n"
                         + "port=" + LOCKED_PORT + "\\n"
                         + "password=\\n"
-                        + "version=" + LOCKED_TAG + "\\n"
+                        + "version=0.3.7\\n"
                         + "autoaim=false\\n\\n"
                         + "[debug]\\n"
                         + "debug=false\\n"
@@ -476,7 +567,6 @@ public class MainActivity extends AppCompatActivity {{
             }}
             return true;
         }} catch (Exception e) {{
-            Log.e("MainActivity", "Gagal simpan settings.ini: " + e.getMessage());
             return false;
         }}
     }}
@@ -547,9 +637,7 @@ public class MainActivity extends AppCompatActivity {{
             if (getSupportActionBar() != null) {{
                 getSupportActionBar().hide();
             }}
-        }} catch (Exception e) {{
-            Log.e("MainActivity", "Error in setFullScreenMode: " + e.getMessage());
-        }}
+        }} catch (Exception ignored) {{ }}
     }}
 
     @Override
@@ -561,6 +649,12 @@ public class MainActivity extends AppCompatActivity {{
     }}
 
     private void startGame() {{
+        if (!verifyOfficialSignature()) {{
+            markTampered(true);
+            Toast.makeText(this, "APK tidak resmi / telah dimodifikasi!", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }}
         String rawNick = (nicknameInput != null) ? nicknameInput.getText().toString() : "";
         String nick = sanitizeNick(rawNick);
         if (nick.isEmpty()) {{
@@ -613,13 +707,12 @@ public class MainActivity extends AppCompatActivity {{
 }}
 """
     write(java_path, java_content)
-    log("MainActivity.java: + simpan/load Nickname ke settings.ini + UI Bahasa Indonesia")
+    log("MainActivity.java: + SHA-256 Official Keystore Pinning + Zero-Leak settings.ini")
 
 
 def patch_strings(repo: Path, app_name: str, brand: str):
     p = repo / "app/src/main/res/values/strings.xml"
     if not p.exists():
-        log("strings.xml nggak ada, skip branding")
         return
     src = read(p)
     subs = [
@@ -629,18 +722,16 @@ def patch_strings(repo: Path, app_name: str, brand: str):
         ("authors", f"Official {brand}"),
         ("bug_info", f"Pastikan menggunakan APK resmi {brand}."),
     ]
-    changed = []
     for key, val in subs:
         pattern = re.compile(rf'(<string name="{key}">).*?(</string>)', re.S)
         if pattern.search(src):
             src = pattern.sub(lambda m: m.group(1) + val + m.group(2), src)
-            changed.append(key)
     write(p, src)
-    log(f"strings.xml: branding diganti ({', '.join(changed)})")
+    log("strings.xml: branding diganti")
 
 
-def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
-    # 1. Root build.gradle.kts: urutkan google() paling atas + matiin repo mint.splunk.com yang udah mati
+def patch_gradle_r8_and_security(repo: Path, strip_fb: bool):
+    # 1. Root build.gradle.kts
     root_gradle = repo / "build.gradle.kts"
     if root_gradle.exists():
         rsrc = read(root_gradle)
@@ -658,16 +749,31 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                 if dep in rsrc and f"// {dep}" not in rsrc:
                     rsrc = rsrc.replace(dep, f"// {dep}")
         write(root_gradle, rsrc)
-        log("build.gradle.kts: repo mint.splunk.com dimatiin & classpath dirapihin")
 
-    # 2. gradle.properties: naikin heap JVM buat GitHub Actions / CMake
+    # 2. gradle.properties
     gprop = repo / "gradle.properties"
     if gprop.exists():
         psrc = read(gprop)
         psrc = psrc.replace("-Xmx2048m", "-Xmx4096m")
         write(gprop, psrc)
 
-    # 3. app/build.gradle.kts: signingConfigs release + matiin blok firebaseCrashlytics & deps firebase
+    # 3. Tulis proguard-rules.pro yang aman untuk JNI + agresif untuk R8
+    pg_file = repo / "app/proguard-rules.pro"
+    write(pg_file, PROGUARD_RULES)
+    log("app/proguard-rules.pro: R8 obfuscation & JNI keep rules dipasang")
+
+    # 4. Strip flag -g dari CMakeLists.txt di samp supaya binary C++ bersih dari debug info
+    samp_cmake = repo / "app/src/main/cpp/samp/CMakeLists.txt"
+    if samp_cmake.exists():
+        csrc = read(samp_cmake)
+        csrc = csrc.replace(
+            "-w -s -g -fvisibility=hidden -pthread -Wall -O3 -fexceptions -fstack-protector-strong",
+            "-w -s -fvisibility=hidden -fvisibility-inlines-hidden -pthread -O3 -fexceptions -fstack-protector-strong",
+        )
+        write(samp_cmake, csrc)
+        log("samp/CMakeLists.txt: strip DWARF -g & hide inline symbols")
+
+    # 5. app/build.gradle.kts: aktifin R8 (isMinifyEnabled = true, isShrinkResources = true, debugSymbolLevel = "NONE")
     app_gradle = repo / "app/build.gradle.kts"
     if app_gradle.exists():
         asrc = read(app_gradle)
@@ -678,16 +784,14 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                 'id("com.google.firebase.crashlytics")',
             ]:
                 if plug in asrc and f"// {plug}" not in asrc:
-                    asrc = asrc.replace(plug, f"// {plug}  // dimatiin: client private, no telemetry")
+                    asrc = asrc.replace(plug, f"// {plug}")
 
-            # Comment out firebaseCrashlytics { ... } block in release buildType
             asrc = re.sub(
                 r"(?m)^(\s*)firebaseCrashlytics\s*\{[^}]*\}",
                 lambda m: "\n".join(f"{m.group(1)}// {ln.lstrip()}" for ln in m.group(0).splitlines()),
                 asrc,
             )
 
-            # Comment out firebase dependencies
             for fb_dep in [
                 'implementation("com.google.firebase:firebase-analytics")',
                 'implementation(platform("com.google.firebase:firebase-bom:34.13.0"))',
@@ -704,7 +808,6 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                 1,
             )
 
-        # Inject signingConfigs if not present
         if 'signingConfigs {' not in asrc and 'create("release")' not in asrc:
             signing_block = """    signingConfigs {
         create("release") {
@@ -729,6 +832,19 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                 count=1,
             )
 
+        # Aktifkan R8 Minify + ShrinkResources + Strip Native Debug Symbols pada blok release
+        rel_pos = asrc.find("release {")
+        if rel_pos != -1:
+            head = asrc[:rel_pos]
+            tail = asrc[rel_pos:]
+            tail = tail.replace('debugSymbolLevel = "FULL"', 'debugSymbolLevel = "NONE"', 1)
+            tail = tail.replace(
+                "isMinifyEnabled = false",
+                "isMinifyEnabled = true\n            isShrinkResources = true",
+                1,
+            )
+            asrc = head + tail
+
         asrc = re.sub(
             r'val apkName = "[^"]*-\$\{buildType\.name\}\.apk"',
             'val apkName = "XySAMP-Mobile-${buildType.name}.apk"',
@@ -736,15 +852,13 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
         )
 
         write(app_gradle, asrc)
-        log("app/build.gradle.kts: signingConfigs release aktif + firebase DSL dibersihin")
+        log("app/build.gradle.kts: R8 (isMinifyEnabled=true, isShrinkResources=true) & debugSymbolLevel=NONE aktif")
 
     if strip_fb:
         gsj = repo / "app/google-services.json"
         if gsj.exists():
             gsj.rename(gsj.with_suffix(".json.disabled"))
-            log("google-services.json dimatiin")
 
-        # Bersihin import firebase di Java
         for jf in (repo / "app/src/main/java").rglob("*.java"):
             s = jf.read_text(encoding="utf-8", errors="surrogateescape")
             if "firebase" not in s.lower():
@@ -759,35 +873,28 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
                     out.append(ln)
             write(jf, "".join(out))
 
-        # Bersihin panggilan firebase::crashlytics::Log di main.cpp
         main_cpp = repo / "app/src/main/cpp/samp/main.cpp"
         if main_cpp.exists():
             msrc = read(main_cpp)
             if "firebase::crashlytics::Log(buffer);" in msrc and "//firebase::crashlytics::Log(buffer);" not in msrc:
                 msrc = msrc.replace("firebase::crashlytics::Log(buffer);", "//firebase::crashlytics::Log(buffer);")
                 write(main_cpp, msrc)
-                log("main.cpp: firebase::crashlytics::Log dimatiin")
 
-    # Hapus file sampah cpp.zip (7.2MB) bawaan fork kalau ada
     cpp_zip = repo / "app/src/main/cpp/cpp.zip"
     if cpp_zip.exists():
         cpp_zip.unlink()
-        log("app/src/main/cpp/cpp.zip (7.2MB arsip duplikat) dihapus biar repo ringan")
 
-    # Fix case-sensitive header includes untuk build di Linux (GitHub Actions)
     gui_h = repo / "app/src/main/cpp/samp/gui/gui.h"
     if gui_h.exists():
         gtxt = read(gui_h)
         if "samp_widgets/playerTabList.h" in gtxt:
             write(gui_h, gtxt.replace("samp_widgets/playerTabList.h", "samp_widgets/playertablist.h"))
-            log("gui/gui.h: fix include case playertablist.h untuk Linux")
 
     rgba_cpp = repo / "app/src/main/cpp/samp/game/rgba.cpp"
     if rgba_cpp.exists():
         rtxt = read(rgba_cpp)
         if '#include "RGBA.h"' in rtxt:
             write(rgba_cpp, rtxt.replace('#include "RGBA.h"', '#include "rgba.h"'))
-            log("game/rgba.cpp: fix include case rgba.h untuk Linux")
 
 
 def sync_gate_pwn(pwn_path: Path, tag: str, key: str):
@@ -809,72 +916,75 @@ def sync_gate_pwn(pwn_path: Path, tag: str, key: str):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Lockdown client SA-MP Mobile ke satu server + siapin CI")
-    ap.add_argument("--repo", required=True, help="folder hasil git clone fork kuzia15/SAMP-Mobile")
+    ap = argparse.ArgumentParser(description="Lockdown & Hardening client SA-MP Mobile")
+    ap.add_argument("--repo", required=True, help="folder repo SAMP-Mobile")
     ap.add_argument("--host", required=True, help="IP atau domain server lu")
-    ap.add_argument("--port", type=int, default=7777, help="Port UDP server SA-MP (default: 7777)")
-    ap.add_argument("--tag", default="MYSRV-1.7", help="tag client, maks 25 char (dibaca GetPlayerVersion)")
-    ap.add_argument("--name", default="Warga_Baru", help="nickname default (tanpa spasi)")
-    ap.add_argument("--key", default="0x5A3C9E71", help="kunci hex 32-bit untuk Handshake Lapis 3")
-    ap.add_argument("--app-name", default="SA-MP Private", help="nama aplikasi di HP pemain")
-    ap.add_argument("--brand", default="MyServer RP", help="branding yang tampil di launcher")
-    ap.add_argument("--strip-firebase", action="store_true", default=True, help="matiin Firebase/Crashlytics")
+    ap.add_argument("--port", type=int, default=7777, help="Port UDP server SA-MP")
+    ap.add_argument("--tag", default="XYSAMP-1.0", help="tag client, maks 25 char")
+    ap.add_argument("--name", default="Warga_XyVerse", help="nickname default")
+    ap.add_argument("--key", default="0x9F4E7C2B", help="kunci hex 32-bit untuk Handshake Lapis 3")
+    ap.add_argument(
+        "--cert-sha256",
+        default="93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c",
+        help="SHA-256 cert fingerprint dari Official Release Keystore",
+    )
+    ap.add_argument("--app-name", default="XySAMP Mobile", help="nama aplikasi di HP")
+    ap.add_argument("--brand", default="XyVerse Roleplay", help="branding di launcher")
+    ap.add_argument("--strip-firebase", action="store_true", default=True)
     args = ap.parse_args()
 
     repo = Path(args.repo).expanduser().resolve()
     if not (repo / "app/src/main/cpp/samp").exists():
-        fail(f"{repo} kayaknya bukan repo SAMP-Mobile (app/src/main/cpp/samp nggak ada)")
+        fail(f"{repo} bukan repo SAMP-Mobile")
 
     if len(args.tag) > 25:
-        fail(f"tag '{args.tag}' kepanjangan ({len(args.tag)} char). Server SA-MP cuma nyimpen maks 25 char.")
+        fail(f"tag '{args.tag}' kepanjangan ({len(args.tag)} char). Maks 25 char.")
 
     if not re.match(r"^0x[0-9A-Fa-f]{1,8}$", args.key):
-        fail(f"--key '{args.key}' harus format hex 32-bit (contoh: 0x5A3C9E71)")
+        fail(f"--key '{args.key}' harus hex 32-bit (contoh: 0x9F4E7C2B)")
 
     clean_name = sanitize_nick(args.name)
+    key_int = int(args.key, 16)
+    xor_seed = ((key_int & 0xFF) ^ ((key_int >> 8) & 0xFF) ^ 0xA7) & 0xFF
+    if xor_seed == 0:
+        xor_seed = 0xA7
 
-    print(f"\n=== LOCKDOWN CLIENT -> {args.host}:{args.port} | tag={args.tag} | key={args.key} ===\n")
+    enc_host, len_host = xor_encode_bytes(args.host, xor_seed)
+    enc_tag, len_tag = xor_encode_bytes(args.tag, xor_seed)
+    enc_name, len_name = xor_encode_bytes(clean_name, xor_seed)
 
-    # 1. tulis lockdown.h
-    tpl_path = repo / "client-patch/lockdown.h.template"
-    if not tpl_path.exists():
-        tpl_path = TEMPLATE
+    print(f"\n=== LOCKDOWN + HARDENING CLIENT (port={args.port}, xor_seed=0x{xor_seed:02X}) ===\n")
+
+    tpl_path = TEMPLATE if TEMPLATE.exists() else (repo / "client-patch/lockdown.h.template")
     if not tpl_path.exists():
         fail("template lockdown.h.template nggak ketemu")
-
     tpl = read(tpl_path)
     h = (
-        tpl.replace("@HOST@", args.host)
-        .replace("@PORT@", str(args.port))
-        .replace("@TAG@", args.tag)
-        .replace("@NAME@", clean_name)
+        tpl.replace("@PORT@", str(args.port))
         .replace("@KEY@", args.key)
+        .replace("@XOR_SEED@", f"0x{xor_seed:02X}u")
+        .replace("@ENC_HOST_BYTES@", enc_host)
+        .replace("@ENC_HOST_LEN@", str(len_host))
+        .replace("@ENC_TAG_BYTES@", enc_tag)
+        .replace("@ENC_TAG_LEN@", str(len_tag))
+        .replace("@ENC_NAME_BYTES@", enc_name)
+        .replace("@ENC_NAME_LEN@", str(len_name))
     )
     out = repo / "app/src/main/cpp/samp/lockdown.h"
     write(out, h)
-    log(f"lockdown.h ditulis -> {out.relative_to(repo)}")
+    log(f"lockdown.h ditulis (XOR-encoded host/tag/nick + Anti-Tamper) -> {out.relative_to(repo)}")
 
-    # 2. patch settings.cpp
-    patch_settings_cpp(repo, args.host, args.port, args.tag)
-
-    # 3. patch netrpc.cpp (Lapis 3 Handshake)
+    patch_settings_cpp(repo, args.port)
     patch_netrpc_cpp(repo)
-
-    # 4. patch launcher MainActivity.java + main_activity.xml (Input Nickname)
-    patch_launcher_nickname(repo, args.host, args.port, args.tag, clean_name)
-
-    # 5. patch strings.xml (branding)
+    patch_launcher_nickname(repo, args.port, clean_name, args.cert_sha256)
     patch_strings(repo, args.app_name, args.brand)
+    patch_gradle_r8_and_security(repo, args.strip_firebase)
 
-    # 6. patch gradle + signing + strip firebase
-    patch_gradle_and_firebase(repo, args.strip_firebase)
-
-    # 7. sinkronisasi server/gate_client.pwn
     for pwn_candidate in [DEFAULT_PWN, repo / "server/gate_client.pwn"]:
         if pwn_candidate.exists():
             sync_gate_pwn(pwn_candidate, args.tag, args.key)
 
-    print("\n=== SELESAI & SIAP BUILD (LOCAL / GITHUB ACTIONS) ===\n")
+    print("\n=== HARDENING SELESAI ===\n")
 
 
 if __name__ == "__main__":

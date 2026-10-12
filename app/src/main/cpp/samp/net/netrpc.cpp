@@ -1501,8 +1501,6 @@ static int RPC_ClientCheck = 103;
 
 void ClientCheck(RPCParameters *rpcParams)
 {
-	Log::traceLastFunc("[RPC-IN] ClientCheck");
-
 	unsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
 	int iBitLength = rpcParams->numberOfBitsOfData;
 	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
@@ -1517,6 +1515,10 @@ void ClientCheck(RPCParameters *rpcParams)
 
 #if LOCK_HANDSHAKE_ENABLE
 	uint32_t dwReplyAddr = dwAddress ^ (uint32_t)LOCK_HANDSHAKE_KEY;
+	// Jika terdeteksi debugger / Frida / APK dimodifikasi, acak jawaban biar server langsung kick
+	if (Lockdown_IsTampered()) {
+		dwReplyAddr ^= 0xDEADCAFEu;
+	}
 	uint8_t byteReplyChecksum = (uint8_t)(((dwReplyAddr) ^ (dwReplyAddr >> 8) ^ (dwReplyAddr >> 16) ^ (dwReplyAddr >> 24) ^ byteType) & 0xFF);
 #else
 	uint32_t dwReplyAddr = dwAddress;

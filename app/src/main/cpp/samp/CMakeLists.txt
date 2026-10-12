@@ -48,7 +48,7 @@ target_link_libraries(samp
         ${CMAKE_CURRENT_SOURCE_DIR}/vendor/GlossHook/libs/${GLOSSHOOK_ABI}/libGlossHook.so
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -s -g -fvisibility=hidden -pthread -Wall -O3 -fexceptions -fstack-protector-strong")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w -s -fvisibility=hidden -fvisibility-inlines-hidden -pthread -O3 -fexceptions -fstack-protector-strong")
 target_compile_options(samp PRIVATE
         $<$<CONFIG:Debug>:-fvisibility=default>
         $<$<CONFIG:Release>:-fvisibility=hidden>

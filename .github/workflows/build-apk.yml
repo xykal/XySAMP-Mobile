@@ -1,19 +1,17 @@
-name: Build SA-MP Mobile Private APK
+name: Build XySAMP Official Signed APK
 
 on:
   push:
     branches:
       - main
-      - master
-      - GTA-2.11
     tags:
       - "v*"
   workflow_dispatch:
     inputs:
       server_host:
-        description: "IP / Domain Server SA-MP (kosongin kalau mau pakai yg udah di-patch di repo)"
+        description: "IP / Domain Server SA-MP"
         required: false
-        default: ""
+        default: "play.xyverse.my.id"
         type: string
       server_port:
         description: "Port UDP Server SA-MP"
@@ -21,19 +19,14 @@ on:
         default: "7777"
         type: string
       client_tag:
-        description: "Tag Versi Client (maks 25 char, wajib sama di gate_client.pwn)"
+        description: "Tag Versi Client (kosongin = pakai PROD_CLIENT_TAG dari Secrets)"
         required: false
-        default: "XYSAMP-1.0"
+        default: ""
         type: string
       default_nick:
         description: "Nickname default (tanpa spasi)"
         required: false
         default: "Warga_XyVerse"
-        type: string
-      handshake_key:
-        description: "Kunci Handshake Lapis 3 (format hex 32-bit, contoh: 0x5A3C9E71)"
-        required: false
-        default: "0x5A3C9E71"
         type: string
       app_name:
         description: "Nama Aplikasi di HP"
@@ -51,11 +44,27 @@ permissions:
 
 jobs:
   build-apk:
-    name: Compile Native C++ (ARM64) & Build APK
+    name: Build Official Signed + R8 Hardened APK (Restricted to xykal)
+    # HANYA jalan kalau dijalankan oleh owner (xykal) atau pemegang token xykal di repo asli
+    if: github.repository == 'xykal/XySAMP-Mobile' && github.actor == 'xykal'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
     steps:
+      - name: Verifikasi Otorisasi Owner & Token
+        env:
+          HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        run: |
+          if [ "${GITHUB_ACTOR}" != "xykal" ] || [ "${GITHUB_REPOSITORY}" != "xykal/XySAMP-Mobile" ]; then
+            echo "::error::Akses ditolak: Workflow ini hanya boleh dijalankan oleh xykal / pemegang token resmi."
+            exit 1
+          fi
+          if [ "${HAS_KEYSTORE}" != "true" ]; then
+            echo "::error::Official Keystore Secret (KEYSTORE_BASE64) tidak ditemukan."
+            exit 1
+          fi
+          echo "Otorisasi valid: Actor=${GITHUB_ACTOR}"
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -65,18 +74,37 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Terapkan Parameter Custom (jika dijalankan lewat tombol Run Workflow)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.server_host != '' }}
+      - name: Inject Production Secrets, XOR Obfuscation, Cert Pinning & R8 Config
+        env:
+          SECRET_TAG: ${{ secrets.PROD_CLIENT_TAG }}
+          SECRET_KEY: ${{ secrets.PROD_HANDSHAKE_KEY }}
+          SECRET_CERT: ${{ secrets.CERT_SHA256 }}
+          IN_HOST: ${{ inputs.server_host }}
+          IN_PORT: ${{ inputs.server_port }}
+          IN_TAG: ${{ inputs.client_tag }}
+          IN_NICK: ${{ inputs.default_nick }}
+          IN_APP: ${{ inputs.app_name }}
+          IN_BRAND: ${{ inputs.brand_name }}
         run: |
+          HOST="${IN_HOST:-play.xyverse.my.id}"
+          PORT="${IN_PORT:-7777}"
+          TAG="${IN_TAG:-${SECRET_TAG:-XYSAMP-1.0}}"
+          NICK="${IN_NICK:-Warga_XyVerse}"
+          KEY="${SECRET_KEY:-0x9F4E7C2B}"
+          CERT="${SECRET_CERT:-93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c}"
+          APP="${IN_APP:-XySAMP Mobile}"
+          BRAND="${IN_BRAND:-XyVerse Roleplay}"
+
           python3 tools/lockdown.py \
             --repo . \
-            --host "${{ inputs.server_host }}" \
-            --port "${{ inputs.server_port }}" \
-            --tag "${{ inputs.client_tag }}" \
-            --name "${{ inputs.default_nick }}" \
-            --key "${{ inputs.handshake_key }}" \
-            --app-name "${{ inputs.app_name }}" \
-            --brand "${{ inputs.brand_name }}" \
+            --host "$HOST" \
+            --port "$PORT" \
+            --tag "$TAG" \
+            --name "$NICK" \
+            --key "$KEY" \
+            --cert-sha256 "$CERT" \
+            --app-name "$APP" \
+            --brand "$BRAND" \
             --strip-firebase
 
       - name: Setup Android SDK 36 & NDK 26.2.11394342
@@ -91,53 +119,41 @@ jobs:
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Siapkan Keystore Release (dari GitHub Secrets atau Auto-Generate)
+      - name: Load Official Release Keystore ke RAM (/dev/shm)
+        env:
+          KS_B64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            echo "Menggunakan KEYSTORE_BASE64 dari GitHub Secrets..."
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/app/release.keystore"
-            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/app/release.keystore" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
-          else
-            echo "KEYSTORE_BASE64 belum diset di Secrets -> membuat release.keystore otomatis..."
-            keytool -genkeypair -v \
-              -keystore "$GITHUB_WORKSPACE/app/release.keystore" \
-              -alias release \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass android123 \
-              -keypass android123 \
-              -dname "CN=SAMP Private Client, OU=Mobile, O=PrivateServer, L=Jakarta, S=DKI, C=ID"
-            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/app/release.keystore" >> $GITHUB_ENV
-            echo "KEYSTORE_PASSWORD=android123" >> $GITHUB_ENV
-            echo "KEY_ALIAS=release" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android123" >> $GITHUB_ENV
-          fi
+          echo "$KS_B64" | base64 --decode > /dev/shm/xysamp-official.jks
+          chmod 600 /dev/shm/xysamp-official.jks
+          echo "KEYSTORE_FILE=/dev/shm/xysamp-official.jks" >> $GITHUB_ENV
 
-      - name: Build Signed Release APK
+      - name: Build Official Signed + R8 Minified Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Bundel Paket Jadi 1 (APK Client + Gate Server + Keystore)
+      - name: Hapus Keystore dari RAM (Anti-Leak)
+        if: always()
         run: |
+          shred -u /dev/shm/xysamp-official.jks 2>/dev/null || rm -f /dev/shm/xysamp-official.jks
+
+      - name: Verifikasi Signature APK Resmi (apksigner)
+        run: |
+          APK_FILE=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs -v "$APK_FILE"
           mkdir -p dist-paket
-          cp app/build/outputs/apk/release/*.apk dist-paket/ 2>/dev/null || true
-          cp app/build/outputs/apk/debug/*.apk dist-paket/ 2>/dev/null || true
-          cp server/gate_client.pwn dist-paket/ 2>/dev/null || true
-          cp settings.ini.example dist-paket/ 2>/dev/null || true
-          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ] && [ -f "$GITHUB_WORKSPACE/app/release.keystore" ]; then
-            cp "$GITHUB_WORKSPACE/app/release.keystore" dist-paket/release.keystore
-            base64 -w 0 "$GITHUB_WORKSPACE/app/release.keystore" > dist-paket/release.keystore.base64.txt
-          fi
+          cp "$APK_FILE" dist-paket/XySAMP-Mobile-Official-Signed.apk
           ls -lh dist-paket/
 
-      - name: Upload Artifact (Paket Client APK + Server Gate)
+      - name: Upload Artifact Resmi (Hanya APK Signed, Keystore Tidak Di-expose)
         uses: actions/upload-artifact@v4
         with:
-          name: Paket-SAMP-Mobile-Client-dan-Server-Gate
-          path: dist-paket/*
+          name: XySAMP-Mobile-Official-Signed-APK
+          path: dist-paket/XySAMP-Mobile-Official-Signed.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -146,6 +162,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist-paket/*.apk
-            dist-paket/gate_client.pwn
+            dist-paket/XySAMP-Mobile-Official-Signed.apk
           generate_release_notes: true

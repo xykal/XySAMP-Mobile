@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.Signature;
+import android.content.pm.SigningInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,7 +15,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
@@ -35,6 +37,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,10 +45,11 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREFS_NAME = "samp_launcher_prefs";
     private static final String KEY_NICKNAME = "player_nickname";
     private static final String INI_PATH = "/storage/emulated/0/GTA/SAMP/settings.ini";
+    private static final String TAMPER_FILE = "/storage/emulated/0/GTA/SAMP/.tampered";
     private static final String DEFAULT_NICK = "Warga_XyVerse";
-    private static final String LOCKED_HOST = "play.xyverse.my.id";
     private static final int LOCKED_PORT = 7777;
-    private static final String LOCKED_TAG = "XYSAMP-1.0";
+    // SHA-256 Official Release Keystore Pinning (Anti-Repackage / Anti-Mod APK)
+    private static final String EXPECTED_CERT_SHA256 = "93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private Button startButton;
@@ -95,13 +99,63 @@ public class MainActivity extends AppCompatActivity {
             setFullScreenMode();
             setContentView(R.layout.main_activity);
             initViews();
+            if (!verifyOfficialSignature()) {
+                markTampered(true);
+                Toast.makeText(this, "PERINGATAN: APK telah dimodifikasi / bukan rilis resmi!", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            } else {
+                markTampered(false);
+            }
             loadSavedNickname();
             setupClickListeners();
             checkAndRequestStoragePermission();
         } catch (Exception e) {
-            Log.e("MainActivity", "Critical error in onCreate: " + e.getMessage(), e);
             finish();
         }
+    }
+
+    private boolean verifyOfficialSignature() {
+        if (EXPECTED_CERT_SHA256 == null || EXPECTED_CERT_SHA256.isEmpty()) {
+            return true;
+        }
+        try {
+            PackageInfo pkgInfo = getPackageManager().getPackageInfo(
+                    getPackageName(),
+                    PackageManager.GET_SIGNING_CERTIFICATES
+            );
+            SigningInfo signingInfo = pkgInfo.signingInfo;
+            if (signingInfo == null) return false;
+            Signature[] sigs = signingInfo.hasMultipleSigners()
+                    ? signingInfo.getApkContentsSigners()
+                    : signingInfo.getSigningCertificateHistory();
+            if (sigs == null || sigs.length == 0) return false;
+
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(sigs[0].toByteArray());
+            StringBuilder hex = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                hex.append(String.format("%02x", b & 0xff));
+            }
+            return EXPECTED_CERT_SHA256.equalsIgnoreCase(hex.toString());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void markTampered(boolean tampered) {
+        try {
+            File f = new File(TAMPER_FILE);
+            if (tampered) {
+                File p = f.getParentFile();
+                if (p != null && !p.exists()) p.mkdirs();
+                try (FileOutputStream fos = new FileOutputStream(f)) {
+                    fos.write(1);
+                }
+            } else if (f.exists()) {
+                f.delete();
+            }
+        } catch (Exception ignored) { }
     }
 
     private void initViews() {
@@ -162,12 +216,13 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if (!ini.exists()) {
+                // Jangan pernah tulis IP atau Tag rahasia ke settings.ini
                 String content = "[client]\n"
                         + "name=" + nick + "\n"
-                        + "host=" + LOCKED_HOST + "\n"
+                        + "host=127.0.0.1\n"
                         + "port=" + LOCKED_PORT + "\n"
                         + "password=\n"
-                        + "version=" + LOCKED_TAG + "\n"
+                        + "version=0.3.7\n"
                         + "autoaim=false\n\n"
                         + "[debug]\n"
                         + "debug=false\n"
@@ -207,7 +262,6 @@ public class MainActivity extends AppCompatActivity {
             }
             return true;
         } catch (Exception e) {
-            Log.e("MainActivity", "Gagal simpan settings.ini: " + e.getMessage());
             return false;
         }
     }
@@ -278,9 +332,7 @@ public class MainActivity extends AppCompatActivity {
             if (getSupportActionBar() != null) {
                 getSupportActionBar().hide();
             }
-        } catch (Exception e) {
-            Log.e("MainActivity", "Error in setFullScreenMode: " + e.getMessage());
-        }
+        } catch (Exception ignored) { }
     }
 
     @Override
@@ -292,6 +344,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startGame() {
+        if (!verifyOfficialSignature()) {
+            markTampered(true);
+            Toast.makeText(this, "APK tidak resmi / telah dimodifikasi!", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
         String rawNick = (nicknameInput != null) ? nicknameInput.getText().toString() : "";
         String nick = sanitizeNick(rawNick);
         if (nick.isEmpty()) {
