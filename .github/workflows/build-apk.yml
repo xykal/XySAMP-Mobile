@@ -1,0 +1,151 @@
+name: Build SA-MP Mobile Private APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - GTA-2.11
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      server_host:
+        description: "IP / Domain Server SA-MP (kosongin kalau mau pakai yg udah di-patch di repo)"
+        required: false
+        default: ""
+        type: string
+      server_port:
+        description: "Port UDP Server SA-MP"
+        required: false
+        default: "7777"
+        type: string
+      client_tag:
+        description: "Tag Versi Client (maks 25 char, wajib sama di gate_client.pwn)"
+        required: false
+        default: "XYSAMP-1.0"
+        type: string
+      default_nick:
+        description: "Nickname default (tanpa spasi)"
+        required: false
+        default: "Warga_XyVerse"
+        type: string
+      handshake_key:
+        description: "Kunci Handshake Lapis 3 (format hex 32-bit, contoh: 0x5A3C9E71)"
+        required: false
+        default: "0x5A3C9E71"
+        type: string
+      app_name:
+        description: "Nama Aplikasi di HP"
+        required: false
+        default: "XySAMP Mobile"
+        type: string
+      brand_name:
+        description: "Nama Brand / Server di Launcher"
+        required: false
+        default: "XyVerse Roleplay"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Compile Native C++ (ARM64) & Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Terapkan Parameter Custom (jika dijalankan lewat tombol Run Workflow)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.server_host != '' }}
+        run: |
+          python3 tools/lockdown.py \
+            --repo . \
+            --host "${{ inputs.server_host }}" \
+            --port "${{ inputs.server_port }}" \
+            --tag "${{ inputs.client_tag }}" \
+            --name "${{ inputs.default_nick }}" \
+            --key "${{ inputs.handshake_key }}" \
+            --app-name "${{ inputs.app_name }}" \
+            --brand "${{ inputs.brand_name }}" \
+            --strip-firebase
+
+      - name: Setup Android SDK 36 & NDK 26.2.11394342
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-36" \
+            "build-tools;35.0.0" \
+            "ndk;26.2.11394342" \
+            "cmake;3.22.1"
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Siapkan Keystore Release (dari GitHub Secrets atau Auto-Generate)
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "Menggunakan KEYSTORE_BASE64 dari GitHub Secrets..."
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "$GITHUB_WORKSPACE/app/release.keystore"
+            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/app/release.keystore" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+          else
+            echo "KEYSTORE_BASE64 belum diset di Secrets -> membuat release.keystore otomatis..."
+            keytool -genkeypair -v \
+              -keystore "$GITHUB_WORKSPACE/app/release.keystore" \
+              -alias release \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android123 \
+              -keypass android123 \
+              -dname "CN=SAMP Private Client, OU=Mobile, O=PrivateServer, L=Jakarta, S=DKI, C=ID"
+            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/app/release.keystore" >> $GITHUB_ENV
+            echo "KEYSTORE_PASSWORD=android123" >> $GITHUB_ENV
+            echo "KEY_ALIAS=release" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=android123" >> $GITHUB_ENV
+          fi
+
+      - name: Build Signed Release & Debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+
+      - name: Bundel Paket Jadi 1 (APK Client + Gate Server + Keystore)
+        run: |
+          mkdir -p dist-paket
+          cp app/build/outputs/apk/release/*.apk dist-paket/ 2>/dev/null || true
+          cp app/build/outputs/apk/debug/*.apk dist-paket/ 2>/dev/null || true
+          cp server/gate_client.pwn dist-paket/ 2>/dev/null || true
+          cp settings.ini.example dist-paket/ 2>/dev/null || true
+          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ] && [ -f "$GITHUB_WORKSPACE/app/release.keystore" ]; then
+            cp "$GITHUB_WORKSPACE/app/release.keystore" dist-paket/release.keystore
+            base64 -w 0 "$GITHUB_WORKSPACE/app/release.keystore" > dist-paket/release.keystore.base64.txt
+          fi
+          ls -lh dist-paket/
+
+      - name: Upload Artifact (Paket Client APK + Server Gate)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Paket-SAMP-Mobile-Client-dan-Server-Gate
+          path: dist-paket/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish ke GitHub Releases (jika push tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist-paket/*.apk
+            dist-paket/gate_client.pwn
+          generate_release_notes: true
