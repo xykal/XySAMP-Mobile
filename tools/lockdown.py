@@ -767,6 +767,21 @@ def patch_gradle_and_firebase(repo: Path, strip_fb: bool):
         cpp_zip.unlink()
         log("app/src/main/cpp/cpp.zip (7.2MB arsip duplikat) dihapus biar repo ringan")
 
+    # Fix case-sensitive header includes untuk build di Linux (GitHub Actions)
+    gui_h = repo / "app/src/main/cpp/samp/gui/gui.h"
+    if gui_h.exists():
+        gtxt = read(gui_h)
+        if "samp_widgets/playerTabList.h" in gtxt:
+            write(gui_h, gtxt.replace("samp_widgets/playerTabList.h", "samp_widgets/playertablist.h"))
+            log("gui/gui.h: fix include case playertablist.h untuk Linux")
+
+    rgba_cpp = repo / "app/src/main/cpp/samp/game/rgba.cpp"
+    if rgba_cpp.exists():
+        rtxt = read(rgba_cpp)
+        if '#include "RGBA.h"' in rtxt:
+            write(rgba_cpp, rtxt.replace('#include "RGBA.h"', '#include "rgba.h"'))
+            log("game/rgba.cpp: fix include case rgba.h untuk Linux")
+
 
 def sync_gate_pwn(pwn_path: Path, tag: str, key: str):
     if not pwn_path.exists():
