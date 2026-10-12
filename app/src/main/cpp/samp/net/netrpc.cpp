@@ -1,10 +1,10 @@
+#include "../lockdown.h"
 #include "../main.h"
 #include "../game/game.h"
 #include "netgame.h"
 #include "../gui/gui.h"
 #include "../vendor/encoding/encoding.h"
 #include "../settings.h"
-#include "../lockdown.h"
 
 extern UI* pUI;
 extern CGame *pGame;
@@ -151,13 +151,13 @@ void InitGame(RPCParameters* rpcParams)
 	Log::addParameter("szHostName", pNetGame->m_szHostName);
 	Log::addParameter("iVehicleFriendlyFire", pNetGame->m_pNetSet->iVehicleFriendlyFire);
 
-	//if (pUI) pUI->chat()->addDebugMessage("Connected to {B9C9BF}%.64s", Encoding::cp2utf(pNetGame->m_szHostName).c_str());
+	if (pUI) pUI->chat()->addDebugMessage("Connected to {B9C9BF}%.64s", Encoding::cp2utf(pNetGame->m_szHostName).c_str());
 
 	pNetGame->SetGameState(GAMESTATE_CONNECTED);
 
 	pPlayerPool->GetLocalPlayer()->HandleClassSelection();
 
-
+	
 	if (pUI) {
 		pUI->voicebutton()->setVisible(true);
 	}
@@ -177,10 +177,6 @@ void InitGame(RPCParameters* rpcParams)
 }
 // 0.3.7
 #include "java/jniutil.h"
-#include "actorpool.h"
-#include "pickuppool.h"
-#include "textlabelpool.h"
-
 extern CJavaWrapper* pJavaWrapper;
 int Button2Show;
 void DialogBox(RPCParameters *rpcParams)
@@ -223,7 +219,7 @@ void DialogBox(RPCParameters *rpcParams)
 	Log::addParameter("szButton1", szButton1);
 	Log::addParameter("szButton2", szButton2);
 	Log::addParameter("szMessage", szMessage);
-
+	
 	/*if (wDialogID == 65535 || wDialogID < 0) //Fix Blank Dialog
 	{
 		pNetGame->SendDialogResponse(wDialogID, 1, -1, " ");
@@ -233,27 +229,27 @@ void DialogBox(RPCParameters *rpcParams)
 	DialogStyle style;
 	switch (byteDialogStyle)
 	{
-		case 0:
-			style = DialogStyle::MSGBOX;
-			break;
-		case 1:
-			style = DialogStyle::INPUT;
-			break;
-		case 2:
-			style = DialogStyle::LIST;
-			break;
-		case 3:
-			style = DialogStyle::PASSWORD;
-			break;
-		case 4:
-			style = DialogStyle::TABLIST;
-			break;
-		case 5:
-			style = DialogStyle::TABLIST_HEADERS;
-			break;
+	case 0:
+		style = DialogStyle::MSGBOX;
+		break;
+	case 1:
+		style = DialogStyle::INPUT;
+		break;
+	case 2:
+		style = DialogStyle::LIST;
+		break;
+	case 3:
+		style = DialogStyle::PASSWORD;
+		break;
+	case 4:
+		style = DialogStyle::TABLIST;
+		break;
+	case 5:
+		style = DialogStyle::TABLIST_HEADERS;
+		break;
 	}
 
-	if (pUI)
+	if (pUI) 
 	{
 		if (strcmp(szButton2, "") == 0)
 		{
@@ -296,10 +292,10 @@ void Chat(RPCParameters *rpcParams)
 	Log::addParameter("szMessage", szMessage);
 
 	CPlayerPool *pPlayerPool = pNetGame->GetPlayerPool();
-	if (playerId == pPlayerPool->GetLocalPlayerID())
+	if (playerId == pPlayerPool->GetLocalPlayerID()) 
 	{
 		if (pUI) pUI->chat()->addChatMessage(Encoding::cp2utf(szMessage),
-											 pPlayerPool->GetLocalPlayerName(), UI::fixcolor(pPlayerPool->GetLocalPlayer()->GetPlayerColorAsRGBA()));
+			pPlayerPool->GetLocalPlayerName(), UI::fixcolor(pPlayerPool->GetLocalPlayer()->GetPlayerColorAsRGBA()));
 	}
 	else {
 		CRemotePlayer *pRemotePlayer = pPlayerPool->GetAt(playerId);
@@ -319,7 +315,7 @@ void ClientMessage(RPCParameters *rpcParams)
 	uint32_t dwColor, dwStrLen;
 	char szMsg[256];
 	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
-
+	
 	memset(szMsg, 0, 256);
 	bsData.Read(dwColor);
 	bsData.Read(dwStrLen);
@@ -406,9 +402,14 @@ void ToggleClock(RPCParameters *rpcParams)
 	bsData.Read(byteClock);
 	Log::addParameter("byteClock", byteClock);
 
-	pNetGame->m_pNetSet->byteHoldTime = true;
-	pGame->GetWorldTime((int*)&pNetGame->m_pNetSet->byteWorldTime_Hour,
-	(int*)&pNetGame->m_pNetSet->byteWorldTime_Minute);
+	if (byteClock) {
+		pNetGame->m_pNetSet->byteHoldTime = false;
+	}
+	else {
+		pNetGame->m_pNetSet->byteHoldTime = true;
+		pGame->GetWorldTime((int*)&pNetGame->m_pNetSet->byteWorldTime_Hour, 
+			(int*)&pNetGame->m_pNetSet->byteWorldTime_Minute);
+	}
 }
 // 0.3.7
 void SetTimeEx(RPCParameters *rpcParams)
@@ -442,9 +443,9 @@ void Weather(RPCParameters *rpcParams)
 
 	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
 	uint8_t byteWeather;
-
+	
 	bsData.Read(byteWeather);
-
+	
 	Log::addParameter("byteWeather", byteWeather);
 
 	pNetGame->m_pNetSet->byteWeather = byteWeather;
@@ -575,7 +576,7 @@ void ServerQuit(RPCParameters *rpcParams)
 // 0.3.7
 void WorldPlayerAdd(RPCParameters *rpcParams)
 {
-	Log("[RPC-IN] World player add");
+	FLog("[RPC-IN] World player add");
 
 	unsigned char * Data = reinterpret_cast<unsigned char *>(rpcParams->input);
 	int iBitLength = rpcParams->numberOfBitsOfData;
@@ -628,11 +629,11 @@ void WorldPlayerAdd(RPCParameters *rpcParams)
 	if (pPlayerPool)
 	{
 		pRemotePlayer = pPlayerPool->GetAt(playerId);
-		if (pRemotePlayer)
+		if (pRemotePlayer) 
 		{
 			if (pRemotePlayer->Spawn(byteTeam, iSkin, &vecPos, fRotation, dwColor, byteFightingStyle))
 			{
-                Log("WorldPlayerAdd");
+                FLog("WorldPlayerAdd");
 				pPlayerPed = pRemotePlayer->GetPlayerPed();
 				if (pPlayerPed)
 				{
@@ -830,13 +831,13 @@ void WorldVehicleRemove(RPCParameters* rpcParams)
 	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		CRemotePlayer* pRemotePlayer = pPlayerPool->GetAt(i);
-		if (pRemotePlayer)
+		if (pRemotePlayer) 
 		{
 			CPlayerPed* pPlayerPed = pRemotePlayer->GetPlayerPed();
 
 			if (pRemotePlayer->GetPlayerPed() &&
 				pRemotePlayer->GetState() != PLAYER_STATE_NONE &&
-				pRemotePlayer->m_pCurrentVehicle == pVehicle)
+				pRemotePlayer->m_pCurrentVehicle == pVehicle) 
 			{
 				pRemotePlayer->RemoveFromVehicle();
 			}
@@ -905,7 +906,7 @@ void ScmEvent(RPCParameters *rpcParams)
 	Log::addParameter("dwParam1", dwParam1);
 	Log::addParameter("dwParam2", dwParam2);
 	Log::addParameter("dwParam3", dwParam3);
-
+	
 	ProcessIncommingEvent(playerId, iEvent, dwParam1, dwParam2, dwParam3);
 }
 // 0.3.7
@@ -927,7 +928,7 @@ void UpdateScoresPingsIPs(RPCParameters *rpcParams)
 		bsData.Read(iPlayerScore);
 		bsData.Read(iPlayerPing);
 
-		Log("RPC_PINGIP: (%d): score: %d, ping: %d", playerId, iPlayerScore, iPlayerPing);
+		FLog("RPC_PINGIP: (%d): score: %d, ping: %d", playerId, iPlayerScore, iPlayerPing);
 
 		pPlayerPool->UpdatePlayerScore(playerId, iPlayerScore);
 		pPlayerPool->UpdatePlayerPing(playerId, iPlayerPing);
@@ -1017,9 +1018,9 @@ void Update3DTextLabel(RPCParameters* rpcParams)
 	uint16_t wLabelId;
 	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
 	bsData.Read(wLabelId);
-
+	
 	if (pTextLabelPool->GetSlotState(wLabelId)) {
-		pTextLabelPool->ClearLabel(wLabelId);
+			pTextLabelPool->ClearLabel(wLabelId);
 	}
 }
 // 0.3.7
@@ -1081,11 +1082,9 @@ void SetRaceCheckpoint(RPCParameters* rpcParams)
 // 0.3.7
 void DisableRaceCheckpoint(RPCParameters* rpcParams)
 {
-    if(pGame->m_bRaceCheckpointsEnabled)
-    {
-        Log::traceLastFunc("[RPC-IN] Disable race checkpoint");
-        pGame->DisableRaceCheckpoint();
-    }
+	Log::traceLastFunc("[RPC-IN] Disable race checkpoint");
+
+	pGame->m_bRaceCheckpointsEnabled = false;
 }
 // 0.3.7
 void DamageVehicle(RPCParameters *rpcParams)
@@ -1396,7 +1395,6 @@ void HideActor(RPCParameters* rpcParams)
 	pActorPool->Delete(ActorID);
 }
 
-
 void ChatBubble(RPCParameters* rpcParams)
 {
 	Log::traceLastFunc("RPC: ChatBubble");
@@ -1475,7 +1473,7 @@ void EditAttachedObject(RPCParameters *rpcParams) {
 
 	CObjectEditor::startEditPlayerAttach(index);
 
-	Log("RPC: EditAttachedObject %d", index);
+	FLog("RPC: EditAttachedObject %d", index);
 }
 
 void EditObject(RPCParameters *rpcParams) {
@@ -1492,54 +1490,56 @@ void EditObject(RPCParameters *rpcParams) {
 
 	CObjectEditor::startEditObject(objectId);
 
-	Log("RPC: EditObject %d", objectId);
+	FLog("RPC: EditObject %d", objectId);
 }
 
 
-// >>> LOCKDOWN:HANDSHAKE-BEGIN
-static int RPC_ClientCheck = 103;
-
+// --- XySAMP Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
 void ClientCheck(RPCParameters *rpcParams)
 {
-	unsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
-	int iBitLength = rpcParams->numberOfBitsOfData;
-	RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
+    if (!pNetGame) return;
+    unsigned char* Data = reinterpret_cast<unsigned char*>(rpcParams->input);
+    int iBitLength = rpcParams->numberOfBitsOfData;
+    RakNet::BitStream bsData(Data, (iBitLength / 8) + 1, false);
 
-	uint8_t byteType = 0;
-	uint32_t dwAddress = 0;
-	uint16_t wOffset = 0;
-	uint16_t wCount = 0;
+    uint8_t byteType = 0;
+    uint32_t dwAddress = 0;
+    uint16_t wOffset = 0, wCount = 0;
 
-	if (!bsData.Read(byteType) || !bsData.Read(dwAddress) || !bsData.Read(wOffset) || !bsData.Read(wCount))
-		return;
+    if (!bsData.Read(byteType)) return;
+    if (!bsData.Read(dwAddress)) return;
+    bsData.Read(wOffset);
+    bsData.Read(wCount);
 
-#if LOCK_HANDSHAKE_ENABLE
-	uint32_t dwReplyAddr = dwAddress ^ (uint32_t)LOCK_HANDSHAKE_KEY;
-	// Jika terdeteksi debugger / Frida / APK dimodifikasi, acak jawaban biar server langsung kick
-	if (Lockdown_IsTampered()) {
-		dwReplyAddr ^= 0xDEADCAFEu;
-	}
-	uint8_t byteReplyChecksum = (uint8_t)(((dwReplyAddr) ^ (dwReplyAddr >> 8) ^ (dwReplyAddr >> 16) ^ (dwReplyAddr >> 24) ^ byteType) & 0xFF);
-#else
-	uint32_t dwReplyAddr = dwAddress;
-	uint8_t byteReplyChecksum = 0;
-#endif
+    // Type 0x48 ('H') = Custom XySAMP Handshake Challenge dari Pawn Server
+    if (byteType == 0x48) {
+        uint8_t byteResponse = XySAMP::CalcHandshakeResponse(dwAddress, wOffset, wCount);
+        uint32_t dwEcho = dwAddress ^ XySAMP::GetHandshakeSecret();
+        if (!XySAMP::IsRuntimeClean()) {
+            byteResponse ^= 0xFF;
+            dwEcho ^= 0xDEADDEADu;
+        }
+        RakNet::BitStream bsSend;
+        bsSend.Write((uint8_t)0x48);
+        bsSend.Write(dwEcho);
+        bsSend.Write(byteResponse);
+        pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+        return;
+    }
 
-	RakNet::BitStream bsSend;
-	bsSend.Write(byteType);
-	bsSend.Write(dwReplyAddr);
-	bsSend.Write(byteReplyChecksum);
-
-	if (pNetGame && pNetGame->GetRakClient()) {
-		pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
-	}
+    // Default response untuk pengecekan standar (mis. SAMP-Mobile-Checker type 2/70)
+    RakNet::BitStream bsSend;
+    bsSend.Write(byteType);
+    bsSend.Write(dwAddress);
+    bsSend.Write((uint8_t)0);
+    pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
 }
-// <<< LOCKDOWN:HANDSHAKE-END
 
 void RegisterRPCs(RakClientInterface *pRakClient)
 {
 	Log::traceLastFunc("Registering RPC's..");
     pRakClient->RegisterAsRemoteProcedureCall(&RPC_InitGame, InitGame);
+	pRakClient->RegisterAsRemoteProcedureCall(&RPC_ClientCheck, ClientCheck);
 
 	// RPC_SetPlayerSkillLevel
 	pRakClient->RegisterAsRemoteProcedureCall(&RPC_SetPlayerSkillLevel, SetPlayerSkillLevel);
@@ -1587,7 +1587,7 @@ void RegisterRPCs(RakClientInterface *pRakClient)
 	// RPC_EnterEditObject
 	// RPC_CancelEdit
 	// RPC_SetTargeting
-	pRakClient->RegisterAsRemoteProcedureCall(&RPC_ClientCheck, ClientCheck); // RPC_ClientCheckResponse
+	// RPC_ClientCheckResponse
 	pRakClient->RegisterAsRemoteProcedureCall(&RPC_ShowActor, ShowActor);							// DONE
 	pRakClient->RegisterAsRemoteProcedureCall(&RPC_HideActor, HideActor);							// DONE
 	pRakClient->RegisterAsRemoteProcedureCall(&RPC_ChatBubble, ChatBubble);
@@ -1597,7 +1597,6 @@ void UnregisterRPCs(RakClientInterface *pRakClient)
 {
 	Log::traceLastFunc("Unregistering RPC's..");
     pRakClient->UnregisterAsRemoteProcedureCall(&RPC_InitGame);
-	pRakClient->UnregisterAsRemoteProcedureCall(&RPC_ClientCheck);
 
 	pRakClient->UnregisterAsRemoteProcedureCall(&RPC_SetPlayerSkillLevel);
 	pRakClient->UnregisterAsRemoteProcedureCall(&RPC_ScrCreate3DTextLabel);

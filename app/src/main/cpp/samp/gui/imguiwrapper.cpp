@@ -1,14 +1,14 @@
-#include "main.h"
+#include "../main.h"
 #include "imguiwrapper.h"
 #include "uisettings.h"
 
-#include "game/game.h"
-#include "net/netgame.h"
+#include "../game/game.h"
+#include "../net/netgame.h"
 
 // voice
-#include "voice/MicroIcon.h"
-#include "voice/SpeakerList.h"
-#include "voice/include/util/Render.h"
+#include "../voice_new/MicroIcon.h"
+#include "../voice_new/SpeakerList.h"
+#include "../voice_new/include/util/Render.h"
 
 
 extern UI* pUI;
@@ -33,53 +33,66 @@ ImGuiWrapper::~ImGuiWrapper()
 
 bool ImGuiWrapper::initialize()
 {
-    Log::traceLastFunc("ImGuiWrapper::initialize");
+	Log::traceLastFunc("ImGuiWrapper::initialize");
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
 
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = m_displaySize;
-    io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+	ImGuiIO& io = ImGui::GetIO();
+	io.DisplaySize = m_displaySize;
+	io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
-    Log::addParameter("Loading font: %s", m_fontPath.c_str());
-    ImFontConfig fontCfg;
-    fontCfg.GlyphExtraSpacing.x = UISettings::outlineSize();
+	Log::addParameter("Loading font: %s", m_fontPath.c_str());
+	ImFontConfig fontCfg;
+	fontCfg.GlyphExtraSpacing.x = UISettings::outlineSize();
 
-    static const ImWchar ranges[] =
-            {
-                    0x0020, 0x00FF, // Basic Latin + Latin Supplement
-                    0x0400, 0x04FF, // Cyrillic + Cyrillic Supplement
-                    0x0E00, 0x0E7F, // Thai
-                    0x2DE0, 0x2DFF, // Cyrillic Extended-A
-                    0xA640, 0xA69F, // Cyrillic Extended-B
-                    0xF020, 0xF0FF,
-                    0
-            };
-
-    ImFont* font = io.Fonts->AddFontFromFileTTF(m_fontPath.c_str(),
-                                                UISettings::fontSize(), &fontCfg, ranges);
-
-    if (font == nullptr)
+	static const ImWchar ranges[] =
     {
-        Log::addParameter("font", font);
-        return false;
-    }
+        0x0020, 0x00FF, // Basic Latin + Latin Supplement
+        0x0400, 0x04FF, // Cyrillic + Cyrillic Supplement
+		0x0E00, 0x0E7F, // Thai
+        0x2DE0, 0x2DFF, // Cyrillic Extended-A
+        0xA640, 0xA69F, // Cyrillic Extended-B
+        0xF020, 0xF0FF,
+		0
+    };
+	
+	ImFont* font = nullptr;
+	const char* base = g_pszStorage ? g_pszStorage : "/storage/emulated/0/GTA/";
+	std::string candidates[] = {
+		m_fontPath,
+		std::string(base) + "SAMP/fonts/arial.ttf",
+		std::string(base) + "SAMP/fonts/Arial.ttf",
+		std::string(base) + "SAMP/fonts/arial_bold.ttf",
+		"/system/fonts/Roboto-Medium.ttf",
+		"/system/fonts/Roboto-Regular.ttf",
+		"/system/fonts/DroidSans.ttf"
+	};
+	for (const auto& cand : candidates) {
+		FILE* tf = fopen(cand.c_str(), "rb");
+		if (tf) {
+			fclose(tf);
+			font = io.Fonts->AddFontFromFileTTF(cand.c_str(), UISettings::fontSize(), &fontCfg, ranges);
+			if (font != nullptr) break;
+		}
+	}
+	if (font == nullptr) {
+		font = io.Fonts->AddFontDefault(&fontCfg);
+	}
 
-    createFontTexture();
+	createFontTexture();
 
-    m_renderer = new ImGuiRenderer(ImGui::GetBackgroundDrawList(), font);
+	m_renderer = new ImGuiRenderer(ImGui::GetBackgroundDrawList(), font);
 
-    // voice
-    /*for (const auto& deviceInitCallback : Render::deviceInitCallbacks) {
-        if (deviceInitCallback != nullptr) {
-            deviceInitCallback();
-        }
-    }*/
+	// voice 
+	/*for (const auto& deviceInitCallback : Render::deviceInitCallbacks) {
+		if (deviceInitCallback != nullptr) {
+			deviceInitCallback();
+		}
+	}*/
 
-    return true;
+	return true;
 }
-
 
 void ImGuiWrapper::render()
 {
@@ -167,7 +180,7 @@ void ImGuiWrapper::checkVertexBuffer(ImDrawData* draw_data)
 
 }
 
-#include "game/sprite2d.h"
+#include "../game/sprite2d.h"
 void ImGuiWrapper::renderDrawData(ImDrawData* draw_data)
 {
 	const RwReal nearScreenZ = CSprite2d::NearScreenZ;

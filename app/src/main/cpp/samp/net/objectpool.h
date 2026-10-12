@@ -5,21 +5,21 @@
 class CObjectPool
 {
 public:
-    CObjectPool();
-    ~CObjectPool();
+	CObjectPool();
+	~CObjectPool();
 
-    bool New(OBJECTID ObjectID, int iModel, CVector vecPos, CVector vecRot, float fDrawDistance);
-    bool Delete(OBJECTID ObjectID);
+	bool New(OBJECTID ObjectID, int iModel, CVector vecPos, CVector vecRot, float fDrawDistance);
+	bool Delete(OBJECTID ObjectID);
 
-    void Process();
+	void Process();
 
-    // 0.3.7
-    CObject* GetAt(OBJECTID ObjectID) {
-        if (ObjectID <= MAX_OBJECTS && m_bObjectSlotState[ObjectID])
-            return m_pObjects[ObjectID];
-
-        return nullptr;
-    }
+	// 0.3.7
+	CObject* GetAt(OBJECTID ObjectID) {
+		if (ObjectID <= MAX_OBJECTS && m_bObjectSlotState[ObjectID])
+			return m_pObjects[ObjectID];
+		
+		return nullptr;
+	}
 
     CObject *GetObjectFromGtaPtr(CEntityGTA *pGtaObject)
     {
@@ -36,15 +36,14 @@ public:
         return 0;
     }
 
-    OBJECTID FindIDFromGtaPtr(CPhysical* pGtaObject);
+	OBJECTID FindIDFromGtaPtr(CPhysical* pGtaObject);
 
-    CObject* FindObjectFromGtaPtr(CPhysical* pGtaObject);
+	CObject* FindObjectFromGtaPtr(CPhysical* pGtaObject);
 
-    void ProcessMaterialText();
-    int GetCount() { return m_iObjectCount; }
+	void ProcessMaterialText();
 
 private:
-    int			m_iObjectCount;
-    bool		m_bObjectSlotState[MAX_OBJECTS];
-    CObject*	m_pObjects[MAX_OBJECTS];
+	int			m_iObjectCount;
+	bool		m_bObjectSlotState[MAX_OBJECTS];
+	CObject*	m_pObjects[MAX_OBJECTS];
 };

@@ -7,8 +7,6 @@
 
 #include "../vendor/raknet/SAMP/SAMPRPC.h"
 
-class CGangZonePool;
-
 typedef unsigned short PLAYERID;
 typedef unsigned short VEHICLEID;
 typedef unsigned short OBJECTID;
@@ -62,7 +60,7 @@ class CNetGame
 {
 public:
 	CNetGame(const char* szHostOrIp, int iPort,
-			 const char* szPlayerName, const char* szPass);
+		const char* szPlayerName, const char* szPass);
 	~CNetGame();
 
 	void Process();
@@ -112,13 +110,13 @@ public:
 	RakClientInterface* GetRakClient() { return m_pRakClient; }
 	CPlayerPool* GetPlayerPool() { return m_pPools->pPlayerPool; }
 	CVehiclePool* GetVehiclePool() { return m_pPools->pVehiclePool; }
-	CObjectPool* GetObjectPool() { return m_pPools->pObjectPool; }
-	CMenuPool* GetMenuPool() { return m_pPools->pMenuPool; }
-	C3DTextLabelPool* GetTextLabelPool() { return m_pPools->pTextLabelPool; }
-	CActorPool* GetActorPool() { return m_pPools->pActorPool; }
-	CTextDrawPool* GetTextDrawPool() { return m_pPools->pTextDrawPool; }
 	CGangZonePool* GetGangZonePool() { return m_pPools->pGangZonePool; }
 	CPickupPool* GetPickupPool() { return m_pPools->pPickupPool; }
+	CObjectPool* GetObjectPool() { return m_pPools->pObjectPool; }
+	C3DTextLabelPool* GetTextLabelPool() { return m_pPools->pTextLabelPool; }
+	CTextDrawPool* GetTextDrawPool() { return m_pPools->pTextDrawPool; }
+	CActorPool* GetActorPool() { return m_pPools->pActorPool; }
+	CMenuPool* GetMenuPool() { return m_pPools->pMenuPool; }
 	CPlayerBubblePool* GetPlayerBubblePool() { return m_pPools->pPlayerBubblePool; }
 
 	void SendDialogResponse(uint16_t wDialogID, uint8_t byteButtonID, uint16_t wListBoxItem, const char* szInput);
@@ -129,7 +127,7 @@ public:
 	void SendSpawn();
 	void SendNextClass();
 
-	void Packet_CustomRPC(Packet *p);
+    void Packet_CustomRPC(Packet *p);
 
 private:
 	void InitializePools();
@@ -180,16 +178,16 @@ private:
 	struct NET_POOLS
 	{
 		CPlayerPool			*pPlayerPool;
-		CPickupPool			*pPickupPool;
-		CGangZonePool		*pGangZonePool;
 		CVehiclePool		*pVehiclePool;
+		CGangZonePool		*pGangZonePool;
+		CPickupPool			*pPickupPool;
+		CObjectPool			*pObjectPool;
 		C3DTextLabelPool	*pTextLabelPool;
-		CActorPool			*pActorPool;
 		CTextDrawPool		*pTextDrawPool;
+		CActorPool			*pActorPool;
 		CMenuPool			*pMenuPool;
 		CPlayerBubblePool	*pPlayerBubblePool;
-		CObjectPool			*pObjectPool;
 	} *m_pPools;
 
-	void Packet_UnoccupiedSync(Packet *pkt);
+    void Packet_UnoccupiedSync(Packet *pkt);
 };

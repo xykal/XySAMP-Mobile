@@ -1,17 +1,12 @@
-//
-// Created by Traw-GG on 05.10.2025.
-//
-
 #pragma once
 
 #include "ShadowCamera.h"
-#include "game/Entity/CPhysical.h"
+#include "Entity/CPhysical.h"
 
 class CRealTimeShadow;
-
 class CRealTimeShadowManager {
 public:
-    static constexpr int32 NUM_REALTIME_SHADOWS = 40;
+    static constexpr int32_t NUM_REALTIME_SHADOWS = 40;
 
 public:
     bool             m_bInitialised{};
@@ -22,9 +17,9 @@ public:
 
 public:
     static void InjectHooks();
-
-    void Init();
-    void Exit();
+//
+//    void Init();
+//    void Exit();
 //    void ReInit();
 //    void Update();
 //

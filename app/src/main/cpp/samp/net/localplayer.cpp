@@ -3,17 +3,15 @@
 #include "netgame.h"
 #include "localplayer.h"
 #include "../gui/gui.h"
-#include "java/jniutil.h"
 
 // voice
-#include "../voice/MicroIcon.h"
-#include "../voice/SpeakerList.h"
+#include "../voice_new/MicroIcon.h"
+#include "../voice_new/SpeakerList.h"
 #include "game/Tasks/TaskTypes/TaskComplexEnterCarAsDriver.h"
 
 extern UI* pUI;
 extern CGame *pGame;
 extern CNetGame *pNetGame;
-extern CJavaWrapper *pJavaWrapper;
 //extern CVoice* pVoice;
 
 extern int iNetModeNormalOnFootSendRate;
@@ -30,9 +28,6 @@ bool bFirstSpawn = true;
 bool g_bLockEnterVehicleWidget = false;
 uint32_t count = 0;
 
-bool g_bPendingExitShoot = false;
-uint32_t g_dwLastCtrlBackTick = 0;
-
 bool IsLongTimeDead()
 {
     if(pGame->FindPlayerPed()->IsDead()){
@@ -45,7 +40,7 @@ bool IsLongTimeDead()
 
 CLocalPlayer::CLocalPlayer()
 {
-    Log("CLocalPlayer::CLocalPlayer()");
+    FLog("CLocalPlayer::CLocalPlayer()");
 	ResetAllSyncAttributes();
 
 	m_bInRCMode = false;
@@ -232,9 +227,6 @@ bool CLocalPlayer::Process()
             MaybeSendExitVehicle();
 
 			g_bLockEnterVehicleWidget = false;
-
-            ProcessDriveByExitHead();
-            
 
             CVehicleGTA* pGtaVehicle = m_pPlayerPed->GetGtaVehicle();
 			m_nLastVehicle = pNetGame->GetVehiclePool()->FindIDFromGtaPtr(pGtaVehicle);
@@ -494,7 +486,7 @@ void CLocalPlayer::ProcessSpectating()
 
 	uint16_t lrAnalog, udAnalog;
 	uint16_t wKeys = m_pPlayerPed->GetKeys(&lrAnalog, &udAnalog);
-    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
     matPos = TheCamera.GetMatrix().ToRwMatrix();
 
 	CPlayerPool* pPlayerPool = pNetGame->GetPlayerPool();
@@ -566,7 +558,7 @@ void CLocalPlayer::ProcessSpectating()
 			if (pPlayerPed)
 			{
 				dwGTAId = pPlayerPed->m_dwGTAId;
-                CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+                CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
 
                 TheCamera.TakeControl(pPlayerPed->m_pPed, static_cast<eCamMode>(m_byteSpectateMode), eSwitchType::JUMPCUT, 1);
 				//pGame->GetCamera()->AttachToEntity(m_pPlayerPed);
@@ -583,7 +575,7 @@ void CLocalPlayer::ProcessSpectating()
 		if (pVehicle)
 		{
 			dwGTAId = pVehicle->m_dwGTAId;
-            CCamera &TheCamera = *reinterpret_cast<CCamera *>(g_libGTASA + 0x9F86F8);
+            CCamera &TheCamera = *reinterpret_cast<CCamera *>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
 
             TheCamera.TakeControl(pVehicle->m_pVehicle, static_cast<eCamMode>(m_byteSpectateMode), eSwitchType::JUMPCUT, 1);
 			//pGame->GetCamera()->AttachToEntity(pVehicle);
@@ -688,7 +680,7 @@ void CLocalPlayer::SendWastedNotification()
 	byteDeathReason = m_pPlayerPed->FindDeathReasonAndResponsiblePlayer(&WhoWasResponsible);
 	bsPlayerDeath.Write(byteDeathReason);
 	bsPlayerDeath.Write(WhoWasResponsible);
-    Log("SendWastedNotification %d %d", byteDeathReason, WhoWasResponsible);
+    FLog("SendWastedNotification %d %d", byteDeathReason, WhoWasResponsible);
 	pNetGame->GetRakClient()->RPC(&RPC_Death, &bsPlayerDeath, HIGH_PRIORITY, RELIABLE_ORDERED, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
 }
 // 0.3.7 (ํๅ๒ extKeys ่ this->field_104 = 1)
@@ -1053,11 +1045,142 @@ void CLocalPlayer::UpdateCameraTarget()
 }
 
 void CLocalPlayer::ProcessSurfing() {
+	if(m_pPlayerPed && !m_pPlayerPed->IsDead() && !LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP]) {
+        CVehicleGTA* contactVeh = (CVehicleGTA*)m_pPlayerPed->GetEntityUnderPlayer();
+		if(contactVeh){
+			VEHICLEID vehicleId = pNetGame->GetVehiclePool()->FindIDFromGtaPtr(contactVeh);
+			if(vehicleId && vehicleId != INVALID_VEHICLE_ID){
+				CVehicle* pVeh = pNetGame->GetVehiclePool()->GetAt(vehicleId);
+				if(pVeh && (pVeh->HasADriver() || pVeh->m_pVehicle->GetModelId() == 569 || pVeh->m_pVehicle->GetModelId() == 570)
+						   && pVeh->m_pVehicle->GetDistanceFromLocalPlayerPed() < 30.0){
+					/*bool onFootObject = ScriptCommand(&is_char_touching_vehicle, m_pPlayerPed->m_dwGTAId, pVeh->m_dwGTAId);
+                    if(onFootObject){*/
+					if(m_surfData.bIsActive){
+						return;
+					}
+					memset(&m_surfData, 0, sizeof(m_surfData));
+					m_surfData.vecOffsetPos = CVector{0.0f, 0.0f, 0.0f};
+					m_surfData.dwSurfVehID = vehicleId;
+					m_surfData.pSurfInst = (uintptr_t)pVeh;
+					m_surfData.bIsVehicle = true;
 
+					static RwMatrix matVeh;
+                    matVeh = pVeh->m_pVehicle->GetMatrix().ToRwMatrix();
+					static RwMatrix matPed;
+                    matPed = m_pPlayerPed->m_pPed->GetMatrix().ToRwMatrix();
+					static RwMatrix matOut;
+					mat_invert(&matOut, &matVeh);
+					ProjectMatrix(&m_surfData.vecOffsetPos, (CMatrix*)(&matOut), (CVector*)&matPed.pos);
+
+					m_surfData.bIsActive = true;
+					return;
+					//}
+				}
+			}else{
+                CPhysical* contactEntity = (CPhysical*)m_pPlayerPed->GetEntityUnderPlayer();
+				if(contactEntity){
+					uint32_t objectId = pNetGame->GetObjectPool()->FindIDFromGtaPtr(
+                            (contactEntity));
+					if(objectId && objectId != INVALID_OBJECT_ID){
+						CObject* pObject = pNetGame->GetObjectPool()->GetAt(objectId);
+						if(pObject){
+							//bool onFootObject = ScriptCommand(&is_char_touching_object, m_pPlayerPed->m_dwGTAId, pObject->m_dwGTAId);
+							//if(onFootObject) {
+							if(m_surfData.bIsActive){
+								return;
+							}
+							memset(&m_surfData, 0, sizeof(m_surfData));
+							m_surfData.bIsVehicle = false;
+							m_surfData.pSurfInst = (uintptr_t) pObject;
+							m_surfData.bIsActive = true;
+							return;
+							//}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	m_surfData.bIsActive = false;
+	m_surfData.dwSurfVehID = INVALID_VEHICLE_ID;
+	m_surfData.pSurfInst = 0;
+	m_surfData.vecOffsetPos = CVector{0.0f, 0.0f, 0.0f};
 
 }
 void CLocalPlayer::UpdateSurfing() {
+	static RwMatrix surfInstMatrix;
+	static RwMatrix surfPedMatrix;
+	static CVector surfInstMoveSpeed;
+	static CVector surfInstTurnSpeed;
+	if(m_pPlayerPed) {
+		if (LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP]) {
+			return;
+		}
+		if (m_surfData.bIsActive) {
+			if (m_surfData.bIsVehicle && m_surfData.pSurfInst) {
+				CVehicle *pVeh = (CVehicle *) m_surfData.pSurfInst;
+                surfInstMatrix = pVeh->m_pVehicle->GetMatrix().ToRwMatrix();
+                surfPedMatrix = m_pPlayerPed->m_pPed->GetMatrix().ToRwMatrix();
+                surfInstMoveSpeed = pVeh->m_pVehicle->GetMoveSpeed();
+                surfInstTurnSpeed = pVeh->m_pVehicle->GetTurnSpeed();
 
+				uint16_t lrAnalog;
+				uint16_t udAnalog;
+				m_pPlayerPed->GetKeys(&lrAnalog, &udAnalog);
+
+				if (lrAnalog || udAnalog) {
+					static RwMatrix matOut;
+					mat_invert(&matOut, &surfInstMatrix);
+					ProjectMatrix(&m_surfData.vecOffsetPos, (CMatrix*)&matOut,  (CVector*)&surfPedMatrix.pos);
+				} else {
+					ProjectMatrix( (CVector*)&surfPedMatrix.pos, (CMatrix*)&surfInstMatrix,  (CVector*)&m_surfData.vecOffsetPos);
+
+					m_pPlayerPed->m_pPed->SetMatrix((CMatrix&)surfPedMatrix);
+					CVector vecMoveSpeed;
+                    vecMoveSpeed = m_pPlayerPed->m_pPed->GetMoveSpeed();
+					m_pPlayerPed->m_pPed->SetVelocity(
+							CVector{surfInstMoveSpeed.x, surfInstMoveSpeed.y, vecMoveSpeed.z});
+
+					CVector vecTurnSpeed = m_pPlayerPed->m_pPed->GetTurnSpeed();
+					m_pPlayerPed->m_pPed->SetTurnSpeed(
+							CVector{vecTurnSpeed.x, vecTurnSpeed.y, surfInstTurnSpeed.z});
+				}
+			} else {
+				CObject *pObject = (CObject *) m_surfData.pSurfInst;
+				if (pObject && pObject->m_byteMoving & 1) {
+                    surfInstMatrix = pObject->m_pEntity->GetMatrix().ToRwMatrix();
+                    surfPedMatrix = m_pPlayerPed->m_pPed->GetMatrix().ToRwMatrix();
+                    surfInstMoveSpeed = pObject->m_pEntity->GetMoveSpeed();
+                    surfInstTurnSpeed = pObject->m_pEntity->GetTurnSpeed();
+
+					uint16_t lrAnalog;
+					uint16_t udAnalog;
+					m_pPlayerPed->GetKeys(&lrAnalog, &udAnalog);
+
+					if (lrAnalog || udAnalog) {
+						static RwMatrix matOut;
+						mat_invert(&matOut, &surfInstMatrix);
+						ProjectMatrix(&m_surfData.vecOffsetPos, (CMatrix*)&matOut,  (CVector*)&surfPedMatrix.pos);
+					} else {
+						ProjectMatrix( (CVector*)&surfPedMatrix.pos, (CMatrix*)&surfInstMatrix,
+									  &m_surfData.vecOffsetPos);
+
+						m_pPlayerPed->m_pPed->SetMatrix((CMatrix&)surfPedMatrix);
+						CVector vecMoveSpeed = m_pPlayerPed->m_pPed->GetMoveSpeed();
+						m_pPlayerPed->m_pPed->SetVelocity(
+								CVector{surfInstMoveSpeed.x, surfInstMoveSpeed.y, vecMoveSpeed.z});
+
+						CVector vecTurnSpeed = m_pPlayerPed->m_pPed->GetTurnSpeed();
+						m_pPlayerPed->m_pPed->SetTurnSpeed(
+								CVector{vecTurnSpeed.x, vecTurnSpeed.y, surfInstTurnSpeed.z});
+					}
+				}
+
+			}
+		}
+
+	}
 }
 
 void CLocalPlayer::MoveHeadWithCamera()
@@ -1844,7 +1967,7 @@ void CLocalPlayer::SendBulletSyncData(PLAYERID byteHitID, uint8_t byteHitType, C
     blSync.offsets[1] = 0.0f;
     blSync.offsets[2] = 0.0f;
 
-	Log("SendBulletSync: %d, %d, %d, %f, %f, %f, %f, %f, %f", blSync.hitId, blSync.hitType, blSync.weapId,
+	FLog("SendBulletSync: %d, %d, %d, %f, %f, %f, %f, %f, %f", blSync.hitId, blSync.hitType, blSync.weapId,
 		 blSync.hitPos[0], blSync.hitPos[1], blSync.hitPos[2], blSync.offsets[0], blSync.offsets[1], blSync.offsets[2]);
 
     RakNet::BitStream bsBulletSync;
@@ -1977,39 +2100,6 @@ void CLocalPlayer::SendUnoccupiedData(VEHICLEID vehicleId, CVehicle *pVehicle)
 		memcpy(&m_UnoccupiedData, &unSync, sizeof(UNOCCUPIED_SYNC_DATA));
 	}
 }
-
-void CLocalPlayer::ProcessDriveByExitHead()
-{
-    CPlayerPed* pPed = m_pPlayerPed;
-    if(!pPed) return;
-
-    // ئەگەر پلەیر سەرنشینە و لە سەیارەیە
-    if(pPed->IsInVehicle() && pPed->IsAPassenger())
-    {
-        // ئەگەر چەکەی هەیە
-        uint8_t wep = pPed->GetCurrentWeapon();
-        if(wep == WEAPON_UNARMED) return;
-
-        // Drive-by mode چالاک بکە
-        ScriptCommand(&set_driveby_mode, pPed->m_dwGTAId, 1); // چالاککردنی aim mode
-        ScriptCommand(&set_ped_driveby_anim, pPed->m_dwGTAId, wep); // animation drive-by بەپێی چەکە
-
-        // کەمێ سەری دەر بکاتە دەرەوە
-        CVector pos = pPed->m_pPed->GetPosition();
-        pos.z += 0.1f; // کەمێ سەری دەربهێنێ
-        pPed->m_pPed->SetPosn(pos.x, pos.y, pos.z);
-
-        // flag aim دانێ بۆ تەقەکردن
-        g_bPendingExitShoot = true;
-    }
-    else
-    {
-        // ئەگەر دەرچووە → Drive-by mode داڕشتنەوە
-        ScriptCommand(&set_driveby_mode, pPed->m_dwGTAId, 0);
-        g_bPendingExitShoot = false;
-    }
-}
-
 
 void CLocalPlayer::MaybeSendExitVehicle() {
     static bool oldExitVehicleState = false;

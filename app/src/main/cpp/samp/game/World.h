@@ -38,7 +38,7 @@ public:
     // Use GetSector() to access this array
     //static inline CSector ms_aSectors[MAX_SECTORS_Y][MAX_SECTORS_X];
 
-    //   static CPtrListDoubleLink ms_listMovingEntityPtrs;
+ //   static CPtrListDoubleLink ms_listMovingEntityPtrs;
 
 public:
     static void InjectHooks();

@@ -37,7 +37,9 @@ protected:
 		SHIFT_ON,
 		SHIFT_OFF,
 		BACKSPACE,
-		LANG,
+		NUM,
+		LANG_RU,
+		LANG_ENG,
 		SPACE,
 		SEND
 	};
@@ -47,6 +49,8 @@ public:
 	{
 		ENG_LOWER,
 		ENG_UPPER,
+		RU_LOWER,
+		RU_UPPER,
 		NUM
 	};
 
@@ -68,15 +72,14 @@ public:
 			Key(ExtendedKey extended_key);
 
 			virtual void draw(ImGuiRenderer* renderer) override;
+
 			virtual void touchPopEvent() override;
 
 			char value() const { return m_value; }
-			void setLangMode(bool isEngMode) { m_isEngMode = isEngMode; }
 
 		private:
 			ExtendedKey m_extendedKey;
 			char m_value;
-			bool m_isEngMode = true;
 		};
 
 		KeyboardLayout::Row::Key* addKey(const std::string& caption, char value);
@@ -88,7 +91,7 @@ public:
 	virtual void performLayout() override;
 
 protected:
-	Row* m_rows[5];
+	Row* m_rows[5/*4*/];
 };
 
 class KeyboardLayoutLowerENG : public KeyboardLayout
@@ -102,6 +105,20 @@ class KeyboardLayoutUpperENG : public KeyboardLayout
 {
 public:
 	KeyboardLayoutUpperENG();
+	virtual void performLayout() override;
+};
+
+class KeyboardLayoutLowerRU : public KeyboardLayout
+{
+public:
+	KeyboardLayoutLowerRU();
+	virtual void performLayout() override;
+};
+
+class KeyboardLayoutUpperRU : public KeyboardLayout
+{
+public:
+	KeyboardLayoutUpperRU();
 	virtual void performLayout() override;
 };
 
@@ -137,6 +154,7 @@ public:
 	void show(Widget* caller);
 	void hide();
 	void send();
+	void sendForGB(JNIEnv *pEnv, jobject thiz, jbyteArray str);
 
 	virtual void performLayout() override;
 	virtual void draw(ImGuiRenderer* renderer) override;
@@ -144,7 +162,6 @@ public:
 	KeyboardHistory* history() const { return m_history; }
 	void setActiveLayout(KeyboardLayout::Type type);
 	void changeCase(KeyboardLayout::KeyCase key_case);
-	void toggleLang();
 
 	void activateEvent(bool active) override;
 
@@ -155,9 +172,10 @@ private:
 	KeyboardInput* m_input;
 	KeyboardLayoutLowerENG* m_layoutLowerENG;
 	KeyboardLayoutUpperENG* m_layoutUpperENG;
+	KeyboardLayoutLowerRU* m_layoutLowerRU;
+	KeyboardLayoutUpperRU* m_layoutUpperRU;
 	KeyboardLayoutNUM* m_layoutNUM;
 	Widget* m_caller;
 
 	KeyboardHistory* m_history;
-	bool m_isEngMode;
 };

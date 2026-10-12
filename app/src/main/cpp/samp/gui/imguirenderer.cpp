@@ -13,15 +13,11 @@ void ImGuiRenderer::drawLine(const ImVec2& a, const ImVec2& b, const ImColor& co
 	m_drawList->AddLine(a, b, color, thickness);
 }
 
-void ImGuiRenderer::drawRect(const ImVec2& a, const ImVec2& b, const ImColor& color, bool fill, float radius, float thickness)
+void ImGuiRenderer::drawRect(const ImVec2& a, const ImVec2& b, const ImColor& color, bool fill, float thickness)
 {
-    if (fill)
-        m_drawList->AddRectFilled(a, b, color, radius);
-    else
-        m_drawList->AddRect(a, b, color, radius, 0, thickness);
+	fill ? m_drawList->AddRectFilled(a, b, color) :
+		m_drawList->AddRect(a, b, color, 0.0f, 15, thickness);
 }
-
-
 
 void ImGuiRenderer::drawRectFilledMulticolor(const ImVec2& a, const ImVec2& b,
 	const ImColor& col_upr_left, const ImColor& col_upr_right,
@@ -189,7 +185,7 @@ ImVec2 ImGuiRenderer::calculateTextSize(const std::string& text, float font_size
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ
+				// текст до колор-кода
 				ImVec2 sz = calculateTextSize(text_start, text_cur, font_size);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -202,13 +198,13 @@ ImVec2 ImGuiRenderer::calculateTextSize(const std::string& text, float font_size
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \n
+				// текст до \n
 				ImVec2 sz = calculateTextSize(text_start, text_cur, font_size);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
 			}
 
-			// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ text_size
+			// обновляем text_size
 			text_size.x = ImMax(text_size.x, cur_size.x);
 			cur_size.y += font_size;
 			cur_size.x = 0.0f;
@@ -219,7 +215,7 @@ ImVec2 ImGuiRenderer::calculateTextSize(const std::string& text, float font_size
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \t
+				// текст до \t
 				ImVec2 sz = calculateTextSize(text_start, text_cur, font_size);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -234,7 +230,7 @@ ImVec2 ImGuiRenderer::calculateTextSize(const std::string& text, float font_size
 
 	if (text_cur != text_start)
 	{
-		// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+		// текст без форматирования
 		ImVec2 sz = calculateTextSize(text_start, text_cur, font_size);
 		cur_size.x += sz.x;
 		if (cur_size.y == 0.0f) cur_size.y = sz.y;

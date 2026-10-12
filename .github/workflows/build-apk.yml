@@ -107,10 +107,11 @@ jobs:
             --brand "$BRAND" \
             --strip-firebase
 
-      - name: Setup Android SDK 36 & NDK 26.2.11394342
+      - name: Setup Android SDK 34/36 & NDK 26.2.11394342
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-34" \
             "platforms;android-36" \
             "build-tools;35.0.0" \
             "ndk;26.2.11394342" \

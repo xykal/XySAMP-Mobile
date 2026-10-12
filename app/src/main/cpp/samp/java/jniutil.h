@@ -15,12 +15,18 @@ class CJavaWrapper
 public:
     CJavaWrapper(JNIEnv *env, jobject activity);
     ~CJavaWrapper() {};
-    JNIEnv* GetEnv();
     
     const char* GetClipboardString();
     void SetPauseState(bool pause);
     void ShowLoadingScreen();
     void HideLoadingScreen();
+    void ShowTab();
+    void HideTab();
+    void SetTab(int id, char* names, int score, int pings);
+    void ClearTab();
+    
+    void ShowKeyboard();
+    void HideKeyboard();
 
 	void exitGame();
 
@@ -42,11 +48,13 @@ public:
     jmethodID s_showLoadingScreen;
     jmethodID s_hideLoadingScreen;
     jmethodID s_ShowDialog;
+    jmethodID s_showTab;
+    jmethodID s_setTab;
+    jmethodID s_clearTab;
+    jmethodID s_hideTab;
     jmethodID s_showInputLayout;
     jmethodID s_hideInputLayout;
 	jmethodID s_exitGame;
 	jmethodID s_showEditObject;
 	jmethodID s_hideEditObject;
 };
-
-extern CJavaWrapper* g_pJavaWrapper;

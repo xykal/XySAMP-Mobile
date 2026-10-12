@@ -1,3 +1,7 @@
+//
+// Created by roman on 11/24/2024.
+//
+
 #include "CEntityGTA.h"
 #include "game/game.h"
 #include "game/Collision/ColStore.h"
@@ -65,7 +69,7 @@ void CEntityGTA::ResolveReferences()
 
 void CEntityGTA::Add()
 {
-    CHook::CallFunction<void>(g_libGTASA + 0x48DCE0, this);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x3ED8D8 + 1 : 0x4CD574), this);
 }
 
 void CEntityGTA::SetInterior(int interiorId, bool needRefresh)
@@ -80,7 +84,8 @@ void CEntityGTA::SetInterior(int interiorId, bool needRefresh)
         CColStore::RequestCollision(&pos, m_nAreaCode);
 
         if(interiorId == 0) {
-            CHook::CallFunction<void>(g_libGTASA + 0x4C4600, false);
+            CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x00420898 + 1 : 0x504194), false);
+            // CTimeCycle::StopExtraColour(0);
         }
 
     }
@@ -99,7 +104,7 @@ float CEntityGTA::GetDistanceFromCamera()
     if(!this)
         return 0;
 
-    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
     return DistanceBetweenPoints(GetPosition(), TheCamera.GetPosition());
 }
 
@@ -139,16 +144,16 @@ void CEntityGTA::DeleteRwObject()
 }
 
 void CEntityGTA::UpdateRW() {
-    if (!this || !m_pRwObject) return;
+    if (!m_pRwObject)
+        return;
 
     auto parentMatrix = GetModellingMatrix();
-    if (!parentMatrix) return;
-
     if (m_matrix)
         m_matrix->UpdateRwMatrix(parentMatrix);
     else
         m_placement.UpdateRwMatrix(parentMatrix);
 }
+
 
 RwMatrix* CEntityGTA::GetModellingMatrix() {
     if (!m_pRwObject)
@@ -162,49 +167,23 @@ CBaseModelInfo* CEntityGTA::GetModelInfo() const {
 }
 
 void CEntityGTA::Add(const CRect* rect) {
-    CHook::CallFunction<void>(g_libGTASA + 0x48DD4C, this, rect);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x3ED8FC + 1 : 0x4CD5C0), this, rect);
 }
 
 void CEntityGTA::Remove() {
-    CHook::CallFunction<void>(g_libGTASA + 0x48E024, this);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x3EDBE8 + 1 : 0x4CD888), this);
 }
 
-void CEntityGTA::SetModelIndex(uint32_t index) {
+void CEntityGTA::SetModelIndex(uint32 index) {
+
 }
 
-void CEntityGTA::SetModelIndexNoCreate(uint32_t index) {
+void CEntityGTA::SetModelIndexNoCreate(uint32 index) {
+
 }
 
 void CEntityGTA::SetIsStatic(bool isStatic) {
-}
 
-CRect CEntityGTA::GetBoundRect()
-{
-    CRect rect;
-    if (!this || !m_pRwObject) {
-        rect.left = 0.0f;
-        rect.right = 0.0f;
-        rect.top = 0.0f;
-        rect.bottom = 0.0f;
-        return rect;
-    }
-    return CHook::CallFunction<CRect>(g_libGTASA + 0x48DD00, this);
-}
-
-CVector CEntityGTA::GetBoundCentre()
-{
-    if (!this || !m_pRwObject) {
-        return CVector(0.0f, 0.0f, 0.0f);
-    }
-    return CHook::CallFunction<CVector>(g_libGTASA + 0x48DD30, this);
-}
-
-float CEntityGTA::GetBoundRadius()
-{
-    if (!this || !m_pRwObject) {
-        return 1.0f;
-    }
-    return CHook::CallFunction<float>(g_libGTASA + 0x48DD60, this);
 }
 
 void CEntityGTA::RegisterReference(CEntityGTA** entity)

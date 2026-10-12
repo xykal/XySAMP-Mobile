@@ -11,9 +11,6 @@
 #include "TouchInterface.h"
 #include "WidgetButton.h"
 
-#include "../../gui/gui.h"
-extern UI* pUI;
-
 extern CNetGame *pNetGame;
 extern CGame *pGame;
 
@@ -21,16 +18,20 @@ CWidgetGta* m_pWidgets[WidgetIDs::NUM_WIDGETS];
 
 enum eWidgetState {
     STATE_NONE,
-    STATE_DISABLED,
+    STATE_FIXED
 };
 
 WidgetIDs GetWidgetTypeFromWidget(CWidgetGta* pWidget)
 {
-    for (int i = 0; i < NUM_WIDGETS; i++) {
-        if (CTouchInterface::m_pWidgets[i] && pWidget == CTouchInterface::m_pWidgets[i]) {
-            return static_cast<WidgetIDs>(i);
-        }
+    if(pWidget)
+    {
+        if(m_pWidgets[WidgetIDs::WIDGET_ATTACK] && pWidget == m_pWidgets[WidgetIDs::WIDGET_ATTACK]) return WidgetIDs::WIDGET_ATTACK;
+        if(m_pWidgets[WidgetIDs::WIDGET_SPRINT] && pWidget == m_pWidgets[WidgetIDs::WIDGET_SPRINT]) return WidgetIDs::WIDGET_SPRINT;
+        if(m_pWidgets[WidgetIDs::WIDGET_ACCELERATE] && pWidget == m_pWidgets[WidgetIDs::WIDGET_ACCELERATE]) return WidgetIDs::WIDGET_ACCELERATE;
+        if(m_pWidgets[WidgetIDs::WIDGET_ENTER_CAR] && pWidget == m_pWidgets[WidgetIDs::WIDGET_ENTER_CAR]) return WidgetIDs::WIDGET_ENTER_CAR;
+        if(m_pWidgets[WidgetIDs::WIDGET_BRAKE] && pWidget == m_pWidgets[WidgetIDs::WIDGET_BRAKE]) return WidgetIDs::WIDGET_BRAKE;
     }
+
     return static_cast<WidgetIDs>(-1);
 }
 
@@ -39,102 +40,58 @@ void SetWidgetFromId(int idWidget, CWidgetGta* pWidget)
     m_pWidgets[idWidget] = pWidget;
 }
 
+void SetWidgetFromName(const char* name, CWidgetGta* pWidget)
+{
+    if(!strcmp("accelerate", name)) SetWidgetFromId(WidgetIDs::WIDGET_ACCELERATE, pWidget);
+    if(!strcmp("hud_car", name)) SetWidgetFromId(WidgetIDs::WIDGET_ENTER_CAR, pWidget);
+    if(!strcmp("brake", name)) SetWidgetFromId(WidgetIDs::WIDGET_BRAKE, pWidget);
+}
+
 eWidgetState ProcessFixedWidget(CWidgetGta* pWidget)
 {
     WidgetIDs widgetType = GetWidgetTypeFromWidget(pWidget);
-    CPlayerPed *pPlayerPed = pGame->FindPlayerPed();
-    if(!pPlayerPed) return STATE_NONE;
 
+    CPlayerPed *pPlayerPed = pGame->FindPlayerPed();
     switch(widgetType)
     {
-        case -1: return STATE_NONE;
-            break;
-
-        case WidgetIDs::WIDGET_ATTACK:
-            if (pPlayerPed->IsInPassengerDriveByMode()) {
-                return STATE_NONE;
-            }
-            break;
-
-        case WidgetIDs::WIDGET_BUTTON_SPRINT:
-        case WidgetIDs::WIDGET_SPRINT:
-            if (pPlayerPed->IsInVehicle() || pPlayerPed->IsInJetpackMode()) {
-                return STATE_DISABLED;
-            }
-            break;
-
-        case WidgetIDs::WIDGET_HORN:
-        case WidgetIDs::WIDGET_NITRO:
-            if (!pPlayerPed->IsInVehicle()) {
-                return STATE_DISABLED;
-            }
-            break;
-
-        case WidgetIDs::WIDGET_VEHICLE_SHOOT_LEFT:
-        case WidgetIDs::WIDGET_VEHICLE_SHOOT_RIGHT:
-            if (!pPlayerPed->IsInVehicle() || pPlayerPed->IsAPassenger()) {
-                return STATE_DISABLED;
-            }
-            break;
-
-        case WidgetIDs::WIDGET_CAM_TOGGLE:
+        case -1:
             return STATE_NONE;
-            break;
-
-        case WidgetIDs::WIDGET_ROCKET:
-            if (pNetGame) {
-                if (!pPlayerPed->IsInVehicle()) {
-                    return STATE_DISABLED;
-                }
-                else {
-                    if (!pPlayerPed->GetGtaVehicle()) return STATE_NONE;
-                    int model = pPlayerPed->GetGtaVehicle()->m_nModelIndex;
-                    if (pPlayerPed->IsAPassenger()) {
-                        return STATE_DISABLED;
-                    }
-                    switch (model) {
-                        case 407:
-                        case 425:
-                        case 432:
-                        case 447:
-                        case 464:
-                        case 465:
-                        case 476:
-                        case 520: return STATE_NONE;
-                        default: return STATE_DISABLED;
-                    }
-                }
+        case WidgetIDs::WIDGET_ATTACK:
+        case WidgetIDs::WIDGET_SPRINT:
+            if(pPlayerPed->IsInVehicle() ||
+               pPlayerPed->IsInJetpackMode())
+            {
+                return STATE_FIXED;
             }
             break;
-
-        case WidgetIDs::WIDGET_DROP_CRANE:
-        case WidgetIDs::WIDGET_CRANE_UP:
-        case WidgetIDs::WIDGET_CRANE_DOWN:
-            if (!pPlayerPed->IsInVehicle()) {
-                return STATE_DISABLED;
-            }
-            break;
-
         case WidgetIDs::WIDGET_ACCELERATE:
         case WidgetIDs::WIDGET_BRAKE:
-            if (!pPlayerPed->IsInVehicle() && !pPlayerPed->IsInJetpackMode()) {
-                return STATE_DISABLED;
+            if(!pPlayerPed->IsInVehicle() &&
+               !pPlayerPed->IsInJetpackMode())
+            {
+                return STATE_FIXED;
             }
             break;
-
         case WidgetIDs::WIDGET_ENTER_CAR:
-            if (pNetGame) {
-                CVehiclePool* pVehiclePool = pNetGame->GetVehiclePool();
-                if (pVehiclePool) {
+            if(pPlayerPed->IsInJetpackMode()) return STATE_NONE;
+
+            if(pNetGame)
+            {
+                CVehiclePool *pVehiclePool = pNetGame->GetVehiclePool();
+                if(pVehiclePool)
+                {
                     VEHICLEID vehicleId = pVehiclePool->FindNearestToLocalPlayerPed();
-                    if (vehicleId == INVALID_VEHICLE_ID) {
-                        return STATE_DISABLED;
-                    }
-                    else {
-                        CVehicle* pVehicle = pVehiclePool->GetAt(vehicleId);
-                        if (pVehicle) {
-                            if (!pPlayerPed->IsInVehicle() && pPlayerPed->IsCrouching() && pVehicle->m_pVehicle->GetDistanceFromLocalPlayerPed() > 10.0f && !pPlayerPed->IsInJetpackMode()) {
-                                return STATE_DISABLED;
+                    if(vehicleId == INVALID_VEHICLE_ID) return STATE_FIXED;
+
+                    if(vehicleId != INVALID_VEHICLE_ID)
+                    {
+                        CVehicle *pVehicle = pVehiclePool->GetAt(vehicleId);
+                        if(pVehicle)
+                        {
+                            if(!pPlayerPed->IsInVehicle() &&
+                               pVehicle->m_pVehicle->GetDistanceFromLocalPlayerPed() > 10.0f)
+                            {
+                                return STATE_FIXED;
                             }
                         }
                     }
@@ -142,6 +99,7 @@ eWidgetState ProcessFixedWidget(CWidgetGta* pWidget)
             }
             break;
     }
+
     return STATE_NONE;
 }
 
@@ -151,127 +109,60 @@ void CWidgetGta::SetEnabled(bool bEnabled) {
 
 bool (*CWidget__IsTouched)(uintptr_t *thiz, CVector2D *pVecOut);
 bool CWidget__IsTouched_hook(uintptr_t *thiz, CVector2D *pVecOut) {
+//    if(*thiz == CWidgetGta::pWidgets[WIDGET_POSITION_HORN]) {
+//        return true;
+//    }
+//    if(!CHUD::bIsShow)
+//        return false;
+
+
     return CWidget__IsTouched(thiz, pVecOut);
 }
 
 uintptr_t (*CWidget)(CWidgetButton* thiz, const char* name, uintptr_t* a3, int a4, uintptr_t* a5);
 uintptr_t CWidget_hook(CWidgetButton* thiz, const char* name, uintptr_t*  a3, int a4, uintptr_t* a5)
 {
-    Log("New Widget: \"%s\" 0x%X", name, thiz-g_libGTASA);
+    FLog("New Widget: \"%s\" 0x%X", name, thiz-g_libGTASA);
+
+    SetWidgetFromName(name, thiz);
     return CWidget(thiz, name, a3, a4, a5);
 }
 
 void (*CWidget__SetEnabled)(CWidgetGta* pWidget, bool bEnabled);
 void CWidget__SetEnabled_hook(CWidgetGta* pWidget, bool bEnabled)
 {
-    WidgetIDs widgetType = GetWidgetTypeFromWidget(pWidget);
-
-    if(widgetType == WidgetIDs::WIDGET_CAM_TOGGLE) {
-        CWidget__SetEnabled(pWidget, true);
-        pWidget->m_bEnabled = true;
-        return;
-    }
-
     if(pNetGame)
     {
         switch(ProcessFixedWidget(pWidget))
         {
             case STATE_NONE: break;
-            case STATE_DISABLED:
+            case STATE_FIXED:
                 bEnabled = false;
                 break;
         }
     }
+
     CWidget__SetEnabled(pWidget, bEnabled);
 }
 
 void (*CWidgetButton__Update)(CWidgetButton* thiz);
 void CWidgetButton__Update_hook(CWidgetButton* thiz) {
-    WidgetIDs widgetType = GetWidgetTypeFromWidget(thiz);
-
-    if(widgetType == WidgetIDs::WIDGET_CAM_TOGGLE) {
-        if (!thiz->m_bEnabled) {
-            thiz->SetEnabled(true);
-        }
-        CWidgetButton__Update(thiz);
-        return;
-    }
-
     if(pNetGame)
     {
         switch(ProcessFixedWidget(thiz))
         {
             case STATE_NONE: break;
-            case STATE_DISABLED: return;
+            case STATE_FIXED: return;
         }
     }
+
     CWidgetButton__Update(thiz);
 }
 
-eWidgetState ProcessFixedWidgetFromId(int iWidgetId)
-{
-    CPlayerPed *pPlayerPed = pGame->FindPlayerPed();
-    if(!pPlayerPed || !pPlayerPed->m_pPed) return STATE_NONE;
-
-    switch(iWidgetId)
-    {
-        case WIDGET_CAM_TOGGLE:
-            return STATE_NONE;
-            break;
-
-        case WIDGET_VEHICLE_STEER_LEFT:
-            if(!pPlayerPed->IsInVehicle() || pPlayerPed->IsAPassenger() || pPlayerPed->IsInJetpackMode())
-                return STATE_DISABLED;
-            break;
-        case WIDGET_VEHICLE_STEER_RIGHT:
-            if(!pPlayerPed->IsInVehicle() || pPlayerPed->IsAPassenger() || pPlayerPed->IsInJetpackMode())
-                return STATE_DISABLED;
-            break;
-        case WIDGET_PED_MOVE:
-            if(pPlayerPed->IsInVehicle())
-            {
-                return STATE_DISABLED;
-            }
-            break;
-        case WIDGET_VEHICLE_STEER_ANALOG:
-            if(!pPlayerPed->IsInVehicle() &&
-               !pPlayerPed->IsInJetpackMode())
-            {
-                return STATE_DISABLED;
-            }
-            break;
-        default:
-            return STATE_NONE;
-            break;
-    }
-    return STATE_NONE;
-}
-
-int (*CTouchInterface__IsTouched)(int iWidgetId, CVector2D *pVecOut, int nFrameCount);
-int CTouchInterface__IsTouched_hook(int iWidgetId, CVector2D *pVecOut, int nFrameCount)
-{
-    if(iWidgetId == WIDGET_CAM_TOGGLE) {
-        return CTouchInterface__IsTouched(iWidgetId, pVecOut, nFrameCount);
-    }
-
-    if(pNetGame)
-    {
-        switch(ProcessFixedWidgetFromId(iWidgetId))
-        {
-            case STATE_NONE: break;
-            case STATE_DISABLED:
-                nFrameCount = 0;
-                break;
-        }
-    }
-    return CTouchInterface__IsTouched(iWidgetId, pVecOut, nFrameCount);
-}
-
 void CWidgetGta::InjectHooks() {
-    CHook::InlineHook("_ZN7CWidget6UpdateEv", &CWidgetButton__Update_hook, &CWidgetButton__Update);
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x00671424 : 0x842408), &CWidgetButton__Update_hook, &CWidgetButton__Update);
+    CHook::InlineHook("_ZN13CWidgetButtonC2EPKcRK14WidgetPositionjj10HIDMapping", &CWidget_hook, &CWidget);
     CHook::InlineHook("_ZN7CWidget10SetEnabledEb", &CWidget__SetEnabled_hook, &CWidget__SetEnabled);
-    CHook::InlineHook("_ZN15CTouchInterface9IsTouchedENS_9WidgetIDsEP9CVector2Di", &CTouchInterface__IsTouched_hook,
-                      &CTouchInterface__IsTouched);
 }
 
 void CWidgetGta::SetTexture(const char *name) {
@@ -285,3 +176,5 @@ bool CWidgetGta::IsReleased(CVector2D *pVecOut) {
 bool CWidgetGta::IsTouched(CVector2D *pVecOut) {
     return CHook::CallFunction<bool>(g_libGTASA + (VER_x32 ? 0x002B3324 + 1 : 0x3725D0), this, pVecOut);
 }
+
+

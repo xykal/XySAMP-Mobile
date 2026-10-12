@@ -1,5 +1,5 @@
 //
-// Created by Traw-GG on 05.10.2025.
+// Created by plaka on 18.10.2023.
 //
 
 #include "ShadowCamera.h"
@@ -177,79 +177,4 @@ RwRaster* CShadowCamera::DrawOutlineBorder(const CRGBA& color) {
     }
 
     return GetRwRenderRaster();
-}
-
-RwCamera* CShadowCamera::MakeGradientRaster() {
-    // Monocolor intensity of the gardient
-    constexpr float MIN_COLOR_INTENSITY{ 64.f }, MAX_COLOR_INTENSITY{ 128.f };
-
-    if (!m_pRwCamera) {
-        return nullptr;
-    }
-
-    const auto& raster = GetRwRenderRaster();
-    const auto  width  = RwRasterGetWidth(raster), height = RwRasterGetHeight(raster);
-
-    // Raster too small, do nothing (Assumes aspect ratio is 1:1)
-    if (height < 1) {
-        return nullptr;
-    }
-
-    if (!RwCameraBeginUpdate(m_pRwCamera)) {
-        return nullptr;
-    }
-
-    RwRenderStateSet(rwRENDERSTATETEXTURERASTER,     RWRSTATE(FALSE));
-    RwRenderStateSet(rwRENDERSTATEZTESTENABLE,       RWRSTATE(FALSE));
-    RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, RWRSTATE(FALSE));
-    RwRenderStateSet(rwRENDERSTATEDESTBLEND,         RWRSTATE(rwBLENDZERO));
-    RwRenderStateSet(rwRENDERSTATESRCBLEND,          RWRSTATE(rwBLENDINVDESTCOLOR));
-    RwRenderStateSet(rwRENDERSTATESHADEMODE,         RWRSTATE(rwSHADEMODEFLAT));
-
-    // Draw lines along the X axis while moving along the Y axis from top to bottom.
-    // Each line is less and less intense in color
-    // TODO: Maybe just replace this abnomination with 2 triangles with the top vertices being max intensity, and the other (bottom) 2 being min intensity?
-    {
-        const auto cistep = (MIN_COLOR_INTENSITY - MAX_COLOR_INTENSITY) / (float)height; // Color intensity step each iteration
-        float      cicurr = MAX_COLOR_INTENSITY; // Current color intensity
-
-        const auto nscrz  = RwIm2DGetNearScreenZ();
-
-        for (auto y{0}; y < height; y++, cicurr += cistep) {
-            const auto MkVert = [
-                    &,
-                    rhw = 1.f / RwCameraGetNearClipPlane(m_pRwCamera),
-                    cc  = (uint8)(cicurr)
-            ] (float x) {
-                RwIm2DVertex vtx;
-
-                RwIm2DVertexSetScreenX(&vtx, x);
-                RwIm2DVertexSetScreenY(&vtx, (float)(y));
-                RwIm2DVertexSetScreenZ(&vtx, nscrz);
-
-                RwIm2DVertexSetRecipCameraZ(&vtx, rhw);
-
-                RwIm2DVertexSetIntRGBA(&vtx, cc, cc, cc, cc);
-
-                return vtx;
-            };
-
-            RwIm2DVertex vertices[2]{
-                    MkVert(0.f),
-                    MkVert((float)(width - 1)),
-            };
-
-            // TODO/NOTE: Horrible efficiency (should batch these calls)
-            RwIm2DRenderLine(vertices, std::size(vertices), 0, 1);
-        }
-    }
-
-    RwRenderStateSet(rwRENDERSTATEZTESTENABLE, RWRSTATE(TRUE));
-    RwRenderStateSet(rwRENDERSTATEDESTBLEND,   RWRSTATE(rwBLENDINVSRCALPHA));
-    RwRenderStateSet(rwRENDERSTATESRCBLEND,    RWRSTATE(rwBLENDSRCALPHA));
-    RwRenderStateSet(rwRENDERSTATESHADEMODE,   RWRSTATE(rwSHADEMODEGOURAUD));
-
-    RwCameraEndUpdate(m_pRwCamera);
-
-    return m_pRwCamera;
 }

@@ -27,7 +27,7 @@ extern char* g_pszStorage;
 #define SAMP_VERSION	"0.3.7"
 
 #define SAMP_ARCHIVE_PATH "/Android/data/com.samp.mobile/samp.data"
-#define FONT_NAME "arial_bold.ttf"
+#define FONT_NAME "arial.ttf"
 
 #define RAKSAMP_CLIENT
 #define NETCODE_CONNCOOKIELULZ 0x6969
@@ -39,8 +39,10 @@ extern JavaVM* javaVM;
 uint32_t GetTickCount();
 void LogVoice(const char* fmt, ...);
 
-void Log(const char* fmt, ...);
-static bool bIsTouchCameraButt = false;
+void FLog(const char* fmt, ...);
+void MyLog(const char* fmt, ...);
+void MyLog2(const char* fmt, ...);
+void ChatLog(const char* fmt, ...);
 
 template<typename ... Args>
 std::string string_format( const std::string& format, Args ... args )

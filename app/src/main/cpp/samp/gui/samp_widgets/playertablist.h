@@ -5,19 +5,19 @@
 class PlayerTabList : public Widget
 {
 public:
-    PlayerTabList();
+	PlayerTabList();
 
-    void show();
-    void hide();
+	void show();
+	void hide();
 
-    void assemble();
+	void assemble();
 
-    virtual void performLayout() override;
-    virtual void draw(ImGuiRenderer* renderer) override;
-    virtual void activateEvent(bool active) override;
+	virtual void performLayout() override;
+	virtual void draw(ImGuiRenderer* renderer) override;
+	virtual void activateEvent(bool active) override;
 
 private:
-    TabListWidget* m_tabList;
-    Label* m_lServerName;
-    Label* m_lTotalPlayers;
+	TabListWidget* m_tabList;
+	Label* m_lServerName;
+	Label* m_lTotalPlayers;
 };

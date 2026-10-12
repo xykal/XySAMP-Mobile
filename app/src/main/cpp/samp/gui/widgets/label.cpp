@@ -1,5 +1,5 @@
-#include "gui/imguirenderer.h"
-#include "gui/widget.h"
+#include "..//imguirenderer.h"
+#include "..//widget.h"
 #include "label.h"
 
 
@@ -47,7 +47,7 @@ ImVec2 Label::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ
+				// текст до колор-кода
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -60,13 +60,13 @@ ImVec2 Label::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \n
+				// текст до \n
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
 			}
 
-			// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ text_size
+			// обновляем text_size
 			text_size.x = ImMax(text_size.x, cur_size.x);
 			cur_size.y += font_size;
 			cur_size.x = 0.0f;
@@ -77,7 +77,7 @@ ImVec2 Label::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \t
+				// текст до \t
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -92,7 +92,7 @@ ImVec2 Label::calculateTextSize(const std::string& text) const
 
 	if (text_cur != text_start)
 	{
-		// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+		// текст без форматирования
 		ImVec2 sz = calculateTextSize(text_start, text_cur);
 		cur_size.x += sz.x;
 		if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -158,7 +158,7 @@ ImVec2 LabelImage::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅ
+				// текст до колор-кода
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -171,13 +171,13 @@ ImVec2 LabelImage::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \n
+				// текст до \n
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
 			}
 
-			// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ text_size
+			// обновляем text_size
 			text_size.x = ImMax(text_size.x, cur_size.x);
 			cur_size.y += font_size;
 			cur_size.x = 0.0f;
@@ -188,7 +188,7 @@ ImVec2 LabelImage::calculateTextSize(const std::string& text) const
 		{
 			if (text_cur != text_start)
 			{
-				// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅ \t
+				// текст до \t
 				ImVec2 sz = calculateTextSize(text_start, text_cur);
 				cur_size.x += sz.x;
 				if (cur_size.y == 0.0f) cur_size.y = sz.y;
@@ -203,7 +203,7 @@ ImVec2 LabelImage::calculateTextSize(const std::string& text) const
 
 	if (text_cur != text_start)
 	{
-		// пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+		// текст без форматирования
 		ImVec2 sz = calculateTextSize(text_start, text_cur);
 		cur_size.x += sz.x;
 		if (cur_size.y == 0.0f) cur_size.y = sz.y;

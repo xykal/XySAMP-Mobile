@@ -1,3 +1,4 @@
+#include "lockdown.h"
 ﻿#include <jni.h>
 #include <pthread.h>
 #include <syscall.h>
@@ -11,21 +12,16 @@
 #include "java/jniutil.h"
 #include <dlfcn.h>
 #include "StackTrace.h"
-#include "game/CrossHair.h"
-#include <android/asset_manager.h>
-#include <android/asset_manager_jni.h>
 
 // voice
-#include "voice/Plugin.h"
+#include "voice_new/Plugin.h"
 
 #include "vendor/armhook/patch.h"
-#include "vendor/obfuscate/str_obfuscator.hpp"
+#include "vendor/str_obfuscator/str_obfuscator.hpp"
 
 #include "settings.h"
 
 #include "crashlytics.h"
-#include "game/CFirstPersonCamera.hpp"
-#include "CServerManager.h"
 
 /*
 Peerapol Unarak
@@ -33,8 +29,7 @@ Peerapol Unarak
 
 JavaVM* javaVM;
 
-
-char* g_pszStorage = "/storage/emulated/0/GTA/";
+char* g_pszStorage = nullptr;
 
 UI* pUI = nullptr;
 CGame *pGame = nullptr;
@@ -62,15 +57,33 @@ void ApplyMultiTouchPatches();
 void InstallGlobalHooks();
 void InstallSpecialHooks();
 void InitRenderWareFunctions();
-void InitializeGraphicsSystem();
-void InstallCrashFixHooks();
-void Log(const char* fmt, ...);
+void FLog(const char* fmt, ...);
+//void MyLog(const char* fmt, ...);
 
 int work = 0;
 
 void ReadSettingFile()
 {
+	/*char path[255] = { 0 };
+	//sprintf(path, "%ssamp.set", g_pszStorage);
+	sprintf(path, "%sNickName.ini", g_pszStorage);
+
+	FILE* fp = fopen(path, "r");
+	if (fp == NULL) return;
+
+	char buf[1024];
+
+	// nickname
+	if (fgets(buf, 1024, fp) != NULL) {
+		buf[strcspn(buf, "\n\r")] = 0;
+		strcpy(g_nick, buf);
+	}
+
+	fclose(fp);*/
+
 	pSettings = new CSettings();
+
+	firebase::crashlytics::SetUserId(pSettings->Get().szNickName);
 }
 
 int hashing(const char* str) {
@@ -120,7 +133,7 @@ void handler(int signum, siginfo_t *info, void* contextPtr)
 
 	if(info->si_signo == SIGSEGV)
 	{
-		Log("SIGSEGV | Fault address: 0x%x", info->si_addr);
+		FLog("SIGSEGV | Fault address: 0x%x", info->si_addr);
 
 		PRINT_CRASH_STATES(context);
 
@@ -141,7 +154,7 @@ void handler1(int signum, siginfo_t *info, void* contextPtr)
 
 	if(info->si_signo == SIGABRT)
 	{
-		Log("SIGABRT | Fault address: 0x%x", info->si_addr);
+		FLog("SIGABRT | Fault address: 0x%x", info->si_addr);
 
 		PRINT_CRASH_STATES(context);
 
@@ -162,7 +175,7 @@ void handler2(int signum, siginfo_t *info, void* contextPtr)
 
 	if(info->si_signo == SIGFPE)
 	{
-		Log("SIGFPE | Fault address: 0x%x", info->si_addr);
+		FLog("SIGFPE | Fault address: 0x%x", info->si_addr);
 
 		PRINT_CRASH_STATES(context);
 
@@ -183,7 +196,7 @@ void handler3(int signum, siginfo_t *info, void* contextPtr)
 
 	if(info->si_signo == SIGBUS)
 	{
-		Log("SIGBUS | Fault address: 0x%x", info->si_addr);
+		FLog("SIGBUS | Fault address: 0x%x", info->si_addr);
 
 		PRINT_CRASH_STATES(context);
 
@@ -211,16 +224,28 @@ void DoInitStuff()
 		pGame->SetMaxStats();
 		pGame->ToggleThePassingOfTime(false);
 
+		// voice
+		/*LogVoice("[dbg:samp:load] : module loading...");
+
+		for (const auto& loadCallback : Samp::loadCallbacks) {
+			if (loadCallback != nullptr) {
+				loadCallback();
+			}
+		}
+
+		Samp::loadStatus = true;*/
+
 		LogVoice("[dbg:samp:load] : module loaded");
 
 		if (bDebug)
 		{
-            CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+            CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
             //TheCamera.Restore();
             CCamera::SetBehindPlayer();
 			pGame->DisplayHUD(true);
 			pGame->EnableClock(false);
-            DoDebugStuff();
+
+			DoDebugStuff();
 		}
 
 		bGameInited = true;
@@ -228,29 +253,41 @@ void DoInitStuff()
 
 	if (!bNetworkInited && !bDebug)
 	{
-		ReadSettingFile();
-		//CServerInstance::initConnection(1);
+		//ReadSettingFile();
 
-        pNetGame = new CNetGame(
-                pSettings->Get().szHost,
-                pSettings->Get().iPort,
-                pSettings->Get().szNickName,
-                pSettings->Get().szPassword
-        );
-
+		pNetGame = new CNetGame(
+            XySAMP::GetLockedHost(),
+            XySAMP::GetLockedPort(),
+            pSettings->Get().szNickName,
+            pSettings->Get().szPassword);
 		bNetworkInited = true;
 
-        Log("DoInitStuff end");
+        FLog("DoInitStuff end");
 	}
 }
 
 extern "C" {
-	JNIEXPORT void JNICALL Java_com_gta_game_SAMP_initializeSAMP(JNIEnv *pEnv, jobject thiz)
+	JNIEXPORT void JNICALL Java_com_samp_mobile_game_SAMP_initializeSAMP(JNIEnv *pEnv, jobject thiz)
 	{
-        pJavaWrapper = new CJavaWrapper(pEnv, thiz);
+		pJavaWrapper = new CJavaWrapper(pEnv, thiz);
 
 	}
-	JNIEXPORT void JNICALL Java_com_gta_game_ui_dialog_DialogManager_sendDialogResponse(JNIEnv* pEnv, jobject thiz, jint i3, jint i, jint i2, jbyteArray str)
+	JNIEXPORT void JNICALL Java_com_samp_mobile_game_SAMP_onInputEnd(JNIEnv *pEnv, jobject thiz, jbyteArray str)
+	{
+		if(pUI)
+		{
+			pUI->keyboard()->sendForGB(pEnv, thiz, str);
+		}
+	}
+	JNIEXPORT void JNICALL Java_com_samp_mobile_game_SAMP_onEventBackPressed(JNIEnv *pEnv, jobject thiz)
+	{
+		if(pSettings)
+		{
+			if(pSettings->Get().iAndroidKeyboard)
+				pJavaWrapper->HideKeyboard();
+		}
+	}
+	JNIEXPORT void JNICALL Java_com_samp_mobile_game_ui_dialog_DialogManager_sendDialogResponse(JNIEnv* pEnv, jobject thiz, jint i3, jint i, jint i2, jbyteArray str)
 	{
 		jboolean isCopy = true;
 
@@ -290,26 +327,28 @@ void MainLoop()
 
 void InitGui()
 {
+	// new voice
 	Plugin::OnPluginLoad();
 	Plugin::OnSampLoad();
 
-    std::string font_path = string_format("%sSAMP/fonts/%s", g_pszStorage, FONT_NAME);
-    pUI = new UI(ImVec2(RsGlobal->maximumWidth, RsGlobal->maximumHeight), font_path.c_str());
+	std::string font_path = string_format("%sSAMP/fonts/%s", g_pszStorage, FONT_NAME);
+	pUI = new UI(ImVec2(RsGlobal->maximumWidth, RsGlobal->maximumHeight), font_path.c_str());
 	pUI->initialize();
-    pUI->performLayout();
+	pUI->performLayout();
 }
 
+#include "game/multitouch.h"
 #include "armhook/patch.h"
 #include "util/CUtil.h"
-//void SetUpGLHooks();
+void SetUpGLHooks();
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	javaVM = vm;
 	LOGI("SA-MP library loaded! Build time: " __DATE__ " " __TIME__);
 
-	g_libGTASA = CUtil::FindLib("libGame.so");
+	g_libGTASA = CUtil::FindLib("libGTASA.so");
 	if (g_libGTASA == 0x00) {
-		LOGE("libGame.so address was not found! ");
+		LOGE("libGTASA.so address was not found! ");
 		return JNI_VERSION_1_6;
 	}
 
@@ -319,32 +358,33 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 		return JNI_VERSION_1_6;
 	}
 
-	//firebase::crashlytics::Initialize();
+	firebase::crashlytics::Initialize();
 
-	uintptr_t libGame = CUtil::FindLib("libGame.so");
-	uintptr_t libmultiplayer = CUtil::FindLib("libsamp.so");
+	uintptr_t libgtasa = CUtil::FindLib("libGTASA.so");
+	uintptr_t libsamp = CUtil::FindLib("libsamp.so");
 	uintptr_t libc = CUtil::FindLib("libc.so");
 
-	Log("libGame.so: 0x%x", libGame);
-	Log("libsamp.so: 0x%x", libmultiplayer);
-	Log("libc.so: 0x%x", libc);
+	FLog("libGTASA.so: 0x%x", libgtasa);
+	FLog("libsamp.so: 0x%x", libsamp);
+	FLog("libc.so: 0x%x", libc);
 
 	char str[100];
 
-	sprintf(str, "0x%x", libGame);
-	//firebase::crashlytics::SetCustomKey("libGame.so", str);
+	sprintf(str, "0x%x", libgtasa);
+	firebase::crashlytics::SetCustomKey("libGTASA.so", str);
 	
-	sprintf(str, "0x%x", libmultiplayer);
-	//firebase::crashlytics::SetCustomKey("libsamp.so", str);
+	sprintf(str, "0x%x", libsamp);
+	firebase::crashlytics::SetCustomKey("libsamp.so", str);
 
 	sprintf(str, "0x%x", libc);
-	//firebase::crashlytics::SetCustomKey("libc.so", str);
+	firebase::crashlytics::SetCustomKey("libc.so", str);
 
 	CHook::InitHookStuff();
 	InstallSpecialHooks();
 	ApplyPatches_level0();
     //SetUpGLHooks();
     InitRenderWareFunctions();
+    MultiTouch::initialize();
 
 	pGame = new CGame();
 
@@ -384,9 +424,9 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 uint32_t GetTickCount()
 {
     return CTimer::m_snTimeInMillisecondsNonClipped;
-}
+}	
 
-void Log(const char* fmt, ...)
+void FLog(const char* fmt, ...)
 {
 	char buffer[0xFF];
 	static FILE* flLog = nullptr;
@@ -395,7 +435,8 @@ void Log(const char* fmt, ...)
 
 	if (flLog == nullptr && pszStorage != nullptr)
 	{
-		sprintf(buffer, "/storage/emulated/0/GTA/logcat.txt");
+		sprintf(buffer, "%s/samp_log.txt", pszStorage);
+		//LOGI("buffer: %s", buffer);
 		flLog = fopen(buffer, "a");
 	}
 
@@ -407,12 +448,96 @@ void Log(const char* fmt, ...)
 	va_end(arg);
 
 	LOGI("%s", buffer);
-	//firebase::crashlytics::Log(buffer);
+	firebase::crashlytics::Log(buffer);
 
 	if (flLog == nullptr) return;
 	fprintf(flLog, "%s\n", buffer);
 	fflush(flLog);
 
+	return;
+}
+
+void ChatLog(const char* fmt, ...)
+{
+	char buffer[0xFF];
+	static FILE* flLog = nullptr;
+	const char* pszStorage = g_pszStorage;
+
+
+	if (flLog == nullptr && pszStorage != nullptr)
+	{
+		sprintf(buffer, "%s/chat_log.txt", pszStorage);
+		flLog = fopen(buffer, "a");
+	}
+
+	memset(buffer, 0, sizeof(buffer));
+
+	va_list arg;
+	va_start(arg, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, arg);
+	va_end(arg);
+
+	if (flLog == nullptr) return;
+	fprintf(flLog, "%s\n", buffer);
+	fflush(flLog);
+
+	return;
+}
+
+void MyLog(const char* fmt, ...)
+{
+	char buffer[0xFF];
+	static FILE* flLog = nullptr;
+	const char* pszStorage = g_pszStorage;
+
+
+	if (flLog == nullptr && pszStorage != nullptr)
+	{
+		sprintf(buffer, "%s/samp_log.txt", pszStorage);
+		//LOGI("buffer: %s", buffer);
+		flLog = fopen(buffer, "a");
+	}
+
+	memset(buffer, 0, sizeof(buffer));
+
+	va_list arg;
+	va_start(arg, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, arg);
+	va_end(arg);
+
+	if (flLog == nullptr) return;
+	fprintf(flLog, "%s\n", buffer);
+	fflush(flLog);
+
+	return;
+}
+
+void MyLog2(const char* fmt, ...)
+{
+	char buffer[0xFF];
+	static FILE* flLog = nullptr;
+	const char* pszStorage = g_pszStorage;
+
+
+	if (flLog == nullptr && pszStorage != nullptr)
+	{
+		sprintf(buffer, "%s/samp_log.txt", pszStorage);
+		//LOGI("buffer: %s", buffer);
+		flLog = fopen(buffer, "a");
+	}
+
+	memset(buffer, 0, sizeof(buffer));
+
+	va_list arg;
+	va_start(arg, fmt);
+	vsnprintf(buffer, sizeof(buffer), fmt, arg);
+	va_end(arg);
+
+	if (pUI) pUI->chat()->addDebugMessage(buffer);
+
+	if (flLog == nullptr) return;
+	fprintf(flLog, "%s\n", buffer);
+	fflush(flLog);
 	return;
 }
 
@@ -424,7 +549,7 @@ void LogVoice(const char* fmt, ...)
 
 	if (flLog == nullptr && pszStorage != nullptr)
 	{
-		//sprintf(buffer, "/storage/emulated/0/Android/media/com.gta.game/SAMP/%s", SV::kLogFileName);
+		sprintf(buffer, "%sSAMP/%s", pszStorage, SV::kLogFileName);
 		flLog = fopen(buffer, "w");
 	}
 

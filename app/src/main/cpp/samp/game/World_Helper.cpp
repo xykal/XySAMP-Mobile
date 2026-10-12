@@ -10,14 +10,14 @@ extern CGame pGame;
 
 // inlined
 CPlayerInfoGta& FindPlayerInfo(int32 playerId) {
-    return CWorld::Players[playerId < 0 ?   *pbyteCurrentPlayer : playerId];
+    return CWorld::Players[playerId < 0 ? CWorld::PlayerInFocus : playerId];
 }
 
 // Returns player ped
 // 0x56E210
 CPlayerPedGta* FindPlayerPed(int32 playerId) {
     if(playerId == -1)
-        playerId =   *pbyteCurrentPlayer;
+        playerId = CWorld::PlayerInFocus;
 
     return FindPlayerInfo(playerId).m_pPed;
 }

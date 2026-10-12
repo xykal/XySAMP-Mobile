@@ -66,7 +66,6 @@ public:
 	static ImColor dialogBackgroundColor() { return m_dialogBackgroundColor; }
 	static ImColor dialogTitleBackgroundColor() { return m_dialogTitleBackgroundColor; }
 
-    static ImVec2 m_chatSize;
 private:
 	/* scaling */
 	static ImVec2 m_baseSize;
@@ -93,10 +92,11 @@ private:
 	static ImVec2	m_splashScreenPBarSize;
 
 	/* chat */
-    static ImVec2 m_chatPos;
-    static ImVec2 m_chatItemSize;
-    static int m_chatDispMesssages;
-    static int m_chatMaxMessages;
+	static ImVec2 m_chatPos;
+	static ImVec2 m_chatSize;
+	static ImVec2 m_chatItemSize;
+	static int m_chatDispMesssages;
+	static int m_chatMaxMessages;
 
 	/* spawn */
 	static ImVec2 m_spawnPos;

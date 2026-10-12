@@ -4,6 +4,7 @@
 #include "../gui/gui.h"
 #include "../vendor/armhook/patch.h"
 #include "World.h"
+
 extern UI* pUI;
 extern CGame* pGame;
 extern CNetGame* pNetGame;
@@ -17,309 +18,303 @@ PAD_KEYS RemotePlayerKeys[PLAYER_PED_SLOTS];
 uint16_t(*CPad__GetPedWalkLeftRight)(uintptr_t thiz);
 uint16_t CPad__GetPedWalkLeftRight_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // Remote player
-        uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyLR;
-        if ((dwResult == 0xFF80 || dwResult == 0x80) &&
-            RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_WALK])
-        {
-            dwResult = 0x20;
-        }
-        return dwResult;
-    }
-    else
-    {
-        // Local player
-        LocalPlayerKeys.wKeyLR = CPad__GetPedWalkLeftRight(thiz);
-        return LocalPlayerKeys.wKeyLR;
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// Remote player
+		uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyLR;
+		if ((dwResult == 0xFF80 || dwResult == 0x80) &&
+			RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_WALK])
+		{
+			dwResult = 0x20;
+		}
+		return dwResult;
+	}
+	else
+	{
+		// Local player
+		LocalPlayerKeys.wKeyLR = CPad__GetPedWalkLeftRight(thiz);
+		return LocalPlayerKeys.wKeyLR;
+	}
 }
 
 uint16_t(*CPad__GetPedWalkUpDown)(uintptr_t thiz);
 uint16_t CPad__GetPedWalkUpDown_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // Remote player
-        uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyUD;
-        if ((dwResult == 0xFF80 || dwResult == 0x80) &&
-            RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_WALK])
-        {
-            dwResult = 0x20;
-        }
-        return dwResult;
-    }
-    else
-    {
-        // Local player
-        LocalPlayerKeys.wKeyUD = CPad__GetPedWalkUpDown(thiz);
-        return LocalPlayerKeys.wKeyUD;
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// Remote player
+		uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyUD;
+		if ((dwResult == 0xFF80 || dwResult == 0x80) &&
+			RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_WALK])
+		{
+			dwResult = 0x20;
+		}
+		return dwResult;
+	}
+	else
+	{
+		// Local player
+		LocalPlayerKeys.wKeyUD = CPad__GetPedWalkUpDown(thiz);
+		return LocalPlayerKeys.wKeyUD;
+	}
 }
 
 uint32_t(*CPad__GetSprint)(uintptr_t thiz, uint32_t unk);
 uint32_t CPad__GetSprint_hook(uintptr_t thiz, uint32_t unk)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SPRINT];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT] = CPad__GetSprint(thiz, unk);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SPRINT];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT] = CPad__GetSprint(thiz, unk);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT];
+	}
 }
 
 uint32_t(*CPad__JumpJustDown)(uintptr_t thiz);
 uint32_t CPad__JumpJustDown_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        if (!RemotePlayerKeys[byteCurPlayer].bIgnoreJump &&
-            RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] &&
-            !RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE])
-        {
-            RemotePlayerKeys[byteCurPlayer].bIgnoreJump = true;
-            return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
-        }
+	if (CWorld::PlayerInFocus)
+	{
+		if (!RemotePlayerKeys[byteCurPlayer].bIgnoreJump &&
+			RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] &&
+			!RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE])
+		{
+			RemotePlayerKeys[byteCurPlayer].bIgnoreJump = true;
+			return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
+		}
 
-        return 0;
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__JumpJustDown(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
-    }
+		return 0;
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__JumpJustDown(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
+	}
 }
 
 uint32_t(*CPad__GetJump)(uintptr_t thiz);
 uint32_t CPad__GetJump_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        if (RemotePlayerKeys[byteCurPlayer].bIgnoreJump) return 0;
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__JumpJustDown(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		if (RemotePlayerKeys[byteCurPlayer].bIgnoreJump) return 0;
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__JumpJustDown(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
+	}
 }
 
 uint32_t(*CPad__GetAutoClimb)(uintptr_t thiz);
 uint32_t CPad__GetAutoClimb_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__GetAutoClimb(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__GetAutoClimb(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
+	}
 }
 
 uint32_t(*CPad__GetAbortClimb)(uintptr_t thiz);
 uint32_t CPad__GetAbortClimb_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SECONDARY_ATTACK];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = CPad__GetAutoClimb(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SECONDARY_ATTACK];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = CPad__GetAutoClimb(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK];
+	}
 }
 
 uint32_t(*CPad__DiveJustDown)();
 uint32_t CPad__DiveJustDown_hook()
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__DiveJustDown();
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__DiveJustDown();
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
+	}
 }
 
 uint32_t(*CPad__SwimJumpJustDown)(uintptr_t thiz);
 uint32_t CPad__SwimJumpJustDown_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__SwimJumpJustDown(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = CPad__SwimJumpJustDown(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP];
+	}
 }
 
 uint32_t(*CPad__DuckJustDown)(uintptr_t thiz, int unk);
 uint32_t CPad__DuckJustDown_hook(uintptr_t thiz, int unk)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return 0;
-    }
-    else
-    {
-        return CPad__DuckJustDown(thiz, unk);
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return 0;
+	}
+	else
+	{
+		return CPad__DuckJustDown(thiz, unk);
+	}
 }
 
 uint32_t(*CPad__MeleeAttackJustDown)(uintptr_t thiz);
 uint32_t CPad__MeleeAttackJustDown_hook(uintptr_t thiz)
 {
-    /*
-        0 - �� ����
-        1 - ������� ���� (���)
-        2 - ������� ���� (��� + F)
-    */
+	/*
+		0 - �� ����
+		1 - ������� ���� (���)
+		2 - ������� ���� (��� + F)
+	*/
 
-    if (*pbyteCurrentPlayer)
-    {
-        if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE] &&
-            RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SECONDARY_ATTACK])
-            return 2;
+	if (CWorld::PlayerInFocus)
+	{
+		if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE] &&
+			RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SECONDARY_ATTACK])
+			return 2;
 
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
-    }
-    else
-    {
-        uint32_t dwResult = CPad__MeleeAttackJustDown(thiz);
-        //LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
+	}
+	else
+	{
+		uint32_t dwResult = CPad__MeleeAttackJustDown(thiz);
+		//LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
 
-        //if(dwResult == 2)
-        //{
-        //	LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
-        //}
-        //else if(dwResult == 1)
-        //{
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = dwResult;
-        //	LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
-        //}
+		//if(dwResult == 2) 
+		//{
+		//	LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+		//}
+		//else if(dwResult == 1)
+		//{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = dwResult;
+		//	LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+		//}
 
-        return dwResult;
-    }
+		return dwResult;
+	}
 }
 
 uint32_t(*CPad__GetBlock)(uintptr_t thiz);
 uint32_t CPad__GetBlock_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] &&
-            RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE])
-            return 1;
+	if (CWorld::PlayerInFocus)
+	{
+		if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] &&
+			RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE])
+			return 1;
 
-        return 0;
-    }
-    else
-    {
-        return CPad__GetBlock(thiz);
-    }
+		return 0;
+	}
+	else
+	{
+		return CPad__GetBlock(thiz);
+	}
 }
 
 int16_t(*CPad__GetSteeringLeftRight)(uintptr_t thiz);
 int16_t CPad__GetSteeringLeftRight_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return (int16_t)RemotePlayerKeys[byteCurPlayer].wKeyLR;
-    }
-    else
-    {
-        // local player
-        LocalPlayerKeys.wKeyLR = CPad__GetSteeringLeftRight(thiz);
-        return LocalPlayerKeys.wKeyLR;
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return (int16_t)RemotePlayerKeys[byteCurPlayer].wKeyLR;
+	}
+	else
+	{
+		// local player
+		LocalPlayerKeys.wKeyLR = CPad__GetSteeringLeftRight(thiz);
+		return LocalPlayerKeys.wKeyLR;
+	}
 }
 
 uint16_t(*CPad__GetSteeringUpDown)(uintptr_t thiz);
 uint16_t CPad__GetSteeringUpDown_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].wKeyUD;
-    }
-    else
-    {
-        // local player
-        LocalPlayerKeys.wKeyUD = CPad__GetSteeringUpDown(thiz);
-        return LocalPlayerKeys.wKeyUD;
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].wKeyUD;
+	}
+	else
+	{
+		// local player
+		LocalPlayerKeys.wKeyUD = CPad__GetSteeringUpDown(thiz);
+		return LocalPlayerKeys.wKeyUD;
+	}
 }
 
 uint16_t(*CPad__GetAccelerate)(uintptr_t thiz);
 uint16_t CPad__GetAccelerate_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SPRINT] ? 0xFF : 0x00;
-    }
-    else
-    {
-        // local player
-        CPlayerPed* pPlayerPed = pGame->FindPlayerPed();
-        if (pPlayerPed)
-        {
-            if(pPlayerPed->IsInJetpackMode()) {
-                uint16_t wAccelerate = CPad__GetAccelerate(thiz);
-                LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT] = wAccelerate;
-                return wAccelerate;
-            }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_SPRINT] ? 0xFF : 0x00;
+	}
+	else
+	{
+		// local player
+		CPlayerPed* pPlayerPed = pGame->FindPlayerPed();
+		if (pPlayerPed)
+		{
+			if (!pPlayerPed->IsInVehicle() || pPlayerPed->IsAPassenger())
+				return 0;
+		}
 
-            if (!pPlayerPed->IsInVehicle() || pPlayerPed->IsAPassenger())
-                return 0;
-        }
-
-        // local player
-        uint16_t wAccelerate = CPad__GetAccelerate(thiz);
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT] = wAccelerate;
-        if (wAccelerate == 0xFF)
-        {
-            if (pPlayerPed)
-            {
+		// local player
+		uint16_t wAccelerate = CPad__GetAccelerate(thiz);
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT] = wAccelerate;
+		if (wAccelerate == 0xFF)
+		{
+			if (pPlayerPed)
+			{
                 CVehicleGTA* pGtaVehicle = pPlayerPed->GetGtaVehicle();
-                if (pGtaVehicle)
-                {
-                    if (pGtaVehicle->m_nVehicleFlags.bEngineOn == 0)
-                    {
-                        wAccelerate = 0;
-                    }
-                }
-            }
-        }
+				if (pGtaVehicle)
+				{
+					if (pGtaVehicle->m_nVehicleFlags.bEngineOn == 0)
+					{
+						wAccelerate = 0;
+					}
+				}
+			}
+		}
 
-        return wAccelerate;
-    }
+		return wAccelerate;
+	}
 }
 
 uint16_t(*CPad__GetBrake)(uintptr_t thiz);
 uint16_t CPad__GetBrake_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] ? 0xFF : 0x00;
-    }
-    else
-    {
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_JUMP] ? 0xFF : 0x00;
+	}
+	else
+	{
         CPlayerPed* pPlayerPed = pGame->FindPlayerPed();
         if (pPlayerPed)
         {
@@ -327,9 +322,9 @@ uint16_t CPad__GetBrake_hook(uintptr_t thiz)
                 return 0;
         }
 
-        // local player
-        uint16_t wBrake = CPad__GetBrake(thiz);
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = wBrake;
+		// local player
+		uint16_t wBrake = CPad__GetBrake(thiz);
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = wBrake;
         if (wBrake == 0xFF)
         {
             if (pPlayerPed)
@@ -344,43 +339,43 @@ uint16_t CPad__GetBrake_hook(uintptr_t thiz)
                 }
             }
         }
-        return wBrake;
-    }
+		return wBrake;
+	}
 }
 
 uint32_t(*CPad__GetHandBrake)(uintptr_t thiz);
 uint32_t CPad__GetHandBrake_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE] ? 0xFF : 0x00;
-    }
-    else
-    {
-        // local player
-        uint32_t handBrake = CPad__GetHandBrake(thiz);
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = handBrake;
-        return handBrake;
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE] ? 0xFF : 0x00;
+	}
+	else
+	{
+		// local player
+		uint32_t handBrake = CPad__GetHandBrake(thiz);
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = handBrake;
+		return handBrake;
+	}
 }
 
 uint32_t(*CPad__GetHorn)(uintptr_t thiz);
 uint32_t CPad__GetHorn_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // remote player
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_CROUCH];
-    }
-    else
-    {
-        // local player
-        uint32_t horn = CPad__GetHorn(thiz);
-        //Log("horn: %d", horn);
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_CROUCH] = CPad__GetHorn(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_CROUCH];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		// remote player
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_CROUCH];
+	}
+	else
+	{
+		// local player
+		uint32_t horn = CPad__GetHorn(thiz);
+		//Log("horn: %d", horn);
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_CROUCH] = CPad__GetHorn(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_CROUCH];
+	}
 }
 
 /*extern bool g_bLockEnterVehicleWidget;
@@ -405,28 +400,28 @@ uint32_t CPad__ExitVehicleJustDown_hook(uintptr_t thiz, int a2, uintptr_t vehicl
 uint32_t(*CPad__ExitVehicleJustDown)(uintptr_t thiz, int a2, uintptr_t vehicle, int a4, uintptr_t vec);
 uint32_t CPad__ExitVehicleJustDown_hook(uintptr_t thiz, int a2, uintptr_t vehicle, int a4, uintptr_t vec)
 {
-    static uint32_t dwPassengerEnterExit = GetTickCount();
+	static uint32_t dwPassengerEnterExit = GetTickCount();
 
-    if (GetTickCount() - dwPassengerEnterExit < 1000)
-        return 0;
+	if (GetTickCount() - dwPassengerEnterExit < 1000)
+		return 0;
 
-    if (pNetGame)
-    {
-        CPlayerPool* pPlayerPool = pNetGame->GetPlayerPool();
-        if (pPlayerPool)
-        {
-            CLocalPlayer* pLocalPlayer = pPlayerPool->GetLocalPlayer();
-            if (pLocalPlayer) {
-                if (pLocalPlayer->HandlePassengerEntry())
-                {
-                    dwPassengerEnterExit = GetTickCount();
-                    return 0;
-                }
-            }
-        }
-    }
+	if (pNetGame)
+	{
+		CPlayerPool* pPlayerPool = pNetGame->GetPlayerPool();
+		if (pPlayerPool)
+		{
+			CLocalPlayer* pLocalPlayer = pPlayerPool->GetLocalPlayer();
+			if (pLocalPlayer) {
+				if (pLocalPlayer->HandlePassengerEntry())
+				{
+					dwPassengerEnterExit = GetTickCount();
+					return 0;
+				}
+			}
+		}
+	}
 
-    return CPad__ExitVehicleJustDown(thiz, a2, vehicle, a4, vec);
+	return CPad__ExitVehicleJustDown(thiz, a2, vehicle, a4, vec);
 }
 
 uint32_t(*CPad__GetExitVehicle)(uintptr_t thiz);
@@ -441,63 +436,59 @@ uint32_t CPad__GetExitVehicle_hook(uintptr_t thiz)
 bool (*CPad__GetEnterTargeting)(uintptr_t thiz);
 bool CPad__GetEnterTargeting_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
+    if (CWorld::PlayerInFocus)
     {
         return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE];
     }
     else
     {
-        uint8_t old =   *pbyteCurrentPlayer;
-          *pbyteCurrentPlayer = byteCurPlayer;
+        uint8_t old = CWorld::PlayerInFocus;
+        CWorld::PlayerInFocus = byteCurPlayer;
         uintptr_t result = CPad__GetEnterTargeting(thiz);
         LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = result;
-          *pbyteCurrentPlayer = old;
+        CWorld::PlayerInFocus = old;
         return result;
     }
 }
 
-bool bWeaponClicked;
-
-uint32_t (*CPad__CycleWeaponRightJustDown)(uintptr_t thiz);
+uint32_t(*CPad__CycleWeaponRightJustDown)(uintptr_t thiz);
 uint32_t CPad__CycleWeaponRightJustDown_hook(uintptr_t thiz)
 {
-    if(dwCurPlayerActor && (byteCurPlayer != 0)) return 0;
-
-    if(!bWeaponClicked) {
-        return 0;
-    }
-    else {
-        bWeaponClicked = false;
-        return 1;
-    }
-    return CPad__CycleWeaponRightJustDown(thiz);
+	if (CWorld::PlayerInFocus)
+	{
+		return 0;
+	}
+	else
+	{
+		return CPad__CycleWeaponRightJustDown(thiz);
+	}
 }
 
 uint32_t(*CPad__CycleWeaponLeftJustDown)(uintptr_t thiz);
 uint32_t CPad__CycleWeaponLeftJustDown_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return 0;
-    }
-    else
-    {
-        return CPad__CycleWeaponLeftJustDown(thiz);
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return 0;
+	}
+	else
+	{
+		return CPad__CycleWeaponLeftJustDown(thiz);
+	}
 }
 
 bool (*CPad__GetWeapon)(uintptr_t thiz, CPedGTA* pPed);
 bool CPad__GetWeapon_hook(uintptr_t thiz, CPedGTA* pPed)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__GetWeapon(thiz, pPed);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
-    }
+	if (CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__GetWeapon(thiz, pPed);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
+	}
 }
 
 uint32_t(*CCamera_IsTargetingActive)(uintptr_t thiz, CPedGTA* pPed);
@@ -510,8 +501,8 @@ uint32_t CCamera_IsTargetingActive_hook(uintptr_t thiz, CPedGTA* pPed)
     else
     {
         /* CCamera::IsTargetingActive */
-        static CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
-        uint32_t bIsTargeting = CHook::CallFunction<bool>(g_libGTASA + 0x46DE58, &TheCamera);
+        static CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
+        uint32_t bIsTargeting = CHook::CallFunction<bool>(g_libGTASA + (VER_x32 ? 0x3D9F54 + 1 : 0x4B8154), &TheCamera);
 
         LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = bIsTargeting;
         return bIsTargeting;
@@ -521,30 +512,30 @@ uint32_t CCamera_IsTargetingActive_hook(uintptr_t thiz, CPedGTA* pPed)
 uint32_t(*CPad__GetDisplayVitalStats)(uint32_t thiz);
 uint32_t CPad__GetDisplayVitalStats_hook(uint32_t thiz)
 {
-    uint32_t result = CPad__GetDisplayVitalStats(thiz);
+	uint32_t result = CPad__GetDisplayVitalStats(thiz);
 
-    if (pUI) {
-        if (result) pUI->playertablist()->show();
-    }
+	if (pUI) {
+		if (result) pUI->playertablist()->show();
+	}
 
-    return 0;
+	return 0;
 }
 
 uint32_t(*CPad__GetLookBehindForPed)(uint32_t thiz);
 uint32_t CPad__GetLookBehindForPed_hook(uint32_t thiz)
 {
-    uint32_t result = CPad__GetLookBehindForPed(thiz);
+	uint32_t result = CPad__GetLookBehindForPed(thiz);
 
-    VoiceButton* vbutton = pUI->voicebutton();
-    if (vbutton->countdown > 50) return 0;
+	VoiceButton* vbutton = pUI->voicebutton();
+	if (vbutton->countdown > 50) return 0;
 
-    //return 0;
+	//return 0;
 }
 
 int (*CPad__GetNitroFired)(uintptr_t thiz);
 int CPad__GetNitroFired_hook(uintptr_t thiz)
 {
-      if (*pbyteCurrentPlayer)
+    if(CWorld::PlayerInFocus)
     {
         if(RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
             return 1;
@@ -559,7 +550,7 @@ int CPad__GetNitroFired_hook(uintptr_t thiz)
 uint32_t (*CPad__GetLookLeft)(uintptr_t thiz);
 uint32_t CPad__GetLookLeft_hook(uintptr_t thiz)
 {
-      if (*pbyteCurrentPlayer)
+    if(CWorld::PlayerInFocus)
     {
         if(RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
             return 1;
@@ -574,7 +565,7 @@ uint32_t CPad__GetLookLeft_hook(uintptr_t thiz)
 uint32_t (*CPad__GetLookRight)(uintptr_t thiz);
 uint32_t CPad__GetLookRight_hook(uintptr_t thiz)
 {
-    if (*pbyteCurrentPlayer)
+    if(CWorld::PlayerInFocus)
     {
         if(RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
             return 1;
@@ -589,117 +580,117 @@ uint32_t CPad__GetLookRight_hook(uintptr_t thiz)
 uint16_t(*CPad__GetCarGunLeftRight)(unsigned int a1, int a2, int a3);
 uint16_t CPad__GetCarGunLeftRight_hook(unsigned int a1, int a2, int a3)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // Remote player
-        uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyLR;
-        if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
-        {
-            dwResult = 0xFFFFFF80;
-        }
-        return dwResult;
-    }
-    else
-    {
-        // Local player
-        uint16_t dwResult = CPad__GetCarGunLeftRight(a1, a2, a3);
+	if (CWorld::PlayerInFocus)
+	{
+		// Remote player
+		uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyLR;
+		if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
+		{
+			dwResult = 0xFFFFFF80;
+		}
+		return dwResult;
+	}
+	else
+	{
+		// Local player
+		uint16_t dwResult = CPad__GetCarGunLeftRight(a1, a2, a3);
 
-        if ( dwResult == 0x80 )
-        {
-            LocalPlayerKeys.wKeyLR = 1;
-            dwResult = 0x80;
-        }
-        else if ( dwResult == 0xFFFFFF80 )
-        {
-            LocalPlayerKeys.wKeyLR = 1;
-            dwResult = 0xFFFFFF80;
-        }
-        else
-        {
-            LocalPlayerKeys.wKeyLR = 0;
-        }
+		if ( dwResult == 0x80 )
+		{
+			LocalPlayerKeys.wKeyLR = 1;
+			dwResult = 0x80;
+		}
+		else if ( dwResult == 0xFFFFFF80 )
+		{
+			LocalPlayerKeys.wKeyLR = 1;
+			dwResult = 0xFFFFFF80;
+		}
+		else
+		{
+			LocalPlayerKeys.wKeyLR = 0;
+		}
 
-        return dwResult;
-    }
+		return dwResult;
+	}
 }
 
 uint16_t(*CPad__GetCarGunUpDown)(unsigned int a1, int a2, void *a3, float a4, int a5);
 uint16_t CPad__GetCarGunUpDown_hook(unsigned int a1, int a2, void *a3, float a4, int a5)
 {
-    if (*pbyteCurrentPlayer)
-    {
-        // Remote player
-        uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyUD;
-        if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
-        {
-            dwResult = 0xFFFFFF80;
-        }
-        return dwResult;
-    }
-    else
-    {
-        // Local player
-        uint16_t dwResult = CPad__GetCarGunUpDown(a1, a2, a3, a4, a5);
+	if (CWorld::PlayerInFocus)
+	{
+		// Remote player
+		uint16_t dwResult = RemotePlayerKeys[byteCurPlayer].wKeyUD;
+		if (RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE])
+		{
+			dwResult = 0xFFFFFF80;
+		}
+		return dwResult;
+	}
+	else
+	{
+		// Local player
+		uint16_t dwResult = CPad__GetCarGunUpDown(a1, a2, a3, a4, a5);
 
-        if ( dwResult == 0x80 )
-        {
-            LocalPlayerKeys.wKeyUD = 1;
-            dwResult = 0x80;
-        }
-        else if ( dwResult == 0xFFFFFF80 )
-        {
-            LocalPlayerKeys.wKeyUD = 1;
-            dwResult = 0xFFFFFF80;
-        }
-        else
-        {
-            LocalPlayerKeys.wKeyUD = 0;
-        }
+		if ( dwResult == 0x80 )
+		{
+			LocalPlayerKeys.wKeyUD = 1;
+			dwResult = 0x80;
+		}
+		else if ( dwResult == 0xFFFFFF80 )
+		{
+			LocalPlayerKeys.wKeyUD = 1;
+			dwResult = 0xFFFFFF80;
+		}
+		else
+		{
+			LocalPlayerKeys.wKeyUD = 0;
+		}
 
-        return dwResult;
-    }
+		return dwResult;
+	}
 }
 
 uint32_t (*CPad__GetCarGunFired)(uintptr_t thiz);
 uint32_t CPad__GetCarGunFired_hook(uintptr_t thiz)
 {
-      if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__GetCarGunFired(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
-    }
+	if(CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad__GetCarGunFired(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
+	}
 }
 
 bool (*CPad__GetTurretRight)(uintptr_t *thiz);
 bool CPad__GetTurretRight_hook(uintptr_t *thiz)
 {
-      if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_LOOK_RIGHT];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT] = CPad__GetTurretRight(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT];
-    }
+	if(CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_LOOK_RIGHT];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT] = CPad__GetTurretRight(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT];
+	}
 }
 
 bool (*CPad__GetTurretLeft)(uintptr_t *thiz);
 bool CPad__GetTurretLeft_hook(uintptr_t *thiz)
 {
-      if (*pbyteCurrentPlayer)
-    {
-        return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_LOOK_LEFT];
-    }
-    else
-    {
-        LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT] = CPad__GetTurretLeft(thiz);
-        return LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT];
-    }
+	if(CWorld::PlayerInFocus)
+	{
+		return RemotePlayerKeys[byteCurPlayer].bKeys[ePadKeys::KEY_LOOK_LEFT];
+	}
+	else
+	{
+		LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT] = CPad__GetTurretLeft(thiz);
+		return LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT];
+	}
 }
 
 extern uint8_t byteInternalPlayer;
@@ -713,74 +704,118 @@ void AllVehicles__ProcessControl_hook(uintptr_t thiz)
 
     switch(this_vtable)
     {
-
+#if VER_x32
         // CAutomobile
-        case 0x8304C8:
-            call_addr = 0x6A77B8;
+		case 0x0066D678:
+		call_addr = 0x00553E44;
+		break;
+
+		// CBoat
+		case 0x0066DA20:
+		call_addr = 0x0056BEC0;
+		break;
+
+		// CBike
+		case 0x0066D7F0:
+		call_addr = 0x00561A90;
+		break;
+
+		// CPlane
+		case 0x0066DD84:
+		call_addr = 0x00575CF8;
+		break;
+
+		// CHeli
+		case 0x0066DB34:
+		call_addr = 0x005712A8;
+		break;
+
+		// CBmx
+		case 0x0066D908:
+		call_addr = 0x00568B84;
+		break;
+
+		// CMonsterTruck
+		case 0x0066DC5C:
+		call_addr = 0x00574864;
+		break;
+
+		// CQuadBike
+		case 0x0066DEAC:
+		call_addr = 0x0057A2F0;
+		break;
+
+		// CTrain
+		case 0x0066E0FC:
+		call_addr = 0x0057D0A0;
+		break;
+#else
+        // CAutomobile
+        case 0x83BB50:
+            call_addr = 0x67459C;
             break;
 
             // CBoat
-        case 0x830C78:
-            call_addr = 0x6C180C;
+        case 0x83C2A0:
+            call_addr = 0x68DCE8;
             break;
 
             // CBike
-        case 0x8307E8:
-            call_addr = 0x6B6954;
+        case 0x83BE40:
+            call_addr = 0x682BC8;
             break;
 
             // CPlane
-        case 0x831388:
-            call_addr = 0x6CC53C;
+        case 0x83C968:
+            call_addr = 0x6993B8;
             break;
 
             // CHeli
-        case 0x830EB8:
-            call_addr = 0x6C79EC;
+        case 0x83C4C8:
+            call_addr = 0x693978;
             break;
 
             // CBmx
-        case 0x830A30:
-            call_addr = 0x6BE2A8;
+        case 0x83C070:
+            call_addr = 0x693978;
             break;
 
             // CMonsterTruck
-        case 0x831120:
-            call_addr = 0x6CB314;
+        case 0x83C718:
+            call_addr = 0x698090;
             break;
 
             // CQuadBike
-        case 0x8315F0:
-            call_addr = 0x6D1098;
+        case 0x83CBB8:
+            call_addr = 0x69DB44;
             break;
 
             // CTrain
-        case 0x831AC0:
-            call_addr = 0x6D4224;
+        case 0x83D058:
+            call_addr = 0x6A0A20;
             break;
+#endif
     }
 
-    uint8_t saved_focus =   *pbyteCurrentPlayer;
-    uint8_t saved_cur_player = byteCurPlayer;
-
-    if (pVehicle && pVehicle->pDriver) {
+    if(pVehicle && pVehicle->pDriver)
+    {
         byteCurPlayer = FindPlayerNumFromPedPtr(pVehicle->pDriver);
-          *pbyteCurrentPlayer = byteCurPlayer;
-    } else {
-        byteCurPlayer = 0;
-          *pbyteCurrentPlayer = 0;
     }
 
     if(pVehicle->pDriver && pVehicle->pDriver->m_nPedType == 0 &&
-       pVehicle->pDriver != GamePool_FindPlayerPed())
+       pVehicle->pDriver != GamePool_FindPlayerPed() &&
+            CWorld::PlayerInFocus  == 0) // CWorld::PlayerInFocus
     {
+        CWorld::PlayerInFocus = 0;
+
         pVehicle->pDriver->m_nPedType = static_cast<ePedType>(4);
-        (( void (*)(uintptr_t))(g_libGTASA + 0x397150))(reinterpret_cast<uintptr_t>(&pVehicle->m_VehicleAudioEntity));
+        //CAEVehicleAudioEntity::Service
+        (( void (*)(uintptr_t))(g_libGTASA + (VER_x32 ? 0x003ACE04 + 1: 0x489B78)))(reinterpret_cast<uintptr_t>(&pVehicle->m_VehicleAudioEntity));
         pVehicle->pDriver->m_nPedType = static_cast<ePedType>(0);
     }
     else
     {
-        (( void (*)(uintptr_t))(g_libGTASA + 0x397150))(reinterpret_cast<uintptr_t>(&pVehicle->m_VehicleAudioEntity));
+        (( void (*)(uintptr_t))(g_libGTASA + (VER_x32 ? 0x003ACE04 + 1 : 0x489B78)))(reinterpret_cast<uintptr_t>(&pVehicle->m_VehicleAudioEntity));
     }
 
     // Tyre burst fix
@@ -802,10 +837,7 @@ void AllVehicles__ProcessControl_hook(uintptr_t thiz)
     }
 
     // VEHTYPE::ProcessControl()
-    (( void (*)(CVehicleGTA*))(g_libGTASA + call_addr))(pVehicle);
-
-      *pbyteCurrentPlayer = saved_focus;
-    byteCurPlayer = saved_cur_player;
+    (( void (*)(CVehicleGTA*))(g_libGTASA + call_addr + (VER_x32 ? 1 : 0)))(pVehicle);
 }
 
 extern float * pfCameraExtZoom;
@@ -836,18 +868,21 @@ void CPed__ProcessControl_hook(uintptr_t thiz)
             *wCameraMode2 = 0;
 
         // CPed::UpdatePosition nulled from CPed::ProcessControl
-        CHook::NOP(g_libGTASA + 0x58AE24, 2);
+        CHook::NOP(g_libGTASA + (VER_x32 ? 0x004A2A92 : 0x598D1C), 2);
 
-          *pbyteCurrentPlayer = byteCurPlayer;
+        CWorld::PlayerInFocus = byteCurPlayer;
         // call original
 
         CPed__ProcessControl(thiz);
 
         // restore
-        CHook::WriteMemory(g_libGTASA + 0x58AE24, "\xAF\x00\x0A\x94", 4);
+#if VER_x32
+        CHook::WriteMemory(g_libGTASA + 0x004A2A92, "\xFE\xF7\x81\xFF", 4);
+#else
+        CHook::WriteMemory(g_libGTASA + 0x598D1C, "\x7A\xFB\xFF\x97", 4);
+#endif
 
-
-          *pbyteCurrentPlayer = 0;
+        CWorld::PlayerInFocus = 0;
         *pbyteCameraMode = byteSavedCameraMode;
 
         GameSetLocalPlayerCameraExtZoomAndAspect();
@@ -884,8 +919,9 @@ uint32_t TaskUseGun(uintptr_t thiz, uintptr_t ped)
         // aim switching
         GameStoreLocalPlayerAim();
         GameSetRemotePlayerAim(byteCurPlayer);
-        *pbyteCurrentPlayer = byteCurPlayer;
-        result = ((uint32_t(*)(uintptr_t, uintptr_t))(g_libGTASA + 0x616C0C))(thiz, ped);
+        CWorld::PlayerInFocus = byteCurPlayer;
+
+        result = ((uint32_t(*)(uintptr_t, uintptr_t))(g_libGTASA + (VER_x32 ? 0x004DDB70 + 1 : 0x5DFCC4)))(thiz, ped);
 
         // restore the camera modes, internal id and local player's aim
         *pbyteCameraMode = byteSavedCameraMode;
@@ -893,13 +929,13 @@ uint32_t TaskUseGun(uintptr_t thiz, uintptr_t ped)
         // remote the local player's camera zoom factor
         GameSetLocalPlayerCameraExtZoomAndAspect();
 
-        *pbyteCurrentPlayer = 0;
+        CWorld::PlayerInFocus = 0;
         GameSetLocalPlayerAim();
         *wCameraMode2 = wSavedCameraMode2;
     }
     else
     {
-        result = ((uint32_t(*)(uintptr_t, uintptr_t))(g_libGTASA + 0x616C0C))(thiz, ped);
+        result = ((uint32_t(*)(uintptr_t, uintptr_t))(g_libGTASA + (VER_x32 ? 0x004DDB70 + 1 : 0x5DFCC4)))(thiz, ped);
     }
 
     return result;
@@ -909,58 +945,34 @@ uint32_t CPad__TaskProcess(uintptr_t thiz, uintptr_t ped, int unk, int unk1)
 {
     dwCurPlayerActor = ped;
     byteCurPlayer = FindPlayerNumFromPedPtr(reinterpret_cast<CPedGTA *>(dwCurPlayerActor));
-    uint8_t old = *pbyteCurrentPlayer ;
-    *pbyteCurrentPlayer  = byteCurPlayer;
-    uint32_t result =  ((uint32_t(*)(uintptr_t, uintptr_t, int, int))(g_libGTASA + 0x68BD84))(thiz, ped, unk, unk1);
-    *pbyteCurrentPlayer  = old;
+    uint8_t old = CWorld::PlayerInFocus;
+    CWorld::PlayerInFocus = byteCurPlayer;
+
+    uint32_t result =  ((uint32_t(*)(uintptr_t, uintptr_t, int, int))(g_libGTASA + (VER_x32 ? 0x00539F9C + 1 : 0x655E28)))(thiz, ped, unk, unk1);
+    CWorld::PlayerInFocus = old;
     return result;
 }
-uint32_t (*CPed__GetWeaponSkill)(CPedGTA *ped);
-uint32_t CPed__GetWeaponSkill_hook(CPedGTA *ped)
-{
-    PED_TYPE * thiz = (PED_TYPE *)ped;
-    bool bWeaponSkillStored = false;
 
-    dwCurPlayerActor = reinterpret_cast<uintptr_t>(ped);
-    byteInternalPlayer = *pbyteCurrentPlayer;
-    byteCurPlayer = FindPlayerNumFromPedPtr(reinterpret_cast<CPedGTA *>(dwCurPlayerActor));
-
-    if(dwCurPlayerActor && byteCurPlayer != 0 && byteInternalPlayer == 0)
-    {
-        GameStoreLocalPlayerSkills();
-        GameSetRemotePlayerSkills(byteCurPlayer);
-        bWeaponSkillStored = true;
-    }
-    // CPed::GetWeaponSkill
-    uint32_t result = (( uint32_t (*)(CPedGTA *, uint32_t))(g_libGTASA+0x58E358))(ped, ped->m_aWeapons[ped->m_nActiveWeaponSlot].dwType);
-
-    if(bWeaponSkillStored)
-    {
-        GameSetLocalPlayerSkills();
-        bWeaponSkillStored = false;
-    }
-    return result;
-}
 void HookCPad()
 {
-    memset(&LocalPlayerKeys, 0, sizeof(PAD_KEYS));
-  //  CHook::CallFunction<void>(g_libGTASA + 0x54F0DC);
+	memset(&LocalPlayerKeys, 0, sizeof(PAD_KEYS));
+
     // CPedSamp::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x825E28, &CPed__ProcessControl_hook, &CPed__ProcessControl);
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x6692A4 : 0x833150), &CPed__ProcessControl_hook, &CPed__ProcessControl);
 
     // all vehicles ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x830520, &AllVehicles__ProcessControl_hook); // CAutomobile::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x830CD0, &AllVehicles__ProcessControl_hook); // CBoat::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x830840, &AllVehicles__ProcessControl_hook); // CBike::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x8313E0, &AllVehicles__ProcessControl_hook); // CPlane::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x830F10, &AllVehicles__ProcessControl_hook); // CHeli::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x830A88, &AllVehicles__ProcessControl_hook); // CBmx::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x831178, &AllVehicles__ProcessControl_hook); // CMonsterTruck::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x831648, &AllVehicles__ProcessControl_hook); // CQuadBike::ProcessControl
-    CHook::InstallPLT(g_libGTASA + 0x831B18, &AllVehicles__ProcessControl_hook); // CTrain::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66D6A4 : 0x83BBA8), &AllVehicles__ProcessControl_hook); // CAutomobile::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66DA4C : 0x83C2F8), &AllVehicles__ProcessControl_hook); // CBoat::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66D81C : 0x83BE98), &AllVehicles__ProcessControl_hook); // CBike::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66DDB0 : 0x83C9C0), &AllVehicles__ProcessControl_hook); // CPlane::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66DB60 : 0x83C520), &AllVehicles__ProcessControl_hook); // CHeli::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66D934 : 0x83C0C8), &AllVehicles__ProcessControl_hook); // CBmx::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66DC88 : 0x83C770), &AllVehicles__ProcessControl_hook); // CMonsterTruck::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66DED8 : 0x83CC10), &AllVehicles__ProcessControl_hook); // CQuadBike::ProcessControl
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66E128 : 0x83D0B0), &AllVehicles__ProcessControl_hook); // CTrain::ProcessControl
 
-    CHook::InstallPLT(g_libGTASA + 0x826A88, &TaskUseGun);
-    CHook::InstallPLT(g_libGTASA + 0x82F5C0, &CPad__TaskProcess);
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66968C : 0x833928), &TaskUseGun);
+    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x66CF4C : 0x83ACF8), &CPad__TaskProcess);
 
     // lr/ud (onfoot)
     CHook::InlineHook("_ZN4CPad19GetPedWalkLeftRightEv", &CPad__GetPedWalkLeftRight_hook, &CPad__GetPedWalkLeftRight);
@@ -1003,10 +1015,6 @@ void HookCPad()
     CHook::InlineHook("_ZN7CCamera17IsTargetingActiveEP10CPlayerPed", &CCamera_IsTargetingActive_hook, &CCamera_IsTargetingActive);
     CHook::InlineHook("_ZN4CPad24CycleWeaponRightJustDownEv", &CPad__CycleWeaponRightJustDown_hook, &CPad__CycleWeaponRightJustDown);
     //CHook::InstallPLT(g_libGTASA + 0x66F304, (uintptr_t)CPad__CycleWeaponLeftJustDown_hook, (uintptr_t*)&CPad__CycleWeaponLeftJustDown);
-
-    //
-    CHook::InstallPLT(g_libGTASA + 0x83F190, &CPed__GetWeaponSkill_hook, &CPed__GetWeaponSkill);
-
 
     // nitro
     CHook::InlineHook("_ZN4CPad13GetNitroFiredEv", &CPad__GetNitroFired_hook, &CPad__GetNitroFired);

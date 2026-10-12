@@ -1,10 +1,15 @@
-//
-// Created by Traw-GG on 05.10.2025.
-//
+/*
+    Plugin-SDK file
+    Authors: GTA Community. See more here
+    https://github.com/DK22Pac/plugin-sdk
+    Do not delete this comment block. Respect others' work!
+*/
 #pragma once
 
-#include "../RW/RenderWare.h"
-#include "../Collision/Sphere.h"
+
+#include "RenderWare.h"
+#include "game/common.h"
+#include "game/Collision/Sphere.h"
 #include "ShadowCamera.h"
 
 class CPhysical;
@@ -26,6 +31,7 @@ public:
     struct RwFrame*   SetLightProperties(float azimuth, float elevation, bool doSetCamLight);
 
     /*!
+    * @addr 0x7059F0
     * @return The texture of the currently used camera
     */
     struct RwTexture* GetShadowRwTexture();
@@ -33,7 +39,6 @@ public:
     void              Destroy();
     CShadowCamera*    GetShadowCamera();
     void              DrawBorderAroundTexture(const RwRGBA& color);
-    bool              SetShadowedObject(CPhysical *pPhysical);
 
     /// this creates all stuff for shadow processing (cameras, textures)
     bool Create(bool isBlurred, int32 blurPasses, bool drawMoreBlur);
@@ -44,9 +49,8 @@ public:
     /// this updates texture and gives it to us
     RwTexture* Update();
 
-
-private:
-    CShadowCamera& GetCurrentCamera() { return *m_camera; }
+//private:
+//    CShadowCamera& GetCurrentCamera() { return m_bBlurred ? m_blurCamera : m_camera; }
 
 public: // Eventually make this private
     CPhysical*    m_pOwner{};       /// If `nullptr` the shadow isn't in use

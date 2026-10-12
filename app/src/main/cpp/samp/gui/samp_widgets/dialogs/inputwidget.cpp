@@ -1,4 +1,4 @@
-#include "gui/gui.h"
+#include "../../gui.h"
 
 InputWidget::InputWidget()
 {
@@ -13,7 +13,7 @@ void InputWidget::performLayout()
 {
 	float editBoxHeight = UISettings::dialogButtonPanelSize().y * 0.7f;
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
+	/* формируем сообщение */
 	m_msgbox->setMinSize(ImVec2(
 		this->minSize().x,
 		this->minSize().y - editBoxHeight
@@ -28,11 +28,11 @@ void InputWidget::performLayout()
 
 	this->setSize(dialog_size);
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ */
+	/* формируем поле ввода */
 	m_editbox->setSize(ImVec2(dialog_size.x, editBoxHeight));
 	m_editbox->performLayout();
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ  */
+	/* устанавливаем позиции  */
 	m_msgbox->setPosition(ImVec2(0.0f, 0.0f));
 	m_editbox->setPosition(ImVec2(0.0f, m_msgbox->position().y + m_msgbox->height()));
 }

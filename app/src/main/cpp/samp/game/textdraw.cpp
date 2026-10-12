@@ -3,6 +3,8 @@
 #include "util.h"
 #include "RW/RenderWare.h"
 #include "../gui/gui.h"
+#include "Models/ModelInfo.h"
+
 
 extern UI* pUI;
 extern CSnapShotHelper* pSnapShotHelper;
@@ -84,9 +86,9 @@ uintptr_t LoadFromTxdSlot(const char* szSlot, const char* szTexture)
         CallFunction<void>(g_libGTASA + 0x55BDA8 + 1);*/
     }
 
-    static char *texdb[8] = { "samp", "mobile", "txd", "menu", "gta3", "gta_int", "player", "playerhi" };
+    static char *texdb[9] = { "samp", "mobile", "txd", "menu", "gta3", "gta_int", "player", "playerhi", "cutscene" };
     bool FindedLibrary = false;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 9; i++)
     {
         if (!strcmp(texdb[i], szSlot))
         {
@@ -121,7 +123,7 @@ uintptr_t LoadFromTxdSlot(const char* szSlot, const char* szTexture)
         tex = (RwTexture*)CUtil::LoadTextureFromDB(szSlot, szTexture);
     }
 
-   Log("%s loaded from %s", szTexture, szSlot);
+   FLog("%s loaded from %s", szTexture, szSlot);
     return (uintptr_t)tex;
 }
 
@@ -290,28 +292,28 @@ void CTextDraw::LoadTexture()
     }
 }
 
-#include "Models/ModelInfo.h"
 void CTextDraw::SnapshotProcess()
 {
-    extern CSnapShotHelper* pSnapShotHelper;
-
-    if (!pSnapShotHelper) return;
-    if (m_TextDrawData.dwStyle != 5 || m_TextDrawData.iTextureSlot != -1) return;
-
-    // Validate model ID before processing
-    if (m_TextDrawData.wModelID == 0 || m_TextDrawData.wModelID > 20000) return;
+    if (m_TextDrawData.dwStyle != 5 || m_TextDrawData.iTextureSlot != -1) {
+        return;
+    }
 
     uintptr_t snapshot = 0;
-
+    CVector offset = {0.0f, 0.0f, 0.0f};
+    // PED MODEL
     if (IsValidPedModel(m_TextDrawData.wModelID))
     {
+        /*if (!IsExistinfoForModel(m_TextDrawData.wModelID))
+            m_TextDrawData.wModelID = 0;*/
+
         snapshot = (uintptr_t)pSnapShotHelper->CreatePedSnapShot(
                 m_TextDrawData.wModelID,
                 m_TextDrawData.dwBackgroundColor,
                 &m_TextDrawData.vecRot,
                 m_TextDrawData.fZoom);
     }
-    else if (m_TextDrawData.wModelID >= 400 && m_TextDrawData.wModelID <= 611)
+        // VEHICLE MODEL
+    else if (m_TextDrawData.wModelID >= 400 && m_TextDrawData.wModelID <= 611 || m_TextDrawData.wModelID >= 12500 && m_TextDrawData.wModelID <= 12799)
     {
         snapshot = (uintptr_t)pSnapShotHelper->CreateVehicleSnapShot(
                 m_TextDrawData.wModelID,
@@ -319,25 +321,26 @@ void CTextDraw::SnapshotProcess()
                 &m_TextDrawData.vecRot,
                 m_TextDrawData.fZoom,
                 m_TextDrawData.wColor1,
-                m_TextDrawData.wColor2);
+                m_TextDrawData.wColor2
+        );
     }
+        // OBJECT MODEL
+
     else
     {
-        if (!CModelInfo::GetModelInfo(m_TextDrawData.wModelID)) {
-            Log("Invalid model ID %d for snapshot", m_TextDrawData.wModelID);
-            return;
-        }
+        if (!CModelInfo::GetModelInfo(m_TextDrawData.wModelID))
+            m_TextDrawData.wModelID = 18631;
         snapshot = (uintptr_t)pSnapShotHelper->CreateObjectSnapShot(
                 m_TextDrawData.wModelID,
                 m_TextDrawData.dwBackgroundColor,
                 &m_TextDrawData.vecRot,
-                m_TextDrawData.fZoom);
+                m_TextDrawData.fZoom
+        );
     }
 
-    if (snapshot && snapshot != 0xFFFFFFFF && snapshot != 0) {
+    if (snapshot)
+    {
         m_TextDrawData.iTextureSlot = GetFreeTextDrawTextureSlot();
-        if (m_TextDrawData.iTextureSlot != -1) {
-            TextDrawTexture[m_TextDrawData.iTextureSlot] = snapshot;
-        }
+        TextDrawTexture[m_TextDrawData.iTextureSlot] = snapshot;
     }
 }

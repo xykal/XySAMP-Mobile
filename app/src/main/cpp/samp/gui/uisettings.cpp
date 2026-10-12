@@ -1,11 +1,11 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "vendor/imgui/imgui.h"
-#include "vendor/imgui/imgui_internal.h"
+#include "../vendor/imgui/imgui.h"
+#include "../vendor/imgui/imgui_internal.h"
 
 #include <string>
 #include "uisettings.h"
-#include "main.h"
-#include "settings.h"
+#include "../main.h"
+#include "../settings.h"
 
 extern CSettings* pSettings;
 
@@ -23,7 +23,7 @@ float UISettings::m_outlineSize = 2.0f;
 float UISettings::m_padding = 15.0f;
 
 /* keyboard */
-ImVec2 UISettings::m_keyboardPos = ImVec2(0.0f, 220.0f/*180.0f*/);
+ImVec2 UISettings::m_keyboardPos = ImVec2(0.0f, 180.0f/*180.0f*/);
 ImVec2 UISettings::m_keyboardSize = ImVec2(640.0f, 300.0f);//ImVec2(640.0f, 300.0f);
 float UISettings::m_keyboardRowHeight = 52.0f;//52.0f;
 
@@ -36,8 +36,8 @@ ImVec2 UISettings::m_splashScreenPBarSize = ImVec2(440.0f, 10.0f);
 /* chat */
 int UISettings::m_chatDispMesssages = 9;
 int UISettings::m_chatMaxMessages = 30;
-ImVec2 UISettings::m_chatPos = ImVec2(98.0f, 45.0f);
-ImVec2 UISettings::m_chatSize = ImVec2(299.0f, 0.0f);
+ImVec2 UISettings::m_chatPos = ImVec2(100.0f, 10.0f);
+ImVec2 UISettings::m_chatSize = ImVec2(400.0f, 0.0f);
 ImVec2 UISettings::m_chatItemSize = ImVec2(400.0f, 13.0f);
 
 /* spawn */
@@ -55,7 +55,7 @@ float UISettings::m_dialogTitleHeight = 20.0f;
 float UISettings::m_dialogListItemHeight = 30.0f;
 
 /* buttonpanel */
-ImVec2 UISettings::m_buttonPanelPos = ImVec2(5.0f, 150.0f/*150.0f*/);
+ImVec2 UISettings::m_buttonPanelPos = ImVec2(5.0f, 140.0f/*150.0f*/);
 ImVec2 UISettings::m_buttonPanelSize = ImVec2(380.0f/*250.0f*//*180.0f*//*250.0f*/, 50.0f); //ImVec2(120.0f, 45.0f);
 
 /* voice button */
@@ -65,8 +65,8 @@ ImVec2 UISettings::m_buttonVoiceSize = ImVec2(55.0f, 80.0f);
 /* ////////////////// colors ////////////////// */
 
 /* button */
-ImColor UISettings::m_buttonColor = ImColor(1.0f, 1.0f, 1.0f, 0.18f);
-ImColor UISettings::m_buttonFocusedColor = ImColor(1.0f, 1.0f, 1.0f, 0.30f);
+ImColor UISettings::m_buttonColor = ImColor(0.11f, 0.11f, 0.11f, 0.80f);
+ImColor UISettings::m_buttonFocusedColor = ImColor(0x64, 0x95, 0xED);/*ImColor(119, 4, 4, 255);*/ //ImColor(80, 80, 80);
 
 /* keyboard */
 ImColor UISettings::m_keyboardBackgroundColor = ImColor(0, 0, 0, 150);

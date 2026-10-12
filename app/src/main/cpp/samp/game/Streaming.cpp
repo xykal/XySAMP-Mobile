@@ -20,17 +20,17 @@
 #include <iostream>
 
 extern UI *pUI;
-extern CGame* pGame;
+
 bool CStreaming::TryLoadModel(int modelId) {
-    Log("TryLoadModel %d", modelId);
-    if(!pGame->IsModelLoaded(modelId)) {
-        Log("TryLoadModel 1");
-        pGame->RequestModel(modelId, 1);
-        Log("TryLoadModel 11");
-        pGame->LoadRequestedModels();
-        Log("TryLoadModel 2");
+    FLog("TryLoadModel %d", modelId);
+    if(!CStreaming::GetInfo(modelId).IsLoaded()) {
+        FLog("TryLoadModel 1");
+        CStreaming::RequestModel(modelId, STREAMING_GAME_REQUIRED | STREAMING_KEEP_IN_MEMORY);
+        FLog("TryLoadModel 11");
+        CStreaming::LoadAllRequestedModels(false);
+        FLog("TryLoadModel 2");
         uint32 count = 0;
-        while (!pGame->IsModelLoaded(modelId)) {
+        while (!CStreaming::GetInfo(modelId).IsLoaded()) {
             count++;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
@@ -39,9 +39,9 @@ bool CStreaming::TryLoadModel(int modelId) {
                 return false;
             }
         }
-        Log("TryLoadModel 3");
+        FLog("TryLoadModel 3");
     }
-    Log("TryLoadModel 4");
+    FLog("TryLoadModel 4");
     return true;
 }
 
@@ -49,7 +49,7 @@ bool CStreaming::TryLoadModel(int modelId) {
 // Blocking. (Calls `CdStreamSync`)
 void CStreaming::FlushChannels()
 {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B3014);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D4878 + 1 : 0x396D1C));
 }
 
 void CStreaming::ClearFlagForAll(uint32 streamingFlag) {
@@ -92,7 +92,7 @@ void CStreaming::RemoveModelIfNoRefs(int32 modelId) {
 }
 
 void CStreaming::SetModelIsDeletable(int32 modelId) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B52E8, modelId);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D6788 + 1 : 0x399090), modelId);
 }
 
 void CStreaming::RemoveModel(int32 modelId) {
@@ -123,7 +123,7 @@ void CStreaming::RemoveModel(int32 modelId) {
                 break;
             }
             case eModelType::DAT: {
-                //  ThePaths.UnLoadPathFindData(ModelIdToDAT(modelId));
+              //  ThePaths.UnLoadPathFindData(ModelIdToDAT(modelId));
                 break;
             }
             case eModelType::IFP: {
@@ -131,7 +131,7 @@ void CStreaming::RemoveModel(int32 modelId) {
                 break;
             }
             case eModelType::SCM: {
-                //   CTheScripts::StreamedScripts.RemoveStreamedScriptFromMemory(ModelIdToSCM(modelId));
+             //   CTheScripts::StreamedScripts.RemoveStreamedScriptFromMemory(ModelIdToSCM(modelId));
                 break;
             }
         }
@@ -175,7 +175,7 @@ void CStreaming::RemoveModel(int32 modelId) {
                 CAnimManager::RemoveAnimBlock(ModelIdToIFP(modelId));
                 break;
             case eModelType::SCM:
-                //   CTheScripts::StreamedScripts.RemoveStreamedScriptFromMemory(ModelIdToSCM(modelId));
+             //   CTheScripts::StreamedScripts.RemoveStreamedScriptFromMemory(ModelIdToSCM(modelId));
                 break;
         }
     }
@@ -195,34 +195,34 @@ void CStreaming::RemoveBigBuildings() {
 }
 
 void CStreaming::RemoveBuildingsNotInArea(eAreaCodes areaCode) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B3C5C, areaCode);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x002D5328 + 1 : 0x3979AC), areaCode);
 
 }
 
 void CStreaming::InjectHooks() {
 
-    CHook::Write(g_libGTASA + 0x8382D0, &ms_pEndRequestedList);
-    CHook::Write(g_libGTASA + 0x8382C8, &ms_pStartRequestedList);
-    CHook::Write(g_libGTASA + 0x8384B8, &ms_pEndLoadedList);
-    CHook::Write(g_libGTASA + 0x8382D8, &ms_startLoadedList);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x677D04 : 0x84DA38), &ms_pEndRequestedList);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x6766C0 : 0x84ADF0), &ms_pStartRequestedList);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x678458 : 0x84E8D8), &ms_pEndLoadedList);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x677238 : 0x84C4B8), &ms_startLoadedList);
 
-    CHook::Write(g_libGTASA + 0x838340, &ms_bEnableRequestListPurge);
-    CHook::Write(g_libGTASA + 0x838258, &ms_disableStreaming);
-    CHook::Write(g_libGTASA + 0x838320, &ms_channel);
-    CHook::Write(g_libGTASA + 0x837D60, &ms_numModelsRequested);
-    CHook::Write(g_libGTASA + 0x838318, &ms_numPriorityRequests);
-    CHook::Write(g_libGTASA + 0x838400, &ms_bLoadingBigModel);
-    CHook::Write(g_libGTASA + 0x838408, &ms_channelError);
-    CHook::Write(g_libGTASA + 0x8382A8, &ms_pStreamingBuffer);
-    CHook::Write(g_libGTASA + 0x8382B8, &ms_streamingBufferSize);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x676464 : 0x84A938), &ms_bEnableRequestListPurge);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x6767DC : 0x84B028), &ms_disableStreaming);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x67832C : 0x84E680), &ms_channel);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x676280 : 0x84A580), &ms_numModelsRequested);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x678E40 : 0x84FCB0), &ms_numPriorityRequests);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x677D50 : 0x84DAD0), &ms_bLoadingBigModel);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x676CE0 : 0x84BA20), &ms_channelError);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x676214 : 0x84A4A8), &ms_pStreamingBuffer);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x67962C : 0x850C78), &ms_streamingBufferSize);
 
-    CHook::Write(g_libGTASA + 0x838310, &CStreaming::ms_memoryUsed);
-    CHook::Write(g_libGTASA + 0x838410, &CStreaming::ms_memoryAvailable);
-    CHook::Write(g_libGTASA + 0x8383A0, &CStreaming::desiredNumVehiclesLoaded);
-    CHook::Write(g_libGTASA + 0x838298, &CStreaming::ms_files);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00679EB4 : 0x851D80), &CStreaming::ms_memoryUsed);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x006791EC : 0x850408), &CStreaming::ms_memoryAvailable);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x006795A4 : 0x850B68), &CStreaming::desiredNumVehiclesLoaded);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00676AB8 : 0x84B5D0), &CStreaming::ms_files);
 
-    CHook::Write(g_libGTASA + 0x8384C0, &CStreaming::ms_rwObjectInstances);
-    CHook::Write(g_libGTASA + 0x837B40, &CStreaming::ms_aInfoForModel);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00677564 : 0x84CB10), &CStreaming::ms_rwObjectInstances);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00677DD0 : 0x84DBD0), &CStreaming::ms_aInfoForModel);
 
     CHook::Redirect("_ZN10CStreaming13InitImageListEv", &CStreaming::InitImageList);
     CHook::Redirect("_ZN10CStreaming12MakeSpaceForEi", &CStreaming::MakeSpaceFor);
@@ -254,10 +254,17 @@ void CStreaming::InitImageList() {
         ms_file.m_StreamHandle = 0;
     }
 
+#if VER_SAMP
+    CStreaming::AddImageToList("TEXDB\\GTA3.IMG", true);
+    CStreaming::AddImageToList("TEXDB\\GTA_INT.IMG", true);
+//    CStreaming::AddImageToList("TEXDB\\SAMP.IMG", true);
+//    CStreaming::AddImageToList("TEXDB\\SAMPCOL.IMG", true);
+#else
     CStreaming::AddImageToList("TEXDB\\GTA3.IMG", true);
     CStreaming::AddImageToList("TEXDB\\GTA_INT.IMG", true);
     CStreaming::AddImageToList("TEXDB\\SAMP.IMG", true);
     CStreaming::AddImageToList("TEXDB\\SAMPCOL.IMG", true);
+#endif
 }
 
 // Request a given model to be loaded.
@@ -320,7 +327,7 @@ void CStreaming::RequestModel(int32 modelId, int32 streamingFlags) {
                 }
                 case eModelType::DFF: { // Request TXD and (if any) IFP
                     CBaseModelInfo* modelInfo = CModelInfo::GetModelInfo(modelId);
-                    //  RequestTxdModel(modelInfo->m_nTxdIndex, streamingFlags);
+                  //  RequestTxdModel(modelInfo->m_nTxdIndex, streamingFlags);
 
                     const int32 animFileIndex = modelInfo->GetAnimFileIndex();
                     if (animFileIndex != -1)
@@ -342,17 +349,99 @@ void CStreaming::RequestModel(int32 modelId, int32 streamingFlags) {
 }
 
 void CStreaming::AddLodsToRequestList(const CVector* point, int32 streamingFlags) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3AF024, point, streamingFlags);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D0C00 + 1 : 0x392B6C), point, streamingFlags);
 }
 
 void CStreaming::AddModelsToRequestList(const CVector* point, int32 streamingFlags) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3AED04, point, streamingFlags);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D0900 + 1 : 0x392874), point, streamingFlags);
 }
 
 #include "Textures/TextureDatabaseRuntime.h"
 extern CNetGame *pNetGame;
 void CStreaming::Update() {
-    CHook::CallFunction<void>(g_libGTASA + 0x3AE8EC);
+
+    if (CTimer::GetIsPaused())
+        return;
+
+    if(!CStreaming::GetInfo(MODEL_MALE01).IsLoaded()) {
+        RequestModel(MODEL_MALE01, STREAMING_KEEP_IN_MEMORY);
+        CStreaming::LoadAllRequestedModels(false);
+    }
+    CModelInfo::GetModelInfo(MODEL_MALE01)->m_nRefCount = 999;
+
+    if(CTimer::m_snTimeInMillisecondsNonClipped % 100 == 0)
+        RemoveLeastUsedModel(STREAMING_KEEP_IN_MEMORY);
+
+
+    static double previousTime{};
+    const double currentTimeInSeconds = CTimer::m_snTimeInMillisecondsNonClipped / 1000.0;
+    const double deltaTime = currentTimeInSeconds - previousTime;
+    previousTime = currentTimeInSeconds;
+    const double clampedDeltaTime = std::min(0.1, deltaTime);
+    TextureDatabaseRuntime::UpdateStreaming(clampedDeltaTime, true);
+
+    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
+
+    const auto& camPos = TheCamera.GetPosition();
+    const float fCamDistanceToGroundZ = camPos.z - TheCamera.CalculateGroundHeight(eGroundHeightType::ENTITY_BB_BOTTOM);
+    if (!ms_disableStreaming && !CRenderer::m_loadingPriority) {
+        if (fCamDistanceToGroundZ >= 50.0f) {
+            if (CGame::CanSeeOutSideFromCurrArea()) {
+                AddLodsToRequestList(&camPos, 0);
+            }
+        }
+        else if (CRenderer::ms_bRenderOutsideTunnels) {
+            AddModelsToRequestList(&camPos, 0);
+        }
+    }
+
+//    if (CTimer::GetFrameCounter() % 128 == 106) {
+//        m_bBoatsNeeded = false;
+//        if (camPos.z < 500.0f) {
+//            m_bBoatsNeeded = ThePaths.IsWaterNodeNearby(camPos, 80.0f);
+//        }
+//    }
+    if(!pNetGame || !pNetGame->GetPlayerPool()->GetLocalPlayer())
+        return;
+
+    auto pLocalPed = pNetGame->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->m_pPed;
+    const CVector& playerPos = pLocalPed->GetPosition();
+//    if (!ms_disableStreaming
+//        && !CCutsceneMgr::IsCutsceneProcessing()
+//        && CGame::CanSeeOutSideFromCurrArea()
+//        && CReplay::Mode != MODE_PLAYBACK
+//        && fCamDistanceToGroundZ < 50.0f
+//            ) {
+//        StreamVehiclesAndPeds_Always(playerPos);
+//        if (!IsVeryBusy()) {
+//            StreamVehiclesAndPeds();
+//            StreamZoneModels(playerPos);
+//        }
+//    }
+    LoadRequestedModels();
+
+    if (pLocalPed->IsInVehicle()) {
+        CVehicleGTA* remoteVehicle = pLocalPed->pVehicle;
+
+        CColStore::AddCollisionNeededAtPosn(&playerPos);
+        CIplStore::AddIplsNeededAtPosn(&playerPos);
+
+        const auto& removeVehiclePos = remoteVehicle->GetPosition();
+        CColStore::LoadCollision(removeVehiclePos, false);
+        CColStore::EnsureCollisionIsInMemory(&removeVehiclePos);
+        CIplStore::LoadIpls(removeVehiclePos, false);
+        CIplStore::EnsureIplsAreInMemory(&removeVehiclePos);
+    }
+    else {
+        CColStore::LoadCollision(playerPos, false);
+        CColStore::EnsureCollisionIsInMemory(&playerPos);
+        CIplStore::LoadIpls(playerPos, false);
+        CIplStore::EnsureIplsAreInMemory(&playerPos);
+    }
+
+    if (ms_bEnableRequestListPurge) {
+        PurgeRequestList();
+    }
 }
 
 // Call `RemoveModel` on all models in the request list except
@@ -369,14 +458,14 @@ void CStreaming::PurgeRequestList() {
 }
 
 void CStreaming::LoadRequestedModels() {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B03AC);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D2104 + 1 : 0x394008));
 }
 
 // There are only 2 streaming channels within CStreaming::ms_channel. In this function,
 // if your current channelIndex is zero then "1 - channelIndex" will give you the other
 // streaming channel within CStreaming::ms_channel which is 1 (second streaming channel).
 void CStreaming::LoadAllRequestedModels(bool bOnlyPriorityRequests) {
-    static bool m_bLoadingAllRequestedModels{};
+   static bool m_bLoadingAllRequestedModels{};
 
     if (m_bLoadingAllRequestedModels) {
         return;
@@ -440,7 +529,7 @@ void CStreaming::LoadAllRequestedModels(bool bOnlyPriorityRequests) {
 }
 
 int32 CStreaming::GetNextFileOnCd(uint32 streamLastPosn, bool bNotPriority) {
-    //  ZoneScoped;
+  //  ZoneScoped;
 
     uint32 nextRequestModelPos    = UINT32_MAX;
     uint32 firstRequestModelCdPos = UINT32_MAX;
@@ -677,7 +766,7 @@ void CStreaming::RequestModelStream(int32 chIdx) {
     ch.offsetAndHandle = posn;       // And from where to read
     ch.totalTries = 0;
 
-    bool& m_bModelStreamNotLoaded = *reinterpret_cast<bool*>(g_libGTASA + 0x964FD0);
+    bool& m_bModelStreamNotLoaded = *reinterpret_cast<bool*>(g_libGTASA + (VER_x32 ? 0x792FBC : 0x972E80));
     if (m_bModelStreamNotLoaded)
         m_bModelStreamNotLoaded = false;
 }
@@ -687,7 +776,7 @@ void CStreaming::RequestModelStream(int32 chIdx) {
 bool CStreaming::ProcessLoadingChannel(int32 chIdx) {
     tStreamingChannel& ch = ms_channel[chIdx];
 
-    // Log("ProcessLoadingChannel");
+   // Log("ProcessLoadingChannel");
     const eCdStreamStatus streamStatus = CdStreamGetStatus(chIdx);
     switch (streamStatus) {
         case eCdStreamStatus::READING_SUCCESS:
@@ -712,7 +801,7 @@ bool CStreaming::ProcessLoadingChannel(int32 chIdx) {
             return true;
         }
     }
-    //  Log("ProcessLoadingChannel1");
+  //  Log("ProcessLoadingChannel1");
     const bool isStarted = ch.IsStarted();
     ch.LoadStatus = eChannelState::IDLE;
     if (isStarted) {
@@ -733,8 +822,8 @@ bool CStreaming::ProcessLoadingChannel(int32 chIdx) {
 
             if (!IsModelDFF(modelId)
                 || baseModelInfo->GetModelType() != MODEL_INFO_VEHICLE /* It's a DFF, check if its a vehicle */
-                //  || ms_vehiclesLoaded.CountMembers() < desiredNumVehiclesLoaded /* It's a vehicle, so lets check if we can load more */
-                //  || RemoveLoadedVehicle() /* no, so try to remove one, and load this in its place */
+              //  || ms_vehiclesLoaded.CountMembers() < desiredNumVehiclesLoaded /* It's a vehicle, so lets check if we can load more */
+              //  || RemoveLoadedVehicle() /* no, so try to remove one, and load this in its place */
                 || info.IsMissionOrGameRequired() /* failed, lets check if its absolutely mission critical */
                     ) {
                 if (!IsModelIPL(modelId)) {
@@ -785,17 +874,17 @@ bool CStreaming::ProcessLoadingChannel(int32 chIdx) {
 }
 
 bool CStreaming::ConvertBufferToObject(uint8* fileBuffer, int32 modelId) {
-    return CHook::CallFunction<bool>(g_libGTASA + 0x3B14EC, fileBuffer, modelId);
+    return CHook::CallFunction<bool>(g_libGTASA + (VER_x32 ? 0x2D2FD0 + 1 : 0x395114), fileBuffer, modelId);
 }
 
 // Finishes loading a big model by loading the second half of the file
 // residing at `pFileBuffer`.
 void CStreaming::FinishLoadingLargeFile(uint8* pFileBuffer, int32 modelId) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B1CEC, pFileBuffer, modelId);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D36B0 + 1 : 0x395948), pFileBuffer, modelId);
 }
 
 void CStreaming::RetryLoadFile(int32 chIdx) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B0674, chIdx);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x2D2314 + 1 : 0x394220), chIdx);
 }
 
 void CStreaming::MakeSpaceFor(size_t memoryToCleanInBytes) {
@@ -803,7 +892,7 @@ void CStreaming::MakeSpaceFor(size_t memoryToCleanInBytes) {
     while (ms_memoryUsed >= ms_memoryAvailable - memoryToCleanInBytes) {
         lastmemused = ms_memoryUsed;
         if (!RemoveLeastUsedModel(0) || lastmemused == ms_memoryUsed) {
-            //  DeleteRwObjectsBehindCamera(ms_memoryAvailable - memoryToCleanInBytes);
+          //  DeleteRwObjectsBehindCamera(ms_memoryAvailable - memoryToCleanInBytes);
             return;
         }
     }
@@ -811,12 +900,12 @@ void CStreaming::MakeSpaceFor(size_t memoryToCleanInBytes) {
 
 //
 void CStreaming::DeleteRwObjectsBehindCamera(size_t memoryToCleanInBytes) {
-    CHook::CallFunction<void>(g_libGTASA + 0x3B4714, memoryToCleanInBytes);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x002D5CD8 + 1 : 0x3984F0), memoryToCleanInBytes);
 }
 
 // Function name is a little misleading, as it deletes the first entity it can.
 bool CStreaming::DeleteLeastUsedEntityRwObject(bool bNotOnScreen, int32 streamingFlags) {
-    return CHook::CallFunction<bool>(g_libGTASA + 0x3B4490, bNotOnScreen, streamingFlags);
+    return CHook::CallFunction<bool>(g_libGTASA + (VER_x32 ? 0x2D5A80 + 1 : 0x39825C), bNotOnScreen, streamingFlags);
 }
 
 // The name is misleading: It just removes the first model with no references.
@@ -862,7 +951,7 @@ bool CStreaming::RemoveLeastUsedModel(int32 streamingFlags) {
         }
     }
 
-    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+    CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
     if (TheCamera.GetPosition().z - TheCamera.CalculateGroundHeight(eGroundHeightType::ENTITY_BB_BOTTOM) <= 50.0f){
         return DeleteLeastUsedEntityRwObject(false, streamingFlags);
     }
@@ -870,7 +959,7 @@ bool CStreaming::RemoveLeastUsedModel(int32 streamingFlags) {
 }
 
 bool CStreaming::HasVehicleUpgradeLoaded(int32 modelId) {
-    return CHook::CallFunction<bool>(g_libGTASA + 0x3B1470, modelId);
+    return CHook::CallFunction<bool>(g_libGTASA + (VER_x32 ? 0x002D2F74 + 1 : 0x395098), modelId);
 //    if (!GetInfo(modelId).IsLoaded())
 //        return false;
 //
@@ -906,5 +995,5 @@ CLink<CEntityGTA*>* CStreaming::AddEntity(CEntityGTA* entity) {
 
 
 char *CStreaming::GetModelCDName(int32 index) {
-    return CHook::CallFunction<char*>(g_libGTASA + 0x3AD8E4, index);
+    return CHook::CallFunction<char*>(g_libGTASA + (VER_x32 ? 0x2CF5D0 + 1 : 0x391320), index);
 }

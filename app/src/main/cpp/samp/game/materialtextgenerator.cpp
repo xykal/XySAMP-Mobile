@@ -72,9 +72,9 @@ const ImColor fix_color(uint32_t color)
 	unsigned char g = (int)((color & 0x0000FF00) >> 8);
 	unsigned char b = (int)((color & 0x000000FF));
 
-	//Log("RGBA: 0x%X, 0x%X, 0x%X, 0x%X", r, g, b, a);
+	//FLog("RGBA: 0x%X, 0x%X, 0x%X, 0x%X", r, g, b, a);
 	ImColor col = ImColor(r, g, b, a);
-	//Log("color: %f, %f, %f, %f", col.Value.x, col.Value.y, col.Value.z, col.Value.w);
+	//FLog("color: %f, %f, %f, %f", col.Value.x, col.Value.y, col.Value.z, col.Value.w);
 	return col;
 }
 
@@ -82,27 +82,27 @@ RwTexture* MaterialTextGenerator::Generate(const char* text, int size, int font_
 {
 	int width, height;
 	GetMaterialSize(size, &width, &height);
-    Log("MaterialTextGenerator::Generate");
+    FLog("MaterialTextGenerator::Generate");
 	RwRaster* raster = RwRasterCreate(width, height, 32, rwRASTERFORMAT8888 | rwRASTERTYPECAMERATEXTURE);
-    Log("MaterialTextGenerator::Generate1");
+    FLog("MaterialTextGenerator::Generate1");
     RwTexture* bufferTexture = RwTextureCreate(raster);
-    Log("MaterialTextGenerator::Generate2");
+    FLog("MaterialTextGenerator::Generate2");
 
 	if (raster && bufferTexture)
 	{
-        Log("MaterialTextGenerator::Generate3");
+        FLog("MaterialTextGenerator::Generate3");
         m_camera->frameBuffer = raster;
-        Log("MaterialTextGenerator::Generate4");
+        FLog("MaterialTextGenerator::Generate4");
         CVisibilityPlugins::SetRenderWareCamera(m_camera);
-        Log("MaterialTextGenerator::Generate5");
+        FLog("MaterialTextGenerator::Generate5");
 		// RwCameraClear
         RwCameraClear(m_camera, reinterpret_cast<RwRGBA *>(&background_color), 3);
-        Log("MaterialTextGenerator::Generate6");
+        FLog("MaterialTextGenerator::Generate6");
 		RwCameraBeginUpdate((RwCamera*)m_camera);
 		DefinedState();
-        Log("MaterialTextGenerator::Generate7");
+        FLog("MaterialTextGenerator::Generate7");
 		Render(text, ImVec2(width, height), font_size, bold, fix_color(font_color), fix_color(background_color), alignment);
-        Log("MaterialTextGenerator::Generate8");
+        FLog("MaterialTextGenerator::Generate8");
 		RwCameraEndUpdate((RwCamera*)m_camera);
 	}
 

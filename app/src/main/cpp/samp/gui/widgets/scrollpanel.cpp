@@ -1,4 +1,4 @@
-#include "gui/gui.h"
+#include "../gui.h"
 
 ScrollPanel::ScrollPanel()
 {

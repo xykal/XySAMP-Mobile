@@ -1,4 +1,4 @@
-#include "gui/gui.h"
+#include "../gui.h"
 
 ProgressBar::ProgressBar(const ImColor& color_empty, const ImColor& color_filled, bool border)
 {

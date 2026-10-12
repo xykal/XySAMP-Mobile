@@ -1,4 +1,4 @@
-#include "gui/gui.h"
+#include "../gui.h"
 
 /* ListBox */
 
@@ -34,14 +34,14 @@ ListBox::Panel::Panel()
 
 void ListBox::Panel::performLayout()
 {
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
+	/* формируем все элементы */
 	for (auto c : children())
 	{
 		c->setFixedSize(m_itemSize);
 		c->performLayout();
 	}
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
+	/* размещаем элементы */
 	ImVec2 item_pos = ImVec2(0.0f, 0.0f);
 
 	for (auto c : children())

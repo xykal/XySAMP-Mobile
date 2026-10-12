@@ -1,8 +1,6 @@
 #pragma once
 
 #include "RW/RenderWare.h"
-#include "Core/Vector.h"
-#include "Core/Rect.h"
 
 #define MAX_TEXT_DRAW_LINE 800
 #pragma pack(push, 1)
@@ -90,6 +88,8 @@ public:
     void SetText(const char* szText);
 
     void LoadTexture();
+
+    uintptr_t LoadTexture(const char* texname);
 
     void SnapshotProcess();
 

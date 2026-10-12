@@ -44,7 +44,6 @@ public:
 
 	void setColor(const ImColor& color) { m_color = color; }
 	void setColorFocused(const ImColor& color) { m_colorFocused = color; }
-	void setAVisible(bool v) { m_AVisible = v; }
 
 	virtual void performLayout() override;
 
@@ -58,7 +57,6 @@ private:
 
 	ImColor m_color;
 	ImColor m_colorFocused;
-	bool m_AVisible = false;
 };
 
 //>> Button

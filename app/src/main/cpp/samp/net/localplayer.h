@@ -1,7 +1,5 @@
 #pragma once
-#include "game/Core/Vector.h"
-#include "game/Core/Quaternion.h"
-#include "game/playerped.h"
+
 #define SPECTATE_TYPE_NONE						0
 #define SPECTATE_TYPE_PLAYER					1
 #define SPECTATE_TYPE_VEHICLE					2
@@ -193,8 +191,6 @@ public:
 	bool IsClearedToSpawn() { return m_bClearedToSpawn; }
 	void HandleClassSelection();
 	void MoveHeadWithCamera();
-
-    void ProcessDriveByExitHead();
 
 	//void HandlePassengerEntry();
 	//bool EnterVehicleAsPassenger();

@@ -1,33 +1,20 @@
-# =============================================================================
-#  R8 / ProGuard Security & JNI Keep Rules for XySAMP Mobile
-# =============================================================================
--optimizationpasses 5
--allowaccessmodification
--repackageclasses 'x'
+# R8 / ProGuard Hardening Rules — XySAMP Mobile (Dual-ABI GTA-2.10)
+-ignorewarnings
+-dontwarn com.bda.controller.**
+-dontwarn com.wardrumstudios.**
+-dontwarn com.nvidia.**
 
-# Hapus log debug/verbose/info di build release biar ga bocor di logcat
--assumenosideeffects class android.util.Log {
-    public static int v(...);
-    public static int d(...);
-    public static int i(...);
-}
+-keepattributes Signature,InnerClasses,EnclosingMethod,Annotation
 
-# Keep semua class & method JNI yang dipanggil dari libsamp.so & libGame.so
+# Keep JNI entrypoints & engine classes called from libGTASA.so, libsamp.so, libImmEmulatorJ.so
 -keep class com.nvidia.devtech.** { *; }
--keep class com.wardrumstudios.utils.** { *; }
--keep class com.rockstargames.** { *; }
--keep class com.gta.game.** { *; }
--keep class com.gta.launcher.activity.MainActivity { *; }
+-keep class com.wardrumstudios.** { *; }
+-keep class com.samp.mobile.game.** { *; }
+-keep class com.samp.mobile.launcher.util.** { *; }
+-keep class com.bda.controller.** { *; }
 -keep class com.bytedance.shadowhook.** { *; }
+-keep class com.immersion.** { *; }
 
-# Keep native methods
--keepclasseswithmembernames,includedescriptorclasses class * {
+-keepclasseswithmembernames class * {
     native <methods>;
 }
-
--dontwarn javax.servlet.**
--dontwarn org.conscrypt.**
--dontwarn org.bouncycastle.**
--dontwarn org.openjsse.**
--dontwarn com.google.firebase.**
--dontwarn com.joom.paranoid.**

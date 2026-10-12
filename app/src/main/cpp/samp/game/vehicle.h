@@ -2,15 +2,6 @@
 
 #include <cstring>
 #include "Entity/CVehicleGTA.h"
-
-enum eTurnState
-{
-    TURN_OFF,
-    TURN_LEFT,
-    TURN_RIGHT,
-    TURN_ALL
-};
-
 class CVehicle
 {
 public:
@@ -86,11 +77,6 @@ public:
 	bool m_bSiren;
 	char m_szPlateText[32];
 	uint32_t m_dwMarkerID;
-
-    eTurnState 		m_iTurnState = TURN_OFF;
-    bool 			m_bIsOnRightTurnLight = false;
-    bool 			m_bIsOnLeftTurnLight = false;
-    bool 			m_bIsOnAllTurnLight = false;
 
 	void UpdateDamageStatus(uint32_t dwPanelDamage, uint32_t dwDoorDamage, uint8_t byteLightDamage);
 	void SetPanelDamageStatus(uint32_t dwPanelStatus);

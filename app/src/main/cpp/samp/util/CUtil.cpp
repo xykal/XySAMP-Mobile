@@ -29,7 +29,7 @@ RwTexture* CUtil::LoadTextureFromDB(const char* dbname, const char* texture)
     TextureDatabaseRuntime* db_handle = TextureDatabaseRuntime::GetDatabase(dbname);
     if(!db_handle)
     {
-        Log("Error: Database not found! (%s)", dbname);
+        FLog("Error: Database not found! (%s)", dbname);
         return nullptr;
     }
 
@@ -38,7 +38,7 @@ RwTexture* CUtil::LoadTextureFromDB(const char* dbname, const char* texture)
     auto tex = CUtil::GetTexture(texture);
     if(!tex)
     {
-        Log("Error: Texture (%s) not found in database (%s)", dbname, texture);
+        FLog("Error: Texture (%s) not found in database (%s)", dbname, texture);
         return nullptr;
     }
 
@@ -53,7 +53,7 @@ RwTexture* CUtil::GetTexture(const char* name)
     if (!tex)
     {
         //tex = CUtil::LoadTextureFromDB("gta3", "ahoodfence2");
-        Log("WARNING! No tex = %s", name);
+        FLog("WARNING! No tex = %s", name);
         return nullptr;
     }
     ++tex->refCount;
@@ -71,9 +71,4 @@ void __fastcall CUtil::TransformPoint(RwV3d &result, const CSimpleTransform &t, 
             t.m_vPosn.y + sin_heading * v.x + cos_heading * v.y,
             v.z + t.m_vPosn.z
     };
-}
-
-float CUtil::GetDistanceBetween3DPoints(const RwV3d f, const RwV3d s)
-{
-    return sqrt(pow(s.x - f.x, 2) + pow(s.y - f.y, 2) + pow(s.z - f.z, 2));
 }

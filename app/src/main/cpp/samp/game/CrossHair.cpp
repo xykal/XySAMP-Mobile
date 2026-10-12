@@ -21,15 +21,15 @@ extern CNetGame *pNetGame;
 
 void CCrossHair::Init()
 {
-    Log("CCrossHair::Init");
+    FLog("CCrossHair::Init");
     pCircleTex = new CSprite2d();
     pCircleTex->m_pTexture = CUtil::LoadTextureFromDB("txd", "siteM16");
-    Log("CCrossHair::Init 2");
+    FLog("CCrossHair::Init 2");
 }
 
 void CCrossHair::Render()
 {
-    if(!pNetGame || !pNetGame->GetPlayerPool())
+    if(!pNetGame || pNetGame->GetPlayerPool())
         return;
 
     auto pPed = pNetGame->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
@@ -41,7 +41,7 @@ void CCrossHair::Render()
     {
         static float fCHairScreenMultX = (RsGlobal->maximumWidth - (RsGlobal->maximumHeight / 9 * 16)) / 2 + ((RsGlobal->maximumHeight / 9 * 16) * 0.524);
         static float fFixedOffset = RsGlobal->maximumWidth / (RsGlobal->maximumWidth - (RsGlobal->maximumHeight / 9 * 16)) * 2.0;
-        auto gunRadius = CHook::CallFunction<float>(g_libGTASA + 0x5B8F2C, pPed->m_pPed);
+        auto gunRadius = CHook::CallFunction<float>(g_libGTASA + (VER_x32 ? 0x004C69E8 + 1:0x5C4528), pPed->m_pPed);
         static float fCHairScreenMultY = (RsGlobal->maximumHeight / 9 * 16) / 10 * 6 * 0.4 + fFixedOffset;
 
         RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, RWRSTATE(rwFILTERLINEAR));

@@ -39,21 +39,15 @@ RakClient::RakClient()
 RakClient::~RakClient()
 {}
 
-#include "../../CServerManager.h"
 #ifdef _MSC_VER
 #pragma warning( disable : 4100 ) // warning C4100: 'depreciated' : unreferenced formal parameter
 #endif
 bool RakClient::Connect( const char* host, unsigned short serverPort, unsigned short clientPort, unsigned int depreciated, int threadSleepTimer )
 {
 	RakPeer::Disconnect( 100 );
-
-	//if(g_sEncryptedAddresses[CServerInstance::iServer].getPort() != serverPort) {
-	//	serverPort = g_sEncryptedAddresses[CServerInstance::iServer].getPort();
-	//	host = g_sEncryptedAddresses[CServerInstance::iServer].decrypt();
-	//}
-
+	
 	RakPeer::Initialize( 1, clientPort, threadSleepTimer );
-
+	
 	if ( host[ 0 ] < '0' || host[ 0 ] > '2' )
 	{
 #if !defined(_COMPATIBILITY_1)
@@ -62,16 +56,16 @@ bool RakClient::Connect( const char* host, unsigned short serverPort, unsigned s
 		return false;
 #endif
 	}
-
+	
 	unsigned i;
-
+	
 	for ( i = 0; i < 32; i++ )
 	{
 		otherClients[ i ].isActive = false;
 		otherClients[ i ].playerId = UNASSIGNED_PLAYER_ID;
 		otherClients[ i ].staticData.Reset();
 	}
-
+	
 	// ignore depreciated. A pointless variable
 	return RakPeer::Connect( host, serverPort, ( char* ) password.GetData(), password.GetNumberOfBytesUsed() );
 }

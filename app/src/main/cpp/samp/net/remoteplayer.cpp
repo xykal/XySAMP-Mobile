@@ -520,12 +520,12 @@ bool CRemotePlayer::Spawn(uint8_t byteTeam, int iSkin, CVector *vecPos, float fR
 	CPlayerPed* pPlayerPed = pGame->NewPlayer(iSkin, vecPos->x, vecPos->y, vecPos->z, fRotation, true, m_bIsNPC);
 	if (pPlayerPed)
 	{
-        Log("CRemotePlayer::Spawn 1");
+        FLog("CRemotePlayer::Spawn 1");
 		if (dwColor) {
 			SetRadarColor(m_PlayerID, dwColor);
 		}
 
-        Log("CRemotePlayer::Spawn 2");
+        FLog("CRemotePlayer::Spawn 2");
 		if (m_dwMarker) {
 			pGame->DisableMarker(m_dwMarker);
 			m_dwMarker = 0;
@@ -544,15 +544,15 @@ bool CRemotePlayer::Spawn(uint8_t byteTeam, int iSkin, CVector *vecPos, float fR
 			pPlayerPed->SetFightingStyle(byteFightingStyle);
 		}
 
-        Log("CRemotePlayer::Spawn 3");
+        FLog("CRemotePlayer::Spawn 3");
 
 		SetState(PLAYER_STATE_SPAWNED);
-        Log("CRemotePlayer::Spawn 4");
+        FLog("CRemotePlayer::Spawn 4");
 		return true;
 	}
 	else
 	{
-        Log("CRemotePlayer::Spawn no spawn");
+        FLog("CRemotePlayer::Spawn no spawn");
 		SetState(PLAYER_STATE_NONE);
 		return false;
 	}
@@ -960,7 +960,7 @@ void CRemotePlayer::UpdateVehicleRotation()
 // 0.3.7
 void CRemotePlayer::PutInCurrentVehicle()
 {
-	Log("PutInCurrentVehicle");
+	FLog("PutInCurrentVehicle");
 
 	CVehiclePool* pVehiclePool = pNetGame->GetVehiclePool();
 
@@ -1100,7 +1100,82 @@ bool CRemotePlayer::IsVoiceActive()
 
 void CRemotePlayer::ProcessSurfing()
 {
+	if(!m_pPlayerPed || GetState() != PLAYER_STATE_ONFOOT || m_ofSync.wSurfID == INVALID_VEHICLE_ID)
+		return;
 
+	CVehicle *pVehicleSurfing = 0;
+	CObject* pObjectSurfing = 0;
+	
+	if(SurfingOnVehicle())
+	{
+		CVehiclePool *pVehiclePool = pNetGame->GetVehiclePool();
+		if(pVehiclePool)
+		{
+			CVehicle *pVehicle = pVehiclePool->GetAt(m_ofSync.wSurfID);
+			if(pVehicle) 
+				pVehicleSurfing = pVehicle;
+		}
+	}
+	else if(SurfingOnObject())
+	{
+		m_ofSync.wSurfID -= MAX_VEHICLES; // derive proper object id
+		CObjectPool *pObjectPool = pNetGame->GetObjectPool();
+		if(pObjectPool)
+		{
+			CObject *pObject = pObjectPool->GetAt((uint16_t)m_ofSync.wSurfID);
+			if(pObject)
+				pObjectSurfing = pObject;
+		}
+	}
+
+	if(pVehicleSurfing )
+	{
+		RwMatrix matEntity, matPlayer;
+		CVector vecMoveSpeed, vecTurnSpeed;
+
+        matEntity = pVehicleSurfing->m_pVehicle->GetMatrix().ToRwMatrix();
+
+		/* unused ? */
+		vecMoveSpeed = m_pCurrentVehicle->m_pVehicle->GetMoveSpeed();
+		vecTurnSpeed = m_pCurrentVehicle->m_pVehicle->GetTurnSpeed();
+		/* unused ? */
+
+        matPlayer = m_pPlayerPed->m_pPed->GetMatrix().ToRwMatrix();
+
+		ProjectMatrix((CVector*)&matPlayer.pos, (CMatrix*)&matEntity, (CVector*)&m_ofSync.vecSurfOffsets);
+
+		/*matPlayer.pos.x = matEntity.pos.x + m_ofSync.vecSurfOffsets.x;
+		matPlayer.pos.y = matEntity.pos.y + m_ofSync.vecSurfOffsets.y;
+		matPlayer.pos.z = matEntity.pos.z + m_ofSync.vecSurfOffsets.z;*/
+
+		m_pPlayerPed->m_pPed->SetMatrix((CMatrix&)matPlayer);
+		//m_pPlayerPed->SetVelocity(vecMoveSpeed);
+		//m_pPlayerPed->SetTurnSpeedVector(vecTurnSpeed);
+	}
+	else if(pObjectSurfing)
+	{
+		RwMatrix matEntity, matPlayer;
+		CVector vecMoveSpeed, vecTurnSpeed;
+
+        matEntity = pObjectSurfing->m_pEntity->GetMatrix().ToRwMatrix();
+
+		/* unused ? */
+		vecMoveSpeed = m_pCurrentVehicle->m_pVehicle->GetMoveSpeed();
+		vecTurnSpeed = m_pCurrentVehicle->m_pVehicle->GetTurnSpeed();
+		/* unused ? */
+
+		matPlayer = m_pPlayerPed->m_pPed->GetMatrix().ToRwMatrix();
+
+		ProjectMatrix((CVector*)&matPlayer.pos, (CMatrix*)&matEntity, (CVector*)&m_ofSync.vecSurfOffsets);
+
+		/*matPlayer.pos.x = matEntity.pos.x + m_ofSync.vecSurfOffsets.x;
+		matPlayer.pos.y = matEntity.pos.y + m_ofSync.vecSurfOffsets.y;
+		matPlayer.pos.z = matEntity.pos.z + m_ofSync.vecSurfOffsets.z;*/
+
+		m_pPlayerPed->m_pPed->SetMatrix((CMatrix&)matPlayer);
+		//m_pPlayerPed->SetVelocity(vecMoveSpeed);
+		//m_pPlayerPed->SetTurnSpeedVector(vecTurnSpeed);
+	}
 }
 
 void CRemotePlayer::StoreTrailerFullSyncData(TRAILER_SYNC_DATA *trSync)
@@ -1117,7 +1192,11 @@ void CRemotePlayer::StoreTrailerFullSyncData(TRAILER_SYNC_DATA *trSync)
 		CVehicle *pTrailer = pVehiclePool->GetAt(trailerId);
 		if(pTrailer && (pTrailer->IsATrailer() || pTrailer->IsATowTruck()))
 		{
-
+			if(m_pCurrentVehicle->GetTrailer() != pTrailer)
+			{
+				m_pCurrentVehicle->SetTrailer(pTrailer);
+				m_pCurrentVehicle->AttachTrailer();
+			}
 
 			RwMatrix matTrailer = pTrailer->m_pVehicle->GetMatrix().ToRwMatrix();
 			trSync->quat.GetMatrix(&matTrailer);

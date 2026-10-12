@@ -1,5 +1,5 @@
 #include "../../../main.h"
-#include "gui/gui.h"
+#include "../../gui.h"
 
 #include <sstream>
 
@@ -22,7 +22,7 @@ void ListWidget::assemble(const std::string& data)
 {
 	std::vector < std::vector<Label*> > vRows;
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ */
+	/* Читаем строки */
 	std::stringstream ss_data(data);
 	std::string s_row;
 	while (std::getline(ss_data, s_row, '\n'))
@@ -31,7 +31,7 @@ void ListWidget::assemble(const std::string& data)
 
 		std::vector<Label*> vRowItems;
 
-		/* пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ */
+		/* Читаем элементы строк */
 		std::stringstream ss_row(s_row);
 		std::string s_item;
 		while (std::getline(ss_row, s_item, '\t'))
@@ -44,7 +44,7 @@ void ListWidget::assemble(const std::string& data)
 		vRows.push_back(vRowItems);
 	}
 
-	/* пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ */
+	/* Рассчитываем оптимальную ширину для каждого столбца */
 	std::vector<float> vColumnsWidth;
 	for (int r_idx = 0; r_idx < vRows.size(); r_idx++)
 	{

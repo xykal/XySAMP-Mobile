@@ -17,7 +17,6 @@ const char g_szAnimBlockNames[][40] = {
 "BAR:barcustom_loop",
 "BAR:barcustom_order",
 "BAR:barman_idle",
-
 "BAR:barserve_bottle",
 "BAR:barserve_give",
 "BAR:barserve_glass",
@@ -1869,57 +1868,57 @@ CPedGTA* GamePool_FindPlayerPed()
 
 CPedGTA* GamePool_Ped_GetAt(int iID)
 {
-    return (( CPedGTA* (*)(int))(g_libGTASA + 0x563664))(iID);
+    return (( CPedGTA* (*)(int))(g_libGTASA + (VER_x32 ? 0x00483DB8 + 1 : 0x575D0C)))(iID);
 }
 
 int GamePool_Ped_GetIndex(CPedGTA* pActor)
 {
 	// GettPoolPedRef GettPoolPedRef(CPed *)	00483DAA
-	return ((int (*)(CPedGTA*))(g_libGTASA + 0x563654))(pActor);
+	return ((int (*)(CPedGTA*))(g_libGTASA + (VER_x32? 0x483DAA + 1:0x575CFC)))(pActor);
 }
 
 CPhysical *GamePool_Object_GetAt(int iID)
 {
     CPhysical* (*GetPoolObj)(int iID);
-    *(void **) (&GetPoolObj) = (void*)(g_libGTASA + 0x563688);
+    *(void **) (&GetPoolObj) = (void*)(g_libGTASA + (VER_x32 ? 0x00483DD2 + 1 : 0x575D30));
     return (GetPoolObj)(iID);
 }
 
 uintptr_t GamePool_Vehicle_GetIndex(CVehicleGTA* pGtaVehicle)
 {
 	// GettPoolVehicleRef
-	return ((uintptr_t (*)(CVehicleGTA*))(g_libGTASA + 0x563630))(pGtaVehicle);
+	return ((uintptr_t (*)(CVehicleGTA*))(g_libGTASA + (VER_x32 ? 0x00483D90 + 1 : 0x575CD8)))(pGtaVehicle);
 }
 
 CVehicleGTA* GamePool_Vehicle_GetAt(int iID)
 {
 	// GetPoolVehicle
-	return ((CVehicleGTA* (*)(int))(g_libGTASA + 0x563640))(iID);
+	return ((CVehicleGTA* (*)(int))(g_libGTASA + (VER_x32 ? 0x00483D9E + 1 : 0x575CE8)))(iID);
 }
 
 // 0.3.7
 int GetVehicleSubtype(CVehicleGTA* pGtaVehicle)
 {
     if (pGtaVehicle) {
-        if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x8304C8) {
+        if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066D678 : 0x83BB50)) {
             return VEHICLE_SUBTYPE_CAR;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x830C78) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066DA20 : 0x83C2A0)) {
             return VEHICLE_SUBTYPE_BOAT;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x8307E8) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066D7F0 : 0x83BE40)) {
             return VEHICLE_SUBTYPE_BIKE;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x831388) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066DD84 : 0x83C968)) {
             return VEHICLE_SUBTYPE_PLANE;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x830EB8) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066DB34 : 0x83C4C8)) {
             return VEHICLE_SUBTYPE_HELI;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x830A30) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066D908 : 0x83C070)) {
             return VEHICLE_SUBTYPE_PUSHBIKE;
         }
-        else if (*(uintptr*)pGtaVehicle == g_libGTASA + 0x831AC0) {
+        else if (*(uintptr*)pGtaVehicle == g_libGTASA + (VER_x32 ? 0x0066E0FC : 0x83D058)) {
             return VEHICLE_SUBTYPE_TRAIN;
         }
     }
@@ -1966,7 +1965,7 @@ bool IsValidPedModel(uint modelID)
     auto dwModelArray = CModelInfo::ms_modelInfoPtrs;
 
     uintptr_t ModelInfo = reinterpret_cast<uintptr_t>(dwModelArray[modelID]);
-    if(ModelInfo && *(uintptr_t*)ModelInfo == (uintptr_t)g_libGTASA + 0x822858)
+    if(ModelInfo && *(uintptr_t*)ModelInfo == (uintptr_t)g_libGTASA + (VER_x32 ? 0x00667658 : 0x82F310))
         return true;
 
     return false;
@@ -1986,7 +1985,7 @@ uintptr_t LoadTexture(const char* texname)
 	{
 		uintptr_t texture = LoadTextureFromDB(texdb[i], texname);
 		if (texture != 0) {
-			Log("%s loaded from %s", texname, texdb[i]);
+			FLog("%s loaded from %s", texname, texdb[i]);
 			return texture;
 		}
 	}
@@ -2003,12 +2002,12 @@ uintptr_t LoadTexture(const char* texname)
     {
         uintptr_t texture = (uintptr_t)CUtil::LoadTextureFromDB(texdb[i], texname);
         if (texture != 0) {
-            Log("Texture: %s loaded from %s", texname, texdb[i]);
+            FLog("Texture: %s loaded from %s", texname, texdb[i]);
             return texture;
         }
     }
 
-    Log("Texture: %s not found!", texname);
+    FLog("Texture: %s not found!", texname);
     return 0;
 }
 
@@ -2016,8 +2015,7 @@ uintptr_t LoadTexture(const char* texname)
 #include "sprite2d.h"
 #include "armhook/patch.h"
 #include <algorithm>
-/*
- * //UNUSE FOR NOW
+
 RwTexture* LoadTextureFromTxd(const char* txdname, const char* texturename)
 {
     RwTexture* tex;
@@ -2053,47 +2051,41 @@ RwTexture* LoadTextureFromTxd(const char* txdname, const char* texturename)
 
     return tex;
 }
- */
 // 0.3.7 
 int FindTxdSlot(const char* txdname)
 {
-    //UNUSED
 	// CTxdStore::FindTxdSlot 
-	//return ((int(*)(const char*))(g_libGTASA + 0x5D3E60 + 1))(txdname);
+	return ((int(*)(const char*))(g_libGTASA + 0x5D3E60 + 1))(txdname);
 }
 // 0.3.7 
 void PushCurrentTxd()
 {
-    //UNUSED
 	// CTxdStore::PushCurrentTxd 
-	//((void (*)())(g_libGTASA + 0x5D4184 + 1))();
+	((void (*)())(g_libGTASA + 0x5D4184 + 1))();
 
 }
 // 0.3.7 
 void SetCurrentTxd(int slot)
 {
-    //UNUSED
 	// CTxdStore::SetCurrentTxd 
-	//((void (*)(int, int))(g_libGTASA + 0x5D40F4 + 1))(slot, 0);
+	((void (*)(int, int))(g_libGTASA + 0x5D40F4 + 1))(slot, 0);
 }
 // 0.3.7 
 void PopCurrentTxd()
 {
-    //UNUSED
 	// CTxdStore::PopCurrentTxd 
-//	((void (*)())(g_libGTASA + 0x5D41C4 + 1))();
+	((void (*)())(g_libGTASA + 0x5D41C4 + 1))();
 
 }
 // 0.3.7 
 uintptr_t SetTexture(const char* texturename)
 {
-    //UNUSED
-	//uintptr_t thiz = 0;
+	uintptr_t thiz = 0;
 
 	// CSprite2d::SetTexture 
-	//((void (*)(void*, const char*))(g_libGTASA + 0x5C8838 + 1))((void*)&thiz, texturename);
+	((void (*)(void*, const char*))(g_libGTASA + 0x5C8838 + 1))((void*)&thiz, texturename);
 
-	//return thiz;
+	return thiz;
 }
 
 float FloatOffset(float f1, float f2)
@@ -2138,7 +2130,6 @@ std::list<REMOVE_BUILDING_DATA> RemoveBuildingData;
 
 void RemoveBuilding(uint32_t dwModel, RwV3d vecPos, float fRange)
 {
-    //UNUSED
     /*if(dwModel == 19300) return; // We cant delete technical models!
 
     if(iBuildingToRemoveCount >= 1000)
@@ -2152,7 +2143,7 @@ void RemoveBuilding(uint32_t dwModel, RwV3d vecPos, float fRange)
     BuildingToRemove[iBuildingToRemoveCount].vecPos.z = vecPos.z;
     BuildingToRemove[iBuildingToRemoveCount].fRange = fRange;
     iBuildingToRemoveCount++;*/
-    /*
+
     REMOVE_BUILDING_DATA entry;
     entry.usModelIndex = dwModel;
     entry.fRange = fRange;
@@ -2161,15 +2152,13 @@ void RemoveBuilding(uint32_t dwModel, RwV3d vecPos, float fRange)
     iBuildingToRemoveCount++;
 
     RemoveBuildingData.push_back(entry);
-     */
 }
 
 #include "Pools.h"
 void RemoveObjectInRange(int iModel, RwV3d vecPos, float fRange)
 {
-    //UNUSED
-    //RemoveOccludersInRadius(vecPos, 500.0);
-    /*
+    RemoveOccludersInRadius(vecPos, 500.0);
+
     for(int i = 0; i < GetBuildingPool()->m_nSize; i++)
     {
         CEntityGTA *pEntity = GetBuildingPool()->GetAt(i);
@@ -2219,7 +2208,31 @@ void RemoveObjectInRange(int iModel, RwV3d vecPos, float fRange)
             }
         }
     }
-     */
+}
+#include "COcclusion.h"
+void RemoveOccludersInRadius(RwV3d vecPos, float fRadius)
+{
+    if(COcclusion::NumOccludersOnMap >= 1)
+    {
+        for(int i = 0; i <= COcclusion::NumOccludersOnMap; i++)
+        {
+            CVector vecOccluderPos;
+            vecOccluderPos.x = (float)COcclusion::aOccluders[i].fMidX * 0.25;
+            vecOccluderPos.y = (float)COcclusion::aOccluders[i].fMidY * 0.25;
+            vecOccluderPos.z = (float)COcclusion::aOccluders[i].fMidZ * 0.25;
+
+            float fDistance = GetDistance(vecOccluderPos, vecPos);
+            if(fDistance <= fRadius)
+            {
+                COcclusion::aOccluders[i].fMidX = 0;
+                COcclusion::aOccluders[i].fMidY = 0;
+                COcclusion::aOccluders[i].fMidZ = 0;
+                COcclusion::aOccluders[i].fWidthX = 0;
+                COcclusion::aOccluders[i].fWidthY = 0;
+                COcclusion::aOccluders[i].fHeight = 0;
+            }
+        }
+    }
 }
 
 /* =========== TexturedTextDraw ============= */
@@ -2266,34 +2279,28 @@ void DestroyTextDrawTexture(int index)
 
 void DeleteRwTexture(uintptr_t texture)
 {
-	// RwTextureDestroy 32bit code
+	// RwTextureDestroy
 	//((void(*)(uintptr_t))(g_libGTASA + 0x1DB764 + 1))(texture);
 }
 
 void DrawRaster(RwRaster* raster, CRect const& rect)
 {
-    //UNUSED 32bit code
-    /*
 	uint32_t white = 0xFFFFFFFF;
 	//CSprite2d::SetVertices(rect, color::White, color::White, color::White, color::White);
 	((void(*)(RwRaster*, const CRect&, uint32_t, uint32_t, uint32_t, uint32_t))(g_libGTASA + 0x5C9014 + 1))(raster, rect, white, white, white, white);
 	RwRenderStateSet(rwRENDERSTATETEXTURERASTER, raster);
 	RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, (void*)true);
 	RwIm2DRenderPrimitive(rwPRIMTYPETRIFAN, (RwIm2DVertex*)(g_libGTASA + 0xA7C264), 4);
-    */
 }
 
 void DrawTexture(uintptr_t texture, CRect* rect, uint32_t dwColor)
 {
-    //UNUSED 32bit code
-    /*
 	if (texture)
 	{
 		RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 		// CSprite2d::Draw(CRect const&, CRGBA const&)
 		((void(*)(uintptr_t, CRect*, uint32_t*))(g_libGTASA + 0x5C9120 + 1))(texture, rect, &dwColor);
 	}
-       */
 }
 
 void DrawTextureUV(uintptr_t texture, CRect* rect, uint32_t dwColor, float *uv)
@@ -2303,16 +2310,16 @@ void DrawTextureUV(uintptr_t texture, CRect* rect, uint32_t dwColor, float *uv)
 		RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, (void*)rwFILTERLINEAR);
 		// CSprite2d::Draw(CRect  const& posn, CRGBA  const& color, float u1, float v1, float u2, float v2, float u3, float v3, float u4, float v4);
 		((void(*)(uintptr_t, CRect*, uint32_t*, float, float, float, float, float, float, float, float))
-			(g_libGTASA + 0x5F7908))(texture, rect, &dwColor, uv[0], uv[1], uv[2], uv[3], uv[4], uv[5], uv[6], uv[7]);
+			(g_libGTASA + (VER_x32?0x1974EC + 1:0x6EDC5C)))(texture, rect, &dwColor, uv[0], uv[1], uv[2], uv[3], uv[4], uv[5], uv[6], uv[7]);
 	}
 }
 
 float GetDistance(RwV3d vec1, RwV3d vec2)
 {
-    return sqrt(
-            (vec1.z - vec2.z) * (vec1.z - vec2.z) +
-            (vec1.y - vec2.y) * (vec1.y - vec2.y) +
-            (vec1.x - vec2.x) * (vec1.x - vec2.x));
+	return sqrt(
+		(vec1.z - vec2.z) * (vec1.z - vec2.z) +
+		(vec1.y - vec2.y) * (vec1.y - vec2.y) +
+		(vec1.x - vec2.x) * (vec1.x - vec2.x));
 }
 
 CPedGTA* dwPlayerPedPtrs[PLAYER_PED_SLOTS];
@@ -2502,7 +2509,7 @@ void RenderClumpOrAtomic(uintptr_t rwObject)
         else if (*(uint8_t *) rwObject == 2)
         {
             // rpClumpRender
-            ((void (*)(uintptr_t))(g_libGTASA + 0x747488)) (rwObject);
+            ((void (*)(uintptr_t))(g_libGTASA + (VER_x32 ? 0x21425C + 1 : 0x2BA6A4))) (rwObject);
         }
     }
 }
@@ -2510,8 +2517,6 @@ void RenderClumpOrAtomic(uintptr_t rwObject)
 
 float GetModelColSphereRadius(int iModel)
 {
-    //unused 32bit code
-    /*
 	uintptr_t modelInfo = GetModelInfoByID(iModel);
 
 	if (modelInfo)
@@ -2521,7 +2526,6 @@ float GetModelColSphereRadius(int iModel)
 			return *(float*)(colModel + 0x24);
 		}
 	}
-     */
 
 	return 0.0f;
 }
@@ -2529,8 +2533,6 @@ float GetModelColSphereRadius(int iModel)
 
 void GetModelColSphereVecCenter(int iModel, RwV3d* vec)
 {
-    //unused 32bit code
-    /*
 	uintptr_t modelInfo = GetModelInfoByID(iModel);
 
 	if (modelInfo)
@@ -2544,7 +2546,6 @@ void GetModelColSphereVecCenter(int iModel, RwV3d* vec)
 			vec->z = v->z;
 		}
 	}
-    */
 }
 
 void DestroyAtomicOrClump(uintptr_t rwObject)
@@ -2573,7 +2574,7 @@ void DestroyAtomicOrClump(uintptr_t rwObject)
 
 void GamePrepareTrain(CVehicleGTA* pGtaVehicle)
 {
-	Log("GamePrepareTrain");
+	FLog("GamePrepareTrain");
 
 	CPedGTA* pDriver = pGtaVehicle->pDriver;
 
@@ -2582,7 +2583,7 @@ void GamePrepareTrain(CVehicleGTA* pGtaVehicle)
 		if (pDriver->m_nPedType != (ePedType)0 && pDriver->m_nPedType != (ePedType)1)
 		{
 			// CPlayerPed::Destructor
-            ((void (*)(uintptr_t))(g_libGTASA + 0x5C1B10))((uintptr_t)pDriver);
+            ((void (*)(uintptr_t))(g_libGTASA + (VER_x32 ? 0x004CE6A0 + 1 : 0x5CDC64)))((uintptr_t)pDriver);
 
 			pGtaVehicle->pDriver = nullptr;
 		}
@@ -2618,7 +2619,7 @@ static CVector _axis[3] = {
 // 0.3.7
 void RwMatrixRotate(RwMatrix* mat, int axis, float angle)
 {
-	((void (*) (RwMatrix*, RwV3d*, float, int))(g_libGTASA +0x75ED70))(mat, &_axis[axis], angle, 1);
+	((void (*) (RwMatrix*, RwV3d*, float, int))(g_libGTASA + (VER_x32 ? 0x001E38F4 + 1 : 0x27E710)))(mat, &_axis[axis], angle, 1);
 }
 // 0.3.7
 void RwMatrixScale(RwMatrix* matrix, RwV3d* scale)
@@ -2648,25 +2649,23 @@ const char* getGameDataFolderDirectory()
 int LineOfSight(RwV3d* start, RwV3d* end, void* colpoint, uintptr_t ent, char buildings, char vehicles, char peds, char objects, char dummies, bool seeThrough, bool camera, bool unk)
 {
 	// CWorld::LineOfSight
-	return (( int (*)(RwV3d*, RwV3d*, void*, uintptr_t, char, char, char, char, char, char, char, char))(g_libGTASA+0x4C94BC))(start, end, colpoint, ent, buildings, vehicles, peds, objects, dummies, seeThrough, camera, unk);
+	return (( int (*)(RwV3d*, RwV3d*, void*, uintptr_t, char, char, char, char, char, char, char, char))(g_libGTASA+(VER_x32 ? 0x424B94+1:0x508C7C)))(start, end, colpoint, ent, buildings, vehicles, peds, objects, dummies, seeThrough, camera, unk);
 }
 
 void RwMatrixInvert(RwMatrix *matOut, RwMatrix *matIn)
 {
-    //unused  32bit code
 	// RwMatrixInvert
-	//(( void (*)(RwMatrix*, RwMatrix*))(g_libGTASA+0x1E3A28+1))(matOut, matIn);
+	(( void (*)(RwMatrix*, RwMatrix*))(g_libGTASA+0x1E3A28+1))(matOut, matIn);
 }
 
-int GetTaskTypeFromTask(uintptr_t *task)
+int GetTaskTypeFromTask(uint32_t *task)
 {
-    if(!task || *task < g_libGTASA+0x82B7F8 || *task > g_libGTASA+0x826218)
-        return 0;
+	if(!task || *task < g_libGTASA+0x6653F4 || *task > g_libGTASA+0x66D641) 
+		return 0;
 
-    uintptr_t dwTaskVtbl = task[0];
-    return (( int (*)(uintptr_t))(*(void**)(dwTaskVtbl+0x28)))(dwTaskVtbl); // CTask*:GetTaskType
+	uint32_t dwTaskVtbl = task[0];
+	return (( int (*)(uint32_t))(*(void**)(dwTaskVtbl+0x14)))(dwTaskVtbl); // CTask*:GetTaskType
 }
-
 
 int Game_PedStatPrim(int model_id)
 {
@@ -2676,9 +2675,8 @@ int Game_PedStatPrim(int model_id)
 
 uint32_t GetUpperCaseKey(const char* szUpper)
 {
-    //unused 32bit code
 	// CKeyGen::GetUpperCaseKey
-	//return (( uint32_t (*)(const char*))(g_libGTASA+0x3F4E8C+1))(szUpper);
+	return (( uint32_t (*)(const char*))(g_libGTASA+0x3F4E8C+1))(szUpper);
 }
 
 enum Flags {
@@ -2831,7 +2829,7 @@ RpAtomic* ObjectMaterialTextCallBack(RpAtomic* rpAtomic, CObject* pObject)
 
 void SetScissorRect(void* pRect)
 {
-    return ((void (*)(void*))(g_libGTASA + 0x5051F8))(pRect);
+    return ((void (*)(void*))(g_libGTASA + (VER_x32 ? 0x002B3EC4 + 1 : 0x373290)))(pRect);
 }
 
 #include "Entity/CPedGTA.h"
@@ -2841,7 +2839,7 @@ void SetScissorRect(void* pRect)
 bool IsValidGamePed(CPedGTA* pPed)
 {
     //IsPedPointerValid(CPed *) � 0x00435614
-    if (((bool (*)(CPedGTA*))(g_libGTASA + 0x590440))(pPed)) {
+    if (((bool (*)(CPedGTA*))(g_libGTASA + (VER_x32 ? 0x004A72C4 + 1 : 0x59DE5C)))(pPed)) {
         return true;
     }
     return false;
@@ -2896,5 +2894,5 @@ void RenderEntity(CEntityGTA* entity)
     ((void (*)(CEntityGTA*))(*(uintptr_t*)( *(uintptr*)(entity) + (VER_x32 ? 0x48 : 0x48*2) )))(entity);
 
     // CRenderer::RenderOneNonRoad
-    (( void (*)(CEntityGTA*))(g_libGTASA + 0x4B5430))(entity);
+    (( void (*)(CEntityGTA*))(g_libGTASA + (VER_x32 ? 0x0041030C + 1 : 0x4F56E0)))(entity);
 }

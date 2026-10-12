@@ -3,17 +3,12 @@
 class ButtonPanel : public Layout
 {
 public:
-    ButtonPanel();
+	ButtonPanel();
 
-    void performLayout() override;
-
-    CButton* m_bH;
-    OButton* m_bOpen;
-    Button* m_bTab;
-    Button* m_bAlt;
-    Button* m_bSV;
-
+	CButton* m_bH;
 private:
-    Button* m_bY;
-    Button* m_bN;
+	Button* m_bAlt;
+	Button* m_bY;
+	Button* m_bN;
+
 };

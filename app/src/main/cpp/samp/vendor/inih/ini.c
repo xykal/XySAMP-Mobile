@@ -141,8 +141,8 @@ int ini_parse_stream(ini_reader reader, void* stream, ini_handler handler,
         start = line;
 #if INI_ALLOW_BOM
         if (lineno == 1 && (unsigned char)start[0] == 0xEF &&
-            (unsigned char)start[1] == 0xBB &&
-            (unsigned char)start[2] == 0xBF) {
+                           (unsigned char)start[1] == 0xBB &&
+                           (unsigned char)start[2] == 0xBF) {
             start += 3;
         }
 #endif

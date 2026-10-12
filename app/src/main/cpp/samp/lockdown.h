@@ -12,30 +12,30 @@
 #include <cstdint>
 
 // --- server port & handshake config -----------------------------------------
-#define LOCK_SERVER_PORT        7777
-#define LOCK_PORT_STR           "7777"
+#define LOCK_SERVER_PORT        @PORT@
+#define LOCK_PORT_STR           "@PORT@"
 
 // --- Handshake challenge-response (Lapis 3 - RPC_ClientCheck ID 103) --------
 #define LOCK_HANDSHAKE_ENABLE   1
 #define LOCK_HANDSHAKE_ACTION   0x48
-#define LOCK_HANDSHAKE_KEY      0x00000000
+#define LOCK_HANDSHAKE_KEY      @KEY@
 
 // 0 = host/port/version SELALU ditimpa nilai terkunci (rekomendasi)
 #define LOCK_ALLOW_INI_OVERRIDE   0
 #define LOCK_GENERATE_DEFAULT_INI 1
 
 // --- XOR-Encoded Byte Arrays (Anti-Strings / Anti-HexEdit) ------------------
-// Key rolling: plain[i] = enc[i] ^ ((0xA7u + i * 37) & 0xFF)
-#define LOCK_XOR_SEED           0xA7u
+// Key rolling: plain[i] = enc[i] ^ ((@XOR_SEED@ + i * 37) & 0xFF)
+#define LOCK_XOR_SEED           @XOR_SEED@
 
-static const uint8_t kLockEncHost[] = { 0xD7, 0xA0, 0x90, 0x6F, 0x15, 0x18, 0xFC, 0xDC, 0xAA, 0x86, 0x6A, 0x5B, 0x4D, 0xE5, 0xD4, 0xFC, 0x9E, 0x78 };
-static const size_t  kLockEncHostLen = 18;
+static const uint8_t kLockEncHost[] = { @ENC_HOST_BYTES@ };
+static const size_t  kLockEncHostLen = @ENC_HOST_LEN@;
 
-static const uint8_t kLockEncTag[]  = { 0xFF, 0x95, 0xA2, 0x57, 0x76, 0x30, 0xA8, 0x9B, 0xE1, 0xC4 };
-static const size_t  kLockEncTagLen = 10;
+static const uint8_t kLockEncTag[]  = { @ENC_TAG_BYTES@ };
+static const size_t  kLockEncTagLen = @ENC_TAG_LEN@;
 
-static const uint8_t kLockEncName[] = { 0xF0, 0xAD, 0x83, 0x71, 0x5A, 0x3F, 0xDD, 0xD3, 0x99, 0x91, 0x6B, 0x4D, 0x06 };
-static const size_t  kLockEncNameLen = 13;
+static const uint8_t kLockEncName[] = { @ENC_NAME_BYTES@ };
+static const size_t  kLockEncNameLen = @ENC_NAME_LEN@;
 
 static inline void Lockdown_XorDecode(const uint8_t* enc, size_t len, char* out, size_t maxOut)
 {

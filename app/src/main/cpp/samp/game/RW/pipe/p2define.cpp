@@ -317,8 +317,9 @@ CalcUnlockPersistentMemSize(RxPipeline *pipeline, RwUInt32 numClusters)
 static RwBool
 ReallocAndFixupSuperBlock(RxPipeline *pipeline, RwUInt32 newSize)
 {
-    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + 0xD10BB8);
-    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + 0xD109A0);
+    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + (VER_x32 ? 0x6BCD38 : 0x89A358));
+    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + (VER_x32 ? 0x6BCF98 : 0x89A778));
+
     void    *oldBlock, *newBlock;
     RwUInt32 i;
 
@@ -496,8 +497,8 @@ RwUInt32 _rxChaseDependencies(RxPipeline * pipeline)
 static RwBool
 LockPipelineExpandData(RxPipeline *dstPipe, RxPipeline *srcPipe)
 {
-    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + 0xD10BB8);
-    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + 0xD109A0);
+    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + (VER_x32 ? 0x6BCD38 : 0x89A358));
+    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + (VER_x32 ? 0x6BCF98 : 0x89A778));
     RxPipelineNodeTopSortData *topSortArray;
     RwUInt32   *outputs;
     RwInt32     i;
@@ -648,8 +649,8 @@ PipelineCalcNumUniqueClusters(RxPipeline *pipeline)
 RxPipeline* RxLockedPipeUnlock(RxPipeline * pipeline)
 {
     //   RwInt32      _rxPipelineGlobalsOffset;
-    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + 0xD109A0);
-    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + 0xD10BB8);
+    RwInt32& _rxPipelineGlobalsOffset = *reinterpret_cast<RwInt32*>(g_libGTASA + (VER_x32 ? 0x6BCF98 : 0x89A778));
+    void*& RwEngineInstance = *reinterpret_cast<void**>(g_libGTASA + (VER_x32 ? 0x6BCD38 : 0x89A358));
 
     RWAPIFUNCTION(RWSTRING("RxLockedPipeUnlock"));
 

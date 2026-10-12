@@ -1,0 +1,102 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.samp.mobile'
+    compileSdk 34
+
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")
+            if (ksPath != null && !ksPath.isEmpty()) {
+                storeFile file(ksPath)
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias System.getenv("KEY_ALIAS") ?: System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("SIGNING_KEY_PASSWORD")
+                enableV1Signing true
+                enableV2Signing true
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId "com.samp.mobile"
+        minSdk 24
+        targetSdk 34
+        versionCode 120
+        versionName "1.2.0"
+
+        multiDexEnabled true
+
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a'
+            debugSymbolLevel 'NONE'
+        }
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging true
+            pickFirsts += ['**/*.so']
+            excludes += ['META-INF/*']
+        }
+        resources {
+            excludes += ['META-INF/*']
+        }
+    }
+
+    ndkVersion '26.2.11394342'
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+        }
+    }
+
+    buildTypes {
+        release {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            debuggable false
+            jniDebuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    buildFeatures {
+        prefab true
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.intuit.sdp:sdp-android:1.1.0'
+    implementation 'com.bytedance.android:shadowhook:1.0.9'
+}

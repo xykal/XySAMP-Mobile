@@ -1,3 +1,7 @@
+//
+// Created by roman on 11/24/2024.
+//
+
 #include "CPhysical.h"
 #include "game/Timer.h"
 #include "patch.h"
@@ -50,18 +54,22 @@ CPhysical::CPhysical() : CEntityGTA()
     m_nPhysicalFlags = 0;
     physicalFlags.bApplyGravity = true;
 
-    m_nContactSurface = SURFACE_DEFAULT;
+    m_nContactSurface = SURFACE_DEFAULT; // NOTSA; If not initialize, it will go out of bounds in the SurfaceInfos_c
     m_fContactSurfaceBrightness = 1.0f;
 }
 
 CPhysical::~CPhysical() {
+//    if (m_pShadowData)
+//        g_realTimeShadowMan.ReturnRealTimeShadow(m_pShadowData);
+
+    //m_pCollisionList.Flush();
 }
 
 bool CPhysical::IsAdded()
 {
     if(this)
     {
-        if(*(uintptr*)this == g_libGTASA + 0x81E628)
+        if(*(uintptr*)this == g_libGTASA + (VER_x32 ? 0x00667D14 : 0x830098)) // CPlaceable
             return false;
 
         if(*(uintptr_t*)m_pMovingList)
@@ -71,6 +79,7 @@ bool CPhysical::IsAdded()
     return false;
 }
 
+// 0x5429F0
 void CPhysical::ApplyMoveForce(CVector force)
 {
     if (!physicalFlags.bInfiniteMass && !physicalFlags.bDisableMoveForce) {
@@ -107,6 +116,11 @@ void CPhysical::ApplyMoveSpeed()
 
 CVector CPhysical::GetSpeed(CVector point)
 {
+#ifdef USE_DEFAULT_FUNCTIONS
+    CVector outSpeed;
+    ((CVector *(__thiscall*)(CPhysical*, CVector*, CVector))0x542CE0)(this, outSpeed, point);
+    return outSpeed;
+#else
     CVector vecCentreOfMassMultiplied;
     if (!physicalFlags.bInfiniteMass)
         vecCentreOfMassMultiplied = Multiply3x3(GetMatrix(), m_vecCentreOfMass);
@@ -116,6 +130,7 @@ CVector CPhysical::GetSpeed(CVector point)
     CVector speed = CrossProduct(vecTurnSpeed, distance);
     speed += m_vecMoveSpeed + m_vecFrictionMoveSpeed;
     return speed;
+#endif
 }
 
 void CPhysical::ApplyMoveForce(float x, float y, float z)
@@ -147,30 +162,9 @@ void CPhysical::ApplyTurnSpeed()
 }
 
 void CPhysical::Add() {
-    CHook::CallFunction<void>(g_libGTASA + 0x4A09B0, this);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x3FCE3C + 1 : 0x4E0608), this);
 }
 
 void CPhysical::Remove() {
-    CHook::CallFunction<void>(g_libGTASA + 0x4A0B88, this);
-}
-
-CRect CPhysical::GetBoundRect()
-{
-    CRect rect;
-    if (!this || !m_pRwObject || m_nModelIndex == 0xFFFF) {
-        rect.left = 0.0f;
-        rect.right = 0.0f;
-        rect.top = 0.0f;
-        rect.bottom = 0.0f;
-        return rect;
-    }
-    return CHook::CallFunction<CRect>(g_libGTASA + 0x4A0940, this);
-}
-
-CVector CPhysical::GetBoundCentre()
-{
-    if (!this || !m_pRwObject || m_nModelIndex == 0xFFFF) {
-        return CVector(0.0f, 0.0f, 0.0f);
-    }
-    return CHook::CallFunction<CVector>(g_libGTASA + 0x4A0978, this);
+    CHook::CallFunction<void>(g_libGTASA + (VER_x32 ? 0x3FD02C + 1 : 0x4E07EC), this);
 }

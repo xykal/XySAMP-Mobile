@@ -191,9 +191,9 @@ public:
                 if (bReachedTop) {
                     m_nFirstFree = -1;
                     if constexpr (DontDebugCheckAlloc) {
-                        Log("Allocataion failed!"); // Code can handle alloc failures
+                        FLog("Allocataion failed!"); // Code can handle alloc failures
                     } else {
-                        Log("Allocataion failed!"); // Code can handle alloc failures // Code can't handle alloc failures, so break
+                        FLog("Allocataion failed!"); // Code can handle alloc failures // Code can't handle alloc failures, so break
                     }
                     return nullptr;
                 }

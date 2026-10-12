@@ -1,3 +1,4 @@
+#include "../lockdown.h"
 #include "../main.h"
 #include "../game/game.h"
 #include "netgame.h"
@@ -5,14 +6,10 @@
 #include "../audiostream.h"
 
 // voice
-#include "../voice/MicroIcon.h"
-#include "../voice/SpeakerList.h"
-#include "../voice/Network.h"
+#include "../voice_new/MicroIcon.h"
+#include "../voice_new/SpeakerList.h"
+#include "../voice_new/Network.h"
 #include "java/jniutil.h"
-#include "CServerManager.h"
-#include "CLocalisation.h"
-#include "textdrawpool.h"
-#include "gangzonepool.h"
 
 //#define AUTH_BS "39FB2DEEDB49ACFB8D4EECE6953D2507988CCCF4410"//main
 #define AUTH_BS "E02262CF28BC542486C558D4BE9EFB716592AFAF8B"
@@ -49,20 +46,22 @@ extern CJavaWrapper *pJavaWrapper;
 
 CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char *szPlayerName, const char* szPass)
 {
-	Log("CNetGame initializing..");
+	FLog("CNetGame initializing..");
+
+	// voice
+	//Network::OnRaknetConnect(szHostOrIp, iPort);
+
+	//MyLog2("Voice connect %s:%d", szHostOrIp, iPort);
+	//MyLog2("Voice connect %s:%d", szHostOrIp, iPort);
+	//MyLog2("Voice connect %s:%d", szHostOrIp, iPort);
 
 	m_pNetSet = new NET_SETTINGS;
-	//if(g_sEncryptedAddresses[CServerInstance::iServer].getPort() != iPort) {
-	//	iPort = g_sEncryptedAddresses[CServerInstance::iServer].getPort();
-	//	szHostOrIp = g_sEncryptedAddresses[CServerInstance::iServer].decrypt();
-	//}
-
 	memset(m_szHostName, 0, 256);
 	memset(m_szHostOrIp, 0, 256);
 
 	strcpy(m_szHostName, "SA-MP");
-	strncpy(m_szHostOrIp, szHostOrIp, sizeof(m_szHostOrIp));
-	m_iPort = iPort;
+	strncpy(m_szHostOrIp, XySAMP::GetLockedHost(), sizeof(m_szHostOrIp));
+	m_iPort = XySAMP::GetLockedPort();
 
 	m_pRakClient = RakNetworkFactory::GetRakClientInterface();
 	InitializePools();
@@ -98,12 +97,13 @@ CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char *szPlayerName, 
 	SetGameState(GAMESTATE_WAIT_CONNECT);
 	m_bLanMode = false;
 
+    pJavaWrapper->HideLoadingScreen();
 
-	//pJavaWrapper->HideLoadingScreen();
+    const char* sampVer = SAMP_VERSION;
+    if(pSettings)
+        sampVer = pSettings->Get().szVersion;
 
-	const char* sampVer = SAMP_VERSION;
-	if (pUI)
-	    pUI->chat()->addDebugMessage(localisation_started);
+	if (pUI) pUI->chat()->addDebugMessage("{FFFFFF}2.1 Client started", sampVer);
 }
 // 0.3.7
 CNetGame::~CNetGame()
@@ -126,17 +126,17 @@ CNetGame::~CNetGame()
 
 void CNetGame::InitializePools()
 {
-    m_pPools = new NET_POOLS;
-    m_pPools->pPlayerPool = new CPlayerPool();
-    m_pPools->pVehiclePool = new CVehiclePool();
-    m_pPools->pGangZonePool = new CGangZonePool();
-    m_pPools->pPickupPool = new CPickupPool();
-    m_pPools->pObjectPool = new CObjectPool();
-    m_pPools->pTextLabelPool = new C3DTextLabelPool();
-    m_pPools->pTextDrawPool = new CTextDrawPool();
-    m_pPools->pActorPool = new CActorPool();
-    m_pPools->pMenuPool = new CMenuPool();
-    m_pPools->pPlayerBubblePool = new CPlayerBubblePool();
+	m_pPools = new NET_POOLS;
+	m_pPools->pPlayerPool = new CPlayerPool();
+	m_pPools->pVehiclePool = new CVehiclePool();
+	m_pPools->pGangZonePool = new CGangZonePool();
+	m_pPools->pPickupPool = new CPickupPool();
+	m_pPools->pObjectPool = new CObjectPool();
+	m_pPools->pTextLabelPool = new C3DTextLabelPool();
+	m_pPools->pTextDrawPool = new CTextDrawPool();
+	m_pPools->pActorPool = new CActorPool();
+	m_pPools->pMenuPool = new CMenuPool();
+	m_pPools->pPlayerBubblePool = new CPlayerBubblePool();
 }
 
 void CNetGame::UninitializePools()
@@ -233,6 +233,7 @@ void CNetGame::Process()
 
 void CNetGame::UpdateNetwork()
 {
+	bool breakStatus = false;
 	Packet *pkt = nullptr;
 	unsigned char packetIdentifier;
 
@@ -241,143 +242,151 @@ void CNetGame::UpdateNetwork()
 		packetIdentifier = GetPacketID(pkt);
 
 		switch (packetIdentifier) {
-			case ID_AUTH_KEY:
-				Packet_AuthKey(pkt);
-				break;
+            case ID_AUTH_KEY:
+                Packet_AuthKey(pkt);
+                break;
 
-			case ID_CONNECTION_ATTEMPT_FAILED:
-				Packet_ConnectAttemptFailed(pkt);
-				break;
+            case ID_CONNECTION_ATTEMPT_FAILED:
+                Packet_ConnectAttemptFailed(pkt);
+                break;
 
-			case ID_NO_FREE_INCOMING_CONNECTIONS:
-				Packet_NoFreeIncomingConnections(pkt);
-				break;
+            case ID_NO_FREE_INCOMING_CONNECTIONS:
+                Packet_NoFreeIncomingConnections(pkt);
+                break;
 
-			case ID_DISCONNECTION_NOTIFICATION:
-				Packet_DisconnectionNotification(pkt);
-				//SetGameState(GAMESTATE_WAIT_CONNECT);
-				break;
+            case ID_DISCONNECTION_NOTIFICATION:
+                Packet_DisconnectionNotification(pkt);
+                //SetGameState(GAMESTATE_WAIT_CONNECT);
+                break;
 
-			case ID_CONNECTION_LOST:
-				Packet_ConnectionLost(pkt);
-				break;
+            case ID_CONNECTION_LOST:
+                Packet_ConnectionLost(pkt);
+                break;
 
-			case ID_CONNECTION_REQUEST_ACCEPTED:
-				Packet_ConnectionSucceeded(pkt);
-				break;
+            case ID_CONNECTION_REQUEST_ACCEPTED:
+                Packet_ConnectionSucceeded(pkt);
+                break;
 
-			case ID_FAILED_INITIALIZE_ENCRIPTION:
-				Packet_FailedInitializeEncription(pkt);
-				break;
+            case ID_FAILED_INITIALIZE_ENCRIPTION:
+                Packet_FailedInitializeEncription(pkt);
+                break;
 
-			case ID_CONNECTION_BANNED:
-				Packet_ConnectionBanned(pkt);
-				SetGameState(GAMESTATE_WAIT_CONNECT);
-				break;
+            case ID_CONNECTION_BANNED:
+                Packet_ConnectionBanned(pkt);
+                SetGameState(GAMESTATE_WAIT_CONNECT);
+                break;
 
-			case ID_INVALID_PASSWORD:
-				Packet_InvalidPassword(pkt);
-				break;
+            case ID_INVALID_PASSWORD:
+                Packet_InvalidPassword(pkt);
+                break;
 
-			case ID_VEHICLE_SYNC:
-				Packet_VehicleSync(pkt);
-				break;
+            case ID_VEHICLE_SYNC:
+                Packet_VehicleSync(pkt);
+                break;
 
-			case ID_AIM_SYNC:
-				Packet_AimSync(pkt);
-				break;
+            case ID_AIM_SYNC:
+                Packet_AimSync(pkt);
+                break;
 
-			case ID_BULLET_SYNC:
-				Packet_BulletSync(pkt);
-				break;
+            case ID_BULLET_SYNC:
+                Packet_BulletSync(pkt);
+                break;
 
-			case ID_PLAYER_SYNC:
-				Packet_PlayerSync(pkt);
-				break;
+            case ID_PLAYER_SYNC:
+                Packet_PlayerSync(pkt);
+                break;
 
-			case ID_MARKERS_SYNC:
-				Packet_MarkerSync(pkt);
-				break;
-			case ID_PASSENGER_SYNC:
-				Packet_PassengerSync(pkt);
-				break;
-			case ID_UNOCCUPIED_SYNC:
-				Packet_UnoccupiedSync(pkt);
-				break;
+            case ID_MARKERS_SYNC:
+                Packet_MarkerSync(pkt);
+                break;
 
-			case ID_TRAILER_SYNC:
-				Packet_TrailerSync(pkt);
-				break;
-		}
+            case ID_UNOCCUPIED_SYNC:
+                Packet_UnoccupiedSync(pkt);
+                break;
+
+            case ID_TRAILER_SYNC:
+                Packet_TrailerSync(pkt);
+                break;
+
+            case ID_PASSENGER_SYNC:
+                Packet_PassengerSync(pkt);
+                break;
+
+            case Network::kRaknetPacketId: {
+                Network::OnRaknetReceive(pkt);
+                break;
+            }
+
+            case 251:
+                Packet_CustomRPC(pkt);
+                break;
+        }
+
 		// voice
-		bool breakStatus = false;
-		if(!Network::OnRaknetReceive(*pkt)) breakStatus = true;
-		if(breakStatus) return;
+		/*if (!Network::OnRaknetReceive(*pkt)) {
+			return;
+		}*/
 
 		m_pRakClient->DeallocatePacket(pkt);
-
 	}
 }
 
-#define RPC_CUSTOM_SET_HUNGRY	   0x29
-#define RPC_CUSTOM_SET_BANK        0x2A
-
 void CNetGame::Packet_CustomRPC(Packet *p) {
 
-	RakNet::BitStream bs((unsigned char *) p->data, p->length, false);
-	bs.IgnoreBits(8); // skip packet id
+    RakNet::BitStream bs((unsigned char *) p->data, p->length, false);
+    bs.IgnoreBits(8); // skip packet id
 
-	uint32_t rpcID;
-	bs.Read(rpcID);
+    uint32_t rpcID;
+    bs.Read(rpcID);
 
-	switch (rpcID) {
-		case 99: {
-			Log("RPC_CHECK_CASH");
-			uint8_t bLen, bLen1;
-			uint16_t bVersion;
-			char szText[30];
-			char szText1[30];
+    switch (rpcID) {
+        case 99: {
+            FLog("RPC_CHECK_CASH");
+            uint8_t bLen, bLen1;
+            uint16_t bVersion;
+            char szText[30];
+            char szText1[30];
 
-			memset(szText, 0, 30);
-			memset(szText1, 0, 30);
+            memset(szText, 0, 30);
+            memset(szText1, 0, 30);
 
-			bs.Read(bLen);
-			if (bLen >= sizeof(szText) - 1)
-				return;
+            bs.Read(bLen);
+            if (bLen >= sizeof(szText) - 1)
+                return;
 
-			bs.Read(&szText[0], bLen);
+            bs.Read(&szText[0], bLen);
 
-			bs.Read(bLen1);
-			if (bLen1 >= sizeof(szText1) - 1)
-				return;
+            bs.Read(bLen1);
+            if (bLen1 >= sizeof(szText1) - 1)
+                return;
 
-			bs.Read(&szText1[0], bLen1);
+            bs.Read(&szText1[0], bLen1);
 
-			bs.Read(bVersion);
+            bs.Read(bVersion);
 
-			RwTexture *pCashTexture = nullptr;
-			pCashTexture = (RwTexture *) CUtil::LoadTextureFromDB(szText1, szText);
+            RwTexture *pCashTexture = nullptr;
+            pCashTexture = (RwTexture *) CUtil::LoadTextureFromDB(szText1, szText);
 
-			int iVersion;
-			if (pCashTexture) {
-				iVersion = bVersion;
-				RwTextureDestroy(pCashTexture);
-			} else iVersion = 0;
+            int iVersion;
+            if (pCashTexture) {
+                iVersion = bVersion;
+                RwTextureDestroy(pCashTexture);
+            } else iVersion = 0;
 
-			RakNet::BitStream bsParams;
+            RakNet::BitStream bsParams;
 
-			bsParams.Write((uint8_t) 251);
-			bsParams.Write((uint32_t) 99);
+            bsParams.Write((uint8_t) 251);
+            bsParams.Write((uint32_t) 99);
 
-			bsParams.Write(iVersion);
+            bsParams.Write(iVersion);
 
-			m_pRakClient->Send(&bsParams, SYSTEM_PRIORITY, RELIABLE, 0);
+            m_pRakClient->Send(&bsParams, SYSTEM_PRIORITY, RELIABLE, 0);
 
 //			bsParams.Write(iVersion);
 //			m_pRakClient->RPC(&RPC_CustomHash, &bsParams, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
-			break;
-		}
-	}
+            break;
+        }
+    }
 }
 
 // 0.3.7
@@ -462,11 +471,10 @@ void CNetGame::ProcessPools()
 		GetVehiclePool()->Process();
 	}
 
-    if (GetPickupPool()) {
-        GetPickupPool()->Process();
-    }
-
-}
+	if (GetPickupPool()) {
+		GetPickupPool()->Process();
+	}
+}	
 // 0.3.7
 void CNetGame::ProcessLoadingScreen()
 {
@@ -492,7 +500,7 @@ void CNetGame::ProcessConnecting()
 		if (pUI) pUI->chat()->addDebugMessage("Connecting to Server...");
 
 		m_pRakClient->Connect(m_szHostOrIp, m_iPort, 0, 0, 2);
-
+		
 		// voice fix voice not connect when restart
 		Network::OnRaknetConnect(m_szHostOrIp, m_iPort);
 
@@ -586,8 +594,8 @@ void CNetGame::Packet_ConnectionSucceeded(Packet *pkt)
 	uint8_t byteNameLen = strlen(GetPlayerPool()->GetLocalPlayerName());
 	uint8_t byteAuthBSLen = strlen(AUTH_BS);
 	uint8_t byteClientVerLen = strlen(SAMP_VERSION);
-	if(pSettings)
-		byteClientVerLen = strlen(pSettings->Get().szVersion);
+    if(pSettings)
+        byteClientVerLen = strlen(pSettings->Get().szVersion);
 
 
 	RakNet::BitStream bsSend;
@@ -600,10 +608,10 @@ void CNetGame::Packet_ConnectionSucceeded(Packet *pkt)
 	bsSend.Write(AUTH_BS, byteAuthBSLen);
 	bsSend.Write(byteClientVerLen);
 	//bsSend.Write(SAMP_VERSION, byteClientVerLen);
-	if(pSettings)
-		bsSend.Write(pSettings->Get().szVersion, byteClientVerLen);
-	else
-		bsSend.Write(SAMP_VERSION, byteClientVerLen);
+    if(pSettings)
+        bsSend.Write(pSettings->Get().szVersion, byteClientVerLen);
+    else
+        bsSend.Write(SAMP_VERSION, byteClientVerLen);
 
 	Network::OnRaknetRpc(RPC_ClientJoin, bsSend);
 
@@ -693,7 +701,7 @@ void CNetGame::Packet_PlayerSync(Packet *pkt)
 
 	uint8_t byteHealthArmour;
 	uint8_t byteArmTemp = 0, byteHlTemp = 0;
-
+	
 	bsData.Read(byteHealthArmour);
 	byteArmTemp = (byteHealthArmour & 0x0F);
 	byteHlTemp = (byteHealthArmour >> 4);
@@ -762,7 +770,7 @@ void CNetGame::Packet_VehicleSync(Packet* pkt)
 	float w, x, y, z;
 	bsData.ReadNormQuat(w, x, y, z);
 	icSync.quat.Set(x, y, z, w);
-
+	
 	bsData.Read((char*)& icSync.vecPos, sizeof(CVector));
 	bsData.ReadVector(icSync.vecMoveSpeed.x, icSync.vecMoveSpeed.y, icSync.vecMoveSpeed.z);
 
@@ -816,7 +824,7 @@ void CNetGame::Packet_VehicleSync(Packet* pkt)
 void CNetGame::Packet_AimSync(Packet* pkt)
 {
 	RakNet::BitStream bsData(pkt->data, pkt->length, false);
-
+	
 	uint8_t bytePacketId;
 	PLAYERID PlayerId;
 	AIM_SYNC_DATA aimSync;
@@ -917,7 +925,7 @@ void CNetGame::Packet_MarkerSync(Packet *pkt)
 /*
 void CNetGame::Packet_VoiceChannelOpenReply(Packet* pkt)
 {
-	Log("Packet_VoiceChannelOpenReply");
+	FLog("Packet_VoiceChannelOpenReply");
 
 	if (!pVoice || !GetGameState() == GAMESTATE_CONNECTED) return;
 
@@ -1069,11 +1077,11 @@ void CNetGame::ResetMapIcons()
 // 0.3.7
 void CNetGame::ResetPickupPool()
 {
-    if (m_pPools->pPickupPool) {
-        delete m_pPools->pPickupPool;
-    }
+	if (m_pPools->pPickupPool) {
+		delete m_pPools->pPickupPool;
+	}
 
-    m_pPools->pPickupPool = new CPickupPool();
+	m_pPools->pPickupPool = new CPickupPool();
 }
 // 0.3.7
 void CNetGame::ResetObjectPool()
@@ -1123,6 +1131,7 @@ void CNetGame::SendSpawn()
 		pPlayerPool->GetLocalPlayer()->SendSpawn();
 	}
 }
+
 void CNetGame::SendNextClass()
 {
 	CPlayerPool* pPlayerPool = GetPlayerPool();
@@ -1135,7 +1144,7 @@ void CNetGame::SendNextClass()
 void CNetGame::Packet_TrailerSync(Packet *pkt)
 {
 	if(GetGameState() != GAMESTATE_CONNECTED) return;
-
+	
 	uint8_t bytePacketId;
 	PLAYERID playerId;
 
@@ -1147,7 +1156,7 @@ void CNetGame::Packet_TrailerSync(Packet *pkt)
 	bsTrailerSync.Read(playerId);
 	bsTrailerSync.Read((char*)&trSync, sizeof(TRAILER_SYNC_DATA));
 
-	if(GetPlayerPool())
+	if(GetPlayerPool()) 
 	{
 		CRemotePlayer *pPlayer = GetPlayerPool()->GetAt(playerId);
 		if(pPlayer)

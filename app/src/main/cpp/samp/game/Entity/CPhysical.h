@@ -1,4 +1,9 @@
+//
+// Created by roman on 11/24/2024.
+//
+
 #pragma once
+
 
 #include "CEntityGTA.h"
 #include "PtrNodeDoubleLink.h"
@@ -22,14 +27,14 @@ struct CPhysical : public CEntityGTA {
             uint32_t bSubmergedInWater : 1;
             uint32_t bOnSolidSurface : 1;
             uint32_t bBroken : 1;
-            uint32_t bProcessCollisionEvenIfStationary : 1;
-            uint32_t bSkipLineCol : 1;
+            uint32_t bProcessCollisionEvenIfStationary : 1; // ref @ 0x6F5CF0
+            uint32_t bSkipLineCol : 1;                               // only used for peds
             uint32_t bDontApplySpeed : 1;
             uint32_t b15 : 1;
             uint32_t bProcessingShift : 1;
 
             uint32_t b17 : 1;
-            uint32_t bDisableSimpleCollision : 1;
+            uint32_t bDisableSimpleCollision : 1; // ref @ CPhysical::ProcessCollision
             uint32_t bBulletProof : 1;
             uint32_t bFireProof : 1;
             uint32_t bCollisionProof : 1;
@@ -71,8 +76,8 @@ struct CPhysical : public CEntityGTA {
     uint8_t         _pad4;
 
     CEntityGTA*        m_apCollidedEntities[6];
-    float           m_fMovingSpeed;
-    float           m_fDamageIntensity;
+    float           m_fMovingSpeed; // m_fTrueDistanceTravelled
+    float           m_fDamageIntensity; // m_fDamageImpulseMagnitude
     CEntityGTA         *m_pDamageEntity;
     CVector         m_vecLastCollisionImpactVelocity;
     CVector         m_vecLastCollisionPosn;
@@ -91,10 +96,9 @@ public:
     CPhysical();
     ~CPhysical() override;
 
+    // originally virtual functions
     void Add() override;
     void Remove() override;
-    CRect GetBoundRect() override;
-    CVector GetBoundCentre() override;
     bool IsAdded();
 
     CVector GetSpeed( CVector point);
@@ -102,7 +106,7 @@ public:
     void ApplyTurnSpeed();
 
     CVector& GetMoveSpeed()                 { return m_vecMoveSpeed; }
-    void     SetVelocity(CVector velocity)  { m_vecMoveSpeed = velocity; }
+    void     SetVelocity(CVector velocity)  { m_vecMoveSpeed = velocity; } // 0x441130
 
     CVector& GetTurnSpeed()         { return m_vecTurnSpeed; }
     void ResetTurnSpeed()           { m_vecTurnSpeed = CVector(); }

@@ -1,5 +1,5 @@
-#include "gui/gui.h"
-#include "log.h"
+#include "../gui.h"
+#include "../../log.h"
 
 Layout::Layout(Orientation orientation)
 {
@@ -15,7 +15,7 @@ void Layout::performLayout()
 	int itemCount = children().size();
 	ImVec2 itemSize = size() - ImVec2(m_paddingLeft + m_paddingRight, m_paddingTop + m_paddingBottom);
 
-	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+	// рассчитываем размеры элементов, для которых не указан размер
 	for (auto c : children())
 	{
 		if (m_orientation == Orientation::HORIZONTAL)
@@ -36,7 +36,7 @@ void Layout::performLayout()
 		}
 	}
 
-	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅ spacing
+	// рассчитываем размер элементов с учетом spacing
 	if (m_orientation == Orientation::HORIZONTAL)
 	{
 		itemSize.x -= m_spacing * (children().size() - 1);
@@ -48,7 +48,7 @@ void Layout::performLayout()
 		itemSize.y /= itemCount;
 	}
 
-	// пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
+	// формируем виджет
 	ImVec2 curPos = ImVec2(m_paddingLeft, m_paddingTop);
 
 	for (auto c : children())

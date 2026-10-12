@@ -7,7 +7,7 @@
 #include "../vendor/armhook/patch.h"
 
 void CFileMgr::SetDir(const char *path) {
-    ( ( void(*)(const char *path) )(g_libGTASA + 0x4921C4) )(path);
+    ( ( void(*)(const char *path) )(g_libGTASA + (VER_x32 ? 0x003F0C54 + 1 : 0x4D293C)) )(path);
 }
 
 FILE* CFileMgr::OpenFile(const char *path, const char *mode) {
@@ -16,7 +16,7 @@ FILE* CFileMgr::OpenFile(const char *path, const char *mode) {
     auto file = fopen(ms_path, mode);
 
     if(!file) {
-        Log("Fail open file %s", ms_path);
+        FLog("Fail open file %s", ms_path);
     }
     return file;
 }

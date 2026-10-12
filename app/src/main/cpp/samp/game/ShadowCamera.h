@@ -1,10 +1,13 @@
-//
-// Created by Traw-GG on 05.10.2025.
-//
+/*
+    Plugin-SDK file
+    Authors: GTA Community. See more here
+    https://github.com/DK22Pac/plugin-sdk
+    Do not delete this comment block. Respect others' work!
+*/
 #pragma once
 
-#include "../common.h"
-#include "../RW/RenderWare.h"
+#include "common.h"
+#include "RW/RenderWare.h"
 #include "rgba.h"
 
 class CShadowCamera { // AKA CShadowImage
@@ -118,7 +121,7 @@ private:
 
 private:
     CShadowCamera* Constructor() {
-        //   this->CShadowCamera::CShadowCamera();
+     //   this->CShadowCamera::CShadowCamera();
         return new CShadowCamera();
     }
 

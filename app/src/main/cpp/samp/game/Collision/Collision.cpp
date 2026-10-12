@@ -9,11 +9,11 @@ CCollision::DebugSettings CCollision::s_DebugSettings = {
 };
 
 void CCollision::InjectHooks() {
-    CHook::Write(g_libGTASA + 0x838520, &ms_colModelCache);
-    CHook::Write(g_libGTASA + 0x838530, &ms_iProcessLineNumCrossings);
-    CHook::Write(g_libGTASA + 0x838528, &ms_collisionInMemory);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00677A88 : 0x84D540), &ms_colModelCache);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x006783D0 : 0x84E7C8), &ms_iProcessLineNumCrossings);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x006773BC : 0x84C7C0), &ms_collisionInMemory);
 
-    CHook::Write(g_libGTASA + 0x838598, &bCamCollideWithVehicles);
+    CHook::Write(g_libGTASA + (VER_x32 ? 0x00678D74 : 0x84FB18), &bCamCollideWithVehicles);
     CHook::Redirect("_ZN10CCollision4InitEv", &CCollision::Init);
 }
 
@@ -404,11 +404,10 @@ float CCollision::DistAlongLine2D(float lineX, float lineY, float lineDirX, floa
 *
 * @notsa
 */
-/*
 template<typename T>
 auto lerp(const T& from, const T& to, float t) {
     return to * t + from * (1.f - t);
-}*/
+}
 CVector CCollision::GetClosestPtOnLine(const CVector& l0, const CVector& l1, const CVector& point) {
     const auto lnMagSq = (l1 - l0).SquaredMagnitude();
     const auto dot = (point - l0).Dot(l1 - l0);

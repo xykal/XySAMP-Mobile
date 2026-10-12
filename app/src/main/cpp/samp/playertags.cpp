@@ -12,8 +12,11 @@ extern CNetGame* pNetGame;
 
 CPlayerTags::CPlayerTags()
 {
+	FLog("Loading AFK icon..");
 	m_pAFKIconTexture = CUtil::LoadTextureFromDB("samp", "afk_icon");
-	m_pMicroIconTexture = CUtil::LoadTextureFromDB("samp", "micro_icon");
+    FLog("Loading AFK icon1..");
+	m_pMicroIconTexture = CUtil::LoadTextureFromDB("samp", "afk_icon");
+    FLog("Loading AFK icon2..");
 }
 
 CPlayerTags::~CPlayerTags() {}
@@ -25,12 +28,12 @@ void CPlayerTags::Render(ImGuiRenderer* renderer)
 	int dwHitEntity;
 	char szNickBuf[64];
 
-	static CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + 0x9F86F8);
+    static CCamera& TheCamera = *reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
 
 	if (pNetGame && pNetGame->m_pNetSet->bShowNameTags)
 	{
 		CPlayerPool* pPlayerPool = pNetGame->GetPlayerPool();
-		matLocal = pGame->FindPlayerPed()->m_pPed->GetMatrix().ToRwMatrix();
+        matLocal = pGame->FindPlayerPed()->m_pPed->GetMatrix().ToRwMatrix();
 
 		for (PLAYERID playerId = 0; playerId < MAX_PLAYERS; playerId++)
 		{
@@ -44,11 +47,23 @@ void CPlayerTags::Render(ImGuiRenderer* renderer)
 
 					if (pPlayerPed && pPlayerPed->m_pPed->GetDistanceFromCamera() <= pNetGame->m_pNetSet->fNameTagDrawDistance)
 					{
-						if (!pPlayerPed->m_pPed->IsAdded()) continue;
-						vecPos.x = 0.0f;
-						vecPos.y = 0.0f;
-						vecPos.z = 0.0f;
-						pPlayerPed->GetBonePosition(8, &vecPos);
+						/*if (pRemotePlayer->GetState() == PLAYER_STATE_DRIVER &&
+							pRemotePlayer->m_pCurrentVehicle &&
+							pRemotePlayer->m_pCurrentVehicle->IsRCVehicle())
+						{
+							pRemotePlayer->m_pCurrentVehicle->GetMatrix(&matPlayer);
+							vecPos.x = matPlayer.pos.x;
+							vecPos.y = matPlayer.pos.y;
+							vecPos.z = matPlayer.pos.z;
+						}
+						else
+						{*/
+							if (!pPlayerPed->m_pPed->IsAdded()) continue;
+							vecPos.x = 0.0f;
+							vecPos.y = 0.0f;
+							vecPos.z = 0.0f;
+							pPlayerPed->GetBonePosition(8, &vecPos);
+						//}
 
 						CAMERA_AIM* pCam = GameGetInternalAim();
 						dwHitEntity = 0;
@@ -62,12 +77,12 @@ void CPlayerTags::Render(ImGuiRenderer* renderer)
 						{
 							sprintf(szNickBuf, "%s (%d)", pPlayerPool->GetPlayerName(playerId), playerId);
 							this->Draw(renderer,&vecPos, szNickBuf,
-									   pRemotePlayer->GetPlayerColor(),
-									   pPlayerPed->m_pPed->GetDistanceFromCamera(),
-									   pRemotePlayer->m_fReportedHealth,
-									   pRemotePlayer->m_fReportedArmour,
-									   pRemotePlayer->m_bIsAFK,
-									   false);
+								pRemotePlayer->GetPlayerColor(),
+								pPlayerPed->m_pPed->GetDistanceFromCamera(),
+								pRemotePlayer->m_fReportedHealth,
+								pRemotePlayer->m_fReportedArmour,
+								pRemotePlayer->m_bIsAFK,
+								false);
 						}
 					}
 				}
@@ -86,25 +101,36 @@ void CPlayerTags::Draw(ImGuiRenderer* renderer, CVector* vec, const char* szNick
 	vecTagPos.z += 0.25f + (fDist * 0.0475f);
 
 	CVector vecOut;
-	((void (*)(CVector*, CVector*, float*, float*, bool, bool))(g_libGTASA + 0x5F449C))(&vecTagPos, &vecOut, 0, 0, 0, 0);
+	// CSprite::CalcScreenCoors
+	((void (*)(CVector*, CVector*, float*, float*, bool, bool))(g_libGTASA + (VER_x32 ? 0x005C57E8 + 1 : 0x6E9DF8)))(&vecTagPos, &vecOut, 0, 0, 0, 0);
 
 	if (vecOut.z < 1.0f) return;
 
+	// name (id)
 	ImVec2 pos = ImVec2(vecOut.x, vecOut.y);
+	//pos.x -= ImGui::CalcTextSize(szNick).x / 2;
+	//ImGuiEx::AddOutlinedText(ImGui::GetBackgroundDrawList(), pos, __builtin_bswap32(dwColor | (0x000000FF)), true, szNick);
 	pos.x -= renderer->calculateTextSize(szNick, UISettings::fontSize() / 2).x / 2;
 	renderer->drawText(pos, __builtin_bswap32(dwColor | (0x000000FF)), std::string(szNick), true, UISettings::fontSize() / 2);
 
+
+	// Health bar
 	if (fHealth < 0.0f) return;
 	vecOut.x = (float)((int)vecOut.x);
 	vecOut.y = (float)((int)vecOut.y);
 
-	ImColor HealthBarBDRColor = ImColor(0x00, 0x00, 0x00, 0xFF);
+	ImColor HealthBarBDRColor = ImColor(0x00, 0x64, 0x95, 0xED);
 	ImColor HealthBarColor = ImColor(0xB9, 0x22, 0x28, 0xFF);
 	ImColor HealthBarBGColor = ImColor(0x4B, 0x0B, 0x14, 0xFF);
+
+	//float fWidth = (UISettings::fontSize() / 2) * 3;
+	//float fHeight = (UISettings::fontSize() / 2) * 0.f;
+	//float fOutline = 2.0f;
 
 	float fWidth = UISettings::nametagBarSize().x;
 	float fHeight = UISettings::nametagBarSize().y;
 	float fOutline = UISettings::outlineSize();
+
 
 	ImVec2 HealthBarBDR1;
 	ImVec2 HealthBarBDR2;
@@ -113,21 +139,23 @@ void CPlayerTags::Draw(ImGuiRenderer* renderer, CVector* vec, const char* szNick
 	ImVec2 HealthBar1;
 	ImVec2 HealthBar2;
 
+	// top left
 	HealthBarBDR1.x = vecOut.x - ((fWidth / 2) + fOutline);
 	HealthBarBDR1.y = vecOut.y + ((UISettings::fontSize() / 2) * 1.2f);
-
+	// bottom right
 	HealthBarBDR2.x = vecOut.x + ((fWidth / 2) + fOutline);
 	HealthBarBDR2.y = vecOut.y + ((UISettings::fontSize() / 2) * 1.2f) + fHeight;
 
+	// top left
 	HealthBarBG1.x = HealthBarBDR1.x + fOutline;
 	HealthBarBG1.y = HealthBarBDR1.y + fOutline;
-
+	// bottom right
 	HealthBarBG2.x = HealthBarBDR2.x - fOutline;
 	HealthBarBG2.y = HealthBarBDR2.y - fOutline;
-
+	// top left
 	HealthBar1.x = HealthBarBG1.x;
 	HealthBar1.y = HealthBarBG1.y;
-
+	// bottom right
 	HealthBar2.y = HealthBarBG2.y;
 
 	if (fHealth > 100.0f)
@@ -137,30 +165,31 @@ void CPlayerTags::Draw(ImGuiRenderer* renderer, CVector* vec, const char* szNick
 	fHealth -= (fWidth / 2);
 	HealthBar2.x = vecOut.x + fHealth;
 
-	float offsetY = 13.0f;
+	float offsetY = 13.0f;//fHeight / 3;
 
 	if (fArmour > 0.0f)
 	{
-		HealthBarBDR1.y += offsetY;
-		HealthBarBDR2.y += offsetY;
-		HealthBarBG1.y += offsetY;
-		HealthBarBG2.y += offsetY;
-		HealthBar1.y += offsetY;
-		HealthBar2.y += offsetY;
+		HealthBarBDR1.y += offsetY;//13.0f;
+		HealthBarBDR2.y += offsetY;//13.0f;
+		HealthBarBG1.y += offsetY;//13.0f;
+		HealthBarBG2.y += offsetY;//13.0f;
+		HealthBar1.y += offsetY;//13.0f;
+		HealthBar2.y += offsetY;//13.0f;
 	}
 
 	ImGui::GetBackgroundDrawList()->AddRectFilled(HealthBarBDR1, HealthBarBDR2, HealthBarBDRColor);
 	ImGui::GetBackgroundDrawList()->AddRectFilled(HealthBarBG1, HealthBarBG2, HealthBarBGColor);
 	ImGui::GetBackgroundDrawList()->AddRectFilled(HealthBar1, HealthBar2, HealthBarColor);
 
+	// Armour Bar
 	if (fArmour > 0.0f)
 	{
-		HealthBarBDR1.y -= offsetY;
-		HealthBarBDR2.y -= offsetY;
-		HealthBarBG1.y -= offsetY;
-		HealthBarBG2.y -= offsetY;
-		HealthBar1.y -= offsetY;
-		HealthBar2.y -= offsetY;
+		HealthBarBDR1.y -= offsetY;//13.0f;
+		HealthBarBDR2.y -= offsetY;//13.0f;
+		HealthBarBG1.y -= offsetY;//13.0f;
+		HealthBarBG2.y -= offsetY;//13.0f;
+		HealthBar1.y -= offsetY;//13.0f;
+		HealthBar2.y -= offsetY;//13.0f;
 
 		HealthBarColor = ImColor(200, 200, 200, 255);
 		HealthBarBGColor = ImColor(40, 40, 40, 255);
@@ -180,44 +209,17 @@ void CPlayerTags::Draw(ImGuiRenderer* renderer, CVector* vec, const char* szNick
 	ImVec2 a = ImVec2(HealthBarBDR1.x - ((UISettings::fontSize() / 2) * 1.4f), HealthBarBDR1.y);
 	ImVec2 b = ImVec2(a.x + ((UISettings::fontSize() / 2) * 1.3f), a.y + ((UISettings::fontSize() / 2) * 1.3f));
 
-	if (bMicro && m_pMicroIconTexture && m_pMicroIconTexture->raster)
+	// micro icon
+	if (bMicro)
 	{
 		ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)m_pMicroIconTexture->raster, a, b);
 	}
 
-	if (bAfk && m_pAFKIconTexture && m_pAFKIconTexture->raster)
+	// AFK icon
+	if (bAfk)
 	{
 		ImVec2 a = ImVec2(HealthBarBDR1.x - ((UISettings::fontSize() / 2) * 1.4f), HealthBarBDR1.y);
 		ImVec2 b = ImVec2(a.x + ((UISettings::fontSize() / 2) * 1.3f), a.y + ((UISettings::fontSize() / 2) * 1.3f));
 		ImGui::GetBackgroundDrawList()->AddImage((ImTextureID)m_pAFKIconTexture->raster, a, b);
-	}
-
-	CPedGTA* pPlayer = nullptr;
-	if (pNetGame && pNetGame->GetPlayerPool() && pNetGame->GetPlayerPool()->GetLocalPlayer())
-	{
-		pPlayer = reinterpret_cast<CPedGTA*>(pNetGame->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed());
-	}
-
-	if (pPlayer && (strcmp(szNick, "Hama_1881") == 0 || strcmp(szNick, "Sahand_1881") == 0))
-	{
-		const char* tagText = "[DEV]";
-		ImVec2 textSize = ImGui::CalcTextSize(tagText);
-
-		ImVec2 backSize = ImVec2(textSize.x + 12, textSize.y + 5);
-		ImVec2 backPos = ImVec2(pos.x - (backSize.x + 12), pos.y - 2);
-
-		ImGui::GetForegroundDrawList()->AddRectFilled(
-				backPos,
-				ImVec2(backPos.x + backSize.x, backPos.y + backSize.y),
-				IM_COL32(180, 30, 30, 255),
-				8.0f
-		);
-
-		ImVec2 textPos = ImVec2(
-				backPos.x + (backSize.x - textSize.x) / 2,
-				backPos.y + (backSize.y - textSize.y) / 2
-		);
-
-		ImGui::GetForegroundDrawList()->AddText(textPos, IM_COL32(0, 0, 0, 255), tagText);
 	}
 }

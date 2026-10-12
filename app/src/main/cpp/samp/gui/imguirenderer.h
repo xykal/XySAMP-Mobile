@@ -1,12 +1,12 @@
 #pragma once
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "vendor/imgui/imgui.h"
-#include "vendor/imgui/imgui_internal.h"
+#include "../vendor/imgui/imgui.h"
+#include "../vendor/imgui/imgui_internal.h"
 #include <string>
 
 /*
-	пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ ImGui
+	Обертка над ImGui
 */
 
 class ImGuiRenderer
@@ -16,7 +16,7 @@ public:
 	virtual ~ImGuiRenderer() {};
 
 	void drawLine(const ImVec2& a, const ImVec2& b, const ImColor& color, float thickness = 1.0f);
-	void drawRect(const ImVec2& a, const ImVec2& b, const ImColor& color, bool fill, float radius = 0.0f, float thickness = 1.0f);
+	void drawRect(const ImVec2& a, const ImVec2& b, const ImColor& color, bool fill = false, float thickness = 1.0f);
 	void drawRectFilledMulticolor(const ImVec2& a, const ImVec2& b,
 		const ImColor& col_upr_left, const ImColor& col_upr_right,
 		const ImColor& col_bot_right, const ImColor& col_bot_left);

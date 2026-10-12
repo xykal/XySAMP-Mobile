@@ -1,5 +1,5 @@
-#include "gui/gui.h"
-#include "main.h"
+#include "../gui.h"
+#include "../../main.h"
 
 SplashScreen::SplashScreen()
 {

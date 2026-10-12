@@ -1,16 +1,11 @@
 //
-// Created by Traw-GG on 05.10.2025.
+// Created by x1y2z on 18.10.2023.
 //
 
 #include "RealTimeShadow.h"
-#include "vendor/armhook/patch.h"
 
 void CRealTimeShadow::InjectHooks() {
 
-}
-
-CRealTimeShadow::~CRealTimeShadow() {
-    Destroy();
 }
 
 RwFrame* CRealTimeShadow::SetLightProperties(float angle, float unused, bool doSetCamLight) {
@@ -68,12 +63,4 @@ bool CRealTimeShadow::Create(bool isBlurred, int32 blurPasses, bool drawMoreBlur
 
     Destroy();
     return false;
-}
-
-RwTexture* CRealTimeShadow::GetShadowRwTexture() {
-    return GetCurrentCamera().GetRwRenderTexture();
-}
-
-bool CRealTimeShadow::SetShadowedObject(CPhysical *physical) {
-    return CHook::CallFunction<bool>(g_libGTASA + 0x5E53B8, this, physical);
 }

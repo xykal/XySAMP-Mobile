@@ -221,7 +221,7 @@ void CPlayerPool::DeactivateAll()
 }
 // 0.3.7
 void CPlayerPool::ProcessAttachedObjects()
-{/*
+{
 	if (m_pLocalPlayer)
 	{
 		CPlayerPed* pPlayerPed = m_pLocalPlayer->GetPlayerPed();
@@ -247,30 +247,29 @@ void CPlayerPool::ProcessAttachedObjects()
 			}
 		}
 	}
- */
 }
 // 0.3.7
 void CPlayerPool::ApplyCollisionChecking()
 {
-    CRemotePlayer* pRemotePlayer = nullptr;
-    CPlayerPed* pPlayerPed = nullptr;
+	CRemotePlayer* pRemotePlayer = nullptr;
+	CPlayerPed* pPlayerPed = nullptr;
 
-    for (PLAYERID playerId = 0; playerId < MAX_PLAYERS; playerId++)
-    {
-        pRemotePlayer = GetAt(playerId);
-        if (pRemotePlayer)
-        {
-            pPlayerPed = pRemotePlayer->GetPlayerPed();
-            if (pPlayerPed)
-            {
-                if (!pPlayerPed->IsInVehicle())
-                {
-                    m_bCollisionChecking[playerId] = pPlayerPed->m_pPed->m_bCollisionProcessed;
-                    pPlayerPed->m_pPed->SetCollisionChecking(true);
-                }
-            }
-        }
-    }
+	for (PLAYERID playerId = 0; playerId < MAX_PLAYERS; playerId++)
+	{
+		pRemotePlayer = GetAt(playerId);
+		if (pRemotePlayer)
+		{
+			pPlayerPed = pRemotePlayer->GetPlayerPed();
+			if (pPlayerPed)
+			{
+				if (!pPlayerPed->IsInVehicle())
+				{
+					m_bCollisionChecking[playerId] = pPlayerPed->m_pPed->m_bCollisionProcessed;
+					pPlayerPed->m_pPed->SetCollisionChecking(true);
+				}
+			}
+		}
+	}
 }
 
 void CPlayerPool::ResetCollisionChecking()

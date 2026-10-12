@@ -415,13 +415,5 @@ public:
     static void LookAtPoint(float fX, float fY, float fZ, int iType);
     static void InterpolateCameraPos(CVector *posFrom, CVector *posTo, int time, uint8_t mode);
     static void InterpolateCameraLookAt(CVector *posFrom, CVector *posTo, int time, uint8_t mode);
-
-    static CCamera& Get() {
-        static CCamera* pCamera = nullptr;
-        if (!pCamera) {
-            pCamera = reinterpret_cast<CCamera*>(g_libGTASA + (VER_x32 ? 0x00951FA8 : 0xBBA8D0));
-        }
-        return *pCamera;
-    }
 };
 VALIDATE_SIZE(CCamera, (VER_x32 ? 0xD00 : 0xDB0));
