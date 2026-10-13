@@ -1954,7 +1954,7 @@ public class MainActivity extends AppCompatActivity {{
                 hasKb ? "TERHUBUNG" : "SIAP",
                 hasMouse ? "TERHUBUNG" : "SIAP",
                 hasPad ? "TERHUBUNG" : "SIAP",
-                names.isEmpty() ? "" : ("\nPerangkat Terdeteksi: " + String.join(", ", names)));
+                names.isEmpty() ? "" : ("\\nPerangkat Terdeteksi: " + String.join(", ", names)));
         peripheralStatusText.setText(status);
     }}
 
