@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <strings.h>
 #include <cctype>
+#include <cstring>
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
 #include "../main.h"
@@ -1888,6 +1889,30 @@ void InjectHooks()
     CHook::Write(g_libGTASA+(VER_x32 ? 0xA45790:0xCE8538), &COcclusion::NumOccludersOnMap);
 }
 
+// Pilih format tekstur yang didukung GPU. Jika GL context belum siap, GPU dianggap tidak diketahui
+// dan ETC diprioritaskan (format paling universal di Android GLES).
+static const char* PickTextureFormat(bool hasDXT, bool hasETC, bool hasPVR)
+{
+    const char* renderer = nullptr;
+    const char* exts = nullptr;
+    if (eglGetCurrentContext() != EGL_NO_CONTEXT) {
+        renderer = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+        exts = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
+    }
+    bool gpuKnown = (renderer != nullptr);
+    bool isPowerVR = gpuKnown && (strstr(renderer, "PowerVR") || strstr(renderer, "Imagination"));
+    bool hasS3TC = exts && (strstr(exts, "texture_compression_s3tc") || strstr(exts, "EXT_texture_compression_dxt1"));
+
+    FLog("GPU renderer: %s | S3TC: %d", renderer ? renderer : "unknown", hasS3TC ? 1 : 0);
+
+    if (hasETC) return "etc";
+    if (hasPVR && (isPowerVR || !gpuKnown)) return "pvr";
+    if (hasDXT && (hasS3TC || !gpuKnown)) return "dxt";
+    if (hasPVR) return "pvr";
+    if (hasDXT) return "dxt";
+    return "etc";
+}
+
 void AutoPatchTextureFormat()
 {
     const char* baseDir = (g_pszStorage && g_pszStorage[0]) ? g_pszStorage : "/storage/emulated/0/GTA/";
@@ -1908,38 +1933,37 @@ void AutoPatchTextureFormat()
     hasETC = checkFile("texdb/gta3/gta3.etc.dat") || checkFile("texdb/gta3/gta3.etc.tmb");
     hasPVR = checkFile("texdb/gta3/gta3.pvr.dat") || checkFile("texdb/gta3/gta3.pvr.tmb");
 
-    const char* fallbackExt = "dxt";
-    if (hasDXT) fallbackExt = "dxt";
-    else if (hasETC) fallbackExt = "etc";
-    else if (hasPVR) fallbackExt = "pvr";
+    // Pilih format sesuai GPU. Urutan: ETC (GLES standar, didukung Mali/Adreno/PowerVR),
+    // PVR hanya di GPU PowerVR, DXT hanya bila GPU punya ekstensi S3TC.
+    const char* chosen = PickTextureFormat(hasDXT, hasETC, hasPVR);
 
     struct TexSlot {
         uintptr_t x32;
         uintptr_t x64;
-        bool exists;
+        const char* fmt; // format slot ini (nullptr = slot unc.tmb, selalu ikut pilihan)
     };
 
     TexSlot slots[] = {
-        { 0x1E87DC, 0x713FC7, hasDXT }, // dxt.tmb
-        { 0x1E8C34, 0x71403F, hasDXT }, // dxt
-        { 0x1E878C, 0x714017, hasETC }, // etc.tmb
-        { 0x1E8BF4, 0x71407F, hasETC }, // etc
-        { 0x1E87A0, 0x714003, hasPVR }, // pvr.tmb
-        { 0x1E8C04, 0x71406F, hasPVR }, // pvr
-        { 0x1E87F0, 0x713FB3, false  }, // unc.tmb -> fallbackExt
+        { 0x1E87DC, 0x713FC7, "dxt" }, // dxt.tmb
+        { 0x1E8C34, 0x71403F, "dxt" }, // dxt
+        { 0x1E878C, 0x714017, "etc" }, // etc.tmb
+        { 0x1E8BF4, 0x71407F, "etc" }, // etc
+        { 0x1E87A0, 0x714003, "pvr" }, // pvr.tmb
+        { 0x1E8C04, 0x71406F, "pvr" }, // pvr
+        { 0x1E87F0, 0x713FB3, nullptr }, // unc.tmb
     };
 
+    // Paksa semua slot yang formatnya BUKAN pilihan GPU ke ekstensi pilihan (3 char: dxt/etc/pvr)
     for (const auto& s : slots) {
-        if (!s.exists && (hasDXT || hasETC || hasPVR)) {
-            uintptr_t addr = g_libGTASA + (VER_x32 ? s.x32 : s.x64);
-            CHook::UnFuck(addr);
-            char* ext = reinterpret_cast<char*>(addr + 12);
-            ext[0] = fallbackExt[0];
-            ext[1] = fallbackExt[1];
-            ext[2] = fallbackExt[2];
-        }
+        if (s.fmt && strcmp(s.fmt, chosen) == 0) continue;
+        uintptr_t addr = g_libGTASA + (VER_x32 ? s.x32 : s.x64);
+        CHook::UnFuck(addr);
+        char* ext = reinterpret_cast<char*>(addr + 12);
+        ext[0] = chosen[0];
+        ext[1] = chosen[1];
+        ext[2] = chosen[2];
     }
-    FLog("AutoPatchTextureFormat: hasDXT=%d hasETC=%d hasPVR=%d fallback=%s", hasDXT, hasETC, hasPVR, fallbackExt);
+    FLog("AutoPatchTextureFormat: hasDXT=%d hasETC=%d hasPVR=%d chosen=%s", hasDXT, hasETC, hasPVR, chosen);
 }
 
 void InstallSpecialHooks()
