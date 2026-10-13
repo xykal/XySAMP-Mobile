@@ -5,7 +5,7 @@
 #include "../vendor/armhook/patch.h"
 #include <string.h>
 
-/* MultiTouch */
+/* MultiTouch — 4 jari (pointer index 0..3) */
 
 extern void AND_TouchEvent_hook(int type, int num, int posX, int posY);
 
@@ -42,6 +42,9 @@ int32_t NVEventGetNextEvent_hook(NVEvent* ev, int waitMSecs)
 
         int x3 = event.m_data.m_multi.m_x3;
         int y3 = event.m_data.m_multi.m_y3;
+
+        int x4 = event.m_data.m_multi.m_x4;
+        int y4 = event.m_data.m_multi.m_y4;
 
         if (type == NV_MULTITOUCH_CANCEL)
         {
@@ -82,6 +85,18 @@ int32_t NVEventGetNextEvent_hook(NVEvent* ev, int waitMSecs)
                 ((void(*)(int, int, int posX, int posY))(g_libGTASA +  (VER_x32 ? 0x00269740  + 1 : 0x31EC0C)))(NV_MULTITOUCH_MOVE, 2, x3, y3); // AND_TouchEvent
             }
         }
+
+        if ((x4 || y4) || num == 3)
+        {
+            if (num == 3 && type != NV_MULTITOUCH_MOVE)
+            {
+                ((void(*)(int, int, int posX, int posY))(g_libGTASA +  (VER_x32 ? 0x00269740  + 1 : 0x31EC0C)))(type, 3, x4, y4); // AND_TouchEvent
+            }
+            else
+            {
+                ((void(*)(int, int, int posX, int posY))(g_libGTASA +  (VER_x32 ? 0x00269740  + 1 : 0x31EC0C)))(NV_MULTITOUCH_MOVE, 3, x4, y4); // AND_TouchEvent
+            }
+        }
     }
 
     return ret;
@@ -103,18 +118,18 @@ void MultiTouch::initialize()
 
     // 3 touch end
 #if VER_x32
-    CHook::WriteMemory(g_libGTASA + 0x0026B03C, (uintptr_t)"\x03\x20", 2); // OS_PointerGetNumber
-    CHook::WriteMemory(g_libGTASA + 0x0026B046, (uintptr_t) "\x03\x28", 2); // OS_PointerGetType
-    CHook::WriteMemory(g_libGTASA + 0x002700AC, (uintptr_t) "\x03\x28", 2); // LIB_PointerGetCoordinates
-    CHook::WriteMemory(g_libGTASA + 0x00270118, (uintptr_t) "\x03\x28", 2); // LIB_PointerGetWheel
-    CHook::WriteMemory(g_libGTASA + 0x00270164, (uintptr_t) "\x03\x28", 2); // LIB_PointerDoubleClicked
+    CHook::WriteMemory(g_libGTASA + 0x0026B03C, (uintptr_t)"\x04\x20", 2); // OS_PointerGetNumber
+    CHook::WriteMemory(g_libGTASA + 0x0026B046, (uintptr_t) "\x04\x28", 2); // OS_PointerGetType
+    CHook::WriteMemory(g_libGTASA + 0x002700AC, (uintptr_t) "\x04\x28", 2); // LIB_PointerGetCoordinates
+    CHook::WriteMemory(g_libGTASA + 0x00270118, (uintptr_t) "\x04\x28", 2); // LIB_PointerGetWheel
+    CHook::WriteMemory(g_libGTASA + 0x00270164, (uintptr_t) "\x04\x28", 2); // LIB_PointerDoubleClicked
     CHook::WriteMemory(g_libGTASA + 0x002700F2, (uintptr_t) "\x03\x2A", 2); // LIB_PointerGetButton
 #else
-    CHook::WriteMemory(g_libGTASA + 0x320844, (uintptr_t)"\x60\x00\x80\x52", 4); // OS_PointerGetNumber
-    CHook::WriteMemory(g_libGTASA + 0x320850, (uintptr_t) "\x1F\x0C\x00\x71", 4); // OS_PointerGetType
-    CHook::WriteMemory(g_libGTASA + 0x326FEC, (uintptr_t) "\x1F\x0C\x00\x71", 4); // LIB_PointerGetCoordinates
-    CHook::WriteMemory(g_libGTASA + 0x32706C, (uintptr_t) "\x1F\x0C\x00\x71", 4); // LIB_PointerGetWheel
-    CHook::WriteMemory(g_libGTASA + 0x3270AC, (uintptr_t) "\x1F\x0C\x00\x71", 4); // LIB_PointerDoubleClicked
+    CHook::WriteMemory(g_libGTASA + 0x320844, (uintptr_t)"\x80\x00\x80\x52", 4); // OS_PointerGetNumber
+    CHook::WriteMemory(g_libGTASA + 0x320850, (uintptr_t) "\x1F\x10\x00\x71", 4); // OS_PointerGetType
+    CHook::WriteMemory(g_libGTASA + 0x326FEC, (uintptr_t) "\x1F\x10\x00\x71", 4); // LIB_PointerGetCoordinates
+    CHook::WriteMemory(g_libGTASA + 0x32706C, (uintptr_t) "\x1F\x10\x00\x71", 4); // LIB_PointerGetWheel
+    CHook::WriteMemory(g_libGTASA + 0x3270AC, (uintptr_t) "\x1F\x10\x00\x71", 4); // LIB_PointerDoubleClicked
     CHook::WriteMemory(g_libGTASA + 0x327040, (uintptr_t) "\x1F\x0D\x00\x71", 4); // LIB_PointerGetButton
 #endif
 

@@ -1,16 +1,58 @@
 {
   "server_name": "Lombok Holiday Roleplay",
-  "version": "2.0.0",
+  "version": "3.0.0",
+  "banners": [
+    {
+      "badge": "OFFICIAL SEASON",
+      "title": "Selamat Datang di Lombok Holiday Roleplay!",
+      "subtitle": "Nikmati pengalaman Roleplay terbaik dengan performa 120 FPS, Voice Chat jernih, dan fitur modern.",
+      "accent": "#38BDF8"
+    },
+    {
+      "badge": "UPDATE v3.0",
+      "title": "Support 4 Jari, MonetLoader (Lua) & CLEO!",
+      "subtitle": "Kini mendukung penuh Multi-Touch 4 Jari (Claw HUD), MonetLoader LuaJIT 5.1, CLEO, Keyboard, Mouse & Gamepad.",
+      "accent": "#A78BFA"
+    },
+    {
+      "badge": "EVENT WARGA BARU",
+      "title": "Klaim Starterpack & Kendaraan Gratis di Kota!",
+      "subtitle": "Login sekarang menggunakan Launcher Resmi Lombok Holiday dan klaim bonus warga baru di Balai Kota.",
+      "accent": "#34D399"
+    }
+  ],
+  "news": [
+    {
+      "tag": "UPDATE v3.0",
+      "date": "Hari Ini",
+      "title": "Rilis Launcher v3.0: UI Baru, Support 4 Jari, MonetLoader & CLEO",
+      "body": "Pembaruan besar menghadirkan UI Rounded Sidebar modern, dukungan penuh kontrol 4 Jari (Claw), MonetLoader (.lua), CLEO (.csa/.csi), Server List & Add Server, serta Optimasi Booster FPS."
+    },
+    {
+      "tag": "FITUR BARU",
+      "date": "Terbaru",
+      "title": "Dukungan Penuh Keyboard Fisik, Mouse OTG/BT & Gamepad",
+      "body": "Mainkan SA-MP rasa PC di HP menggunakan Keyboard Fisik (WASD + T/F6 Chat), Mouse OTG/Bluetooth (Klik Kanan Aim, Klik Kiri Tembak), maupun Controller PS4/PS5/Xbox."
+    },
+    {
+      "tag": "INFO DATA",
+      "date": "Penting",
+      "title": "100% Tanpa OBB — Support Semua Data Lite & Data Full",
+      "body": "Tidak perlu repot pasang file OBB. Cukup download Data Lite/Full langsung lewat tab Manajer Data di dalam aplikasi dan otomatis diekstrak."
+    }
+  ],
   "data_lite": {
     "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
     "size_mb": 280,
-    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip",
+    "url": "",
     "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
   },
   "data_full": {
     "name": "Data Full HD Lombok Holiday (Tanpa OBB)",
     "size_mb": 950,
-    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip",
+    "url": "",
     "description": "Data Full dengan audio lengkap dan tekstur HD, 100% Tanpa OBB."
-  }
+  },
+  "_note": "Isi data_lite.url / data_full.url dengan link ZIP langsung (https). Kosong = tombol download nonaktif di launcher.",
+  "servers": []
 }

@@ -33,7 +33,7 @@ bool NVEventGetNextEvent(NVEvent* ev)
 extern "C"
 {
 	JNIEXPORT jboolean JNICALL Java_com_nvidia_devtech_NvEventQueueActivity_customMultiTouchEvent(JNIEnv* env, jobject thiz, jint action,
-		jint pointer, jint x1, jint y1, jint x2, jint y2, jint x3, jint y3)
+		jint pointer, jint x1, jint y1, jint x2, jint y2, jint x3, jint y3, jint x4, jint y4)
 	{
 		static jclass KeyCode_class = env->FindClass("android/view/MotionEvent");
 		static jfieldID ACTION_DOWN_id = env->GetStaticFieldID(KeyCode_class, "ACTION_DOWN", "I");
@@ -95,6 +95,8 @@ extern "C"
 			ev.m_data.m_multi.m_y2 = y2;
 			ev.m_data.m_multi.m_x3 = x3;
 			ev.m_data.m_multi.m_y3 = y3;
+			ev.m_data.m_multi.m_x4 = x4;
+			ev.m_data.m_multi.m_y4 = y4;
 			NVEventInsertNewest(ev);
 		}
 

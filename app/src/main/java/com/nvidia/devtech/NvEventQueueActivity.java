@@ -177,7 +177,7 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
 
     @Override
     public boolean onTouch(View view, MotionEvent event) {
-        int x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0;
+        int x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0, x4 = 0, y4 = 0;
         // marshal up the data.
         int numEvents = event.getPointerCount();
         for (int i = 0; i < numEvents; i++) {
@@ -192,12 +192,15 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
             } else if (pointerId == 2) {
                 x3 = (int) event.getX(i);
                 y3 = (int) event.getY(i);
+            } else if (pointerId == 3) {
+                x4 = (int) event.getX(i);
+                y4 = (int) event.getY(i);
             }
         }
 
         int pointerId = event.getPointerId(event.getActionIndex());
         int action = event.getActionMasked();
-        customMultiTouchEvent(action, pointerId, x1, y1, x2, y2, x3, y3);
+        customMultiTouchEvent(action, pointerId, x1, y1, x2, y2, x3, y3, x4, y4);
         return true;
     }
 
@@ -394,7 +397,7 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
     public native boolean multiTouchEvent4(int i, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, MotionEvent motionEvent);
 
     public native boolean customMultiTouchEvent(int action, int count, int x1, int y1, int x2, int y2,
-                                                int x3, int y3);
+                                                int x3, int y3, int x4, int y4);
 	/**
 	 * END indented block, see in comment at top of block
 	 */
