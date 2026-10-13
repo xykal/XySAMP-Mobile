@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launcher Lombok Holiday: phone landscape -->
+    <dimen name="lh_sidebar_width">220dp</dimen>
+    <dimen name="lh_content_pad">20dp</dimen>
+</resources>

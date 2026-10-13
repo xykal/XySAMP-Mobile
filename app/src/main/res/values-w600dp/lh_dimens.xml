@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tablet: sidebar & padding lebih lebar -->
+    <dimen name="lh_sidebar_width">280dp</dimen>
+    <dimen name="lh_content_pad">32dp</dimen>
+</resources>
