@@ -58,7 +58,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -122,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnProfileBattery, btnProfileBalanced, btnProfilePerformance;
     private EditText nicknameInput, passwordInput;
     private TextView abiBadgeText, dataBadgeStatus, bugText, downloadStatusText, peripheralStatusText;
-    private TextView homeServerText, bannerIndicator, modRuntimeStatus, modStoragePath;
+    private TextView homeServerText, homeServerStatus, bannerIndicator, modRuntimeStatus, modStoragePath;
     private ViewFlipper bannerFlipper;
     private LinearLayout serverListContainer, newsContainer, homeNewsContainer;
     private ProgressBar downloadProgressBar;
@@ -212,6 +215,7 @@ public class MainActivity extends AppCompatActivity {
         bannerFlipper = findViewById(R.id.bannerFlipper);
         bannerIndicator = findViewById(R.id.bannerIndicator);
         homeServerText = findViewById(R.id.homeServerText);
+        homeServerStatus = findViewById(R.id.homeServerStatus);
         serverListContainer = findViewById(R.id.serverListContainer);
         newsContainer = findViewById(R.id.newsContainer);
         homeNewsContainer = findViewById(R.id.homeNewsContainer);
@@ -508,6 +512,111 @@ public class MainActivity extends AppCompatActivity {
         refreshServerList();
     }
 
+    // ----- SA-MP QUERY: status online & jumlah pemain (protokol UDP resmi, opcode 'i') -----
+    private static final class SampInfo {
+        final int players, maxPlayers, pingMs;
+        final String hostname;
+
+        SampInfo(int players, int maxPlayers, int pingMs, String hostname) {
+            this.players = players;
+            this.maxPlayers = maxPlayers;
+            this.pingMs = pingMs;
+            this.hostname = hostname;
+        }
+    }
+
+    private final java.util.Map<String, SampInfo> queryCache = new java.util.HashMap<>();
+    private final java.util.Map<String, Long> queryCacheAt = new java.util.HashMap<>();
+
+    private SampInfo querySamp(String host, int port) {
+        DatagramSocket socket = null;
+        try {
+            InetAddress addr = InetAddress.getByName(host);
+            byte[] ip = addr.getAddress();
+            if (ip == null || ip.length != 4) return null;
+            socket = new DatagramSocket();
+            socket.setSoTimeout(2500);
+            byte[] req = new byte[11];
+            req[0] = 'S';
+            req[1] = 'A';
+            req[2] = 'M';
+            req[3] = 'P';
+            System.arraycopy(ip, 0, req, 4, 4);
+            req[8] = (byte) (port & 0xFF);
+            req[9] = (byte) ((port >> 8) & 0xFF);
+            req[10] = 'i';
+            long t0 = System.currentTimeMillis();
+            socket.send(new DatagramPacket(req, req.length, addr, port));
+            byte[] buf = new byte[1024];
+            DatagramPacket resp = new DatagramPacket(buf, buf.length);
+            socket.receive(resp);
+            int ping = (int) (System.currentTimeMillis() - t0);
+            int len = resp.getLength();
+            if (len < 11 + 5 || buf[10] != 'i') return null;
+            int pos = 11 + 1; // lewati flag password
+            int players = (buf[pos] & 0xFF) | ((buf[pos + 1] & 0xFF) << 8);
+            pos += 2;
+            int maxPlayers = (buf[pos] & 0xFF) | ((buf[pos + 1] & 0xFF) << 8);
+            pos += 2;
+            int[] cur = {pos};
+            String hostname = readSampString(buf, len, cur);
+            return new SampInfo(players, maxPlayers, ping, hostname);
+        } catch (Throwable ignored) {
+            return null;
+        } finally {
+            if (socket != null) socket.close();
+        }
+    }
+
+    private String readSampString(byte[] buf, int len, int[] cur) {
+        int p = cur[0];
+        if (p + 4 > len) return "";
+        int n = (buf[p] & 0xFF) | ((buf[p + 1] & 0xFF) << 8) | ((buf[p + 2] & 0xFF) << 16) | ((buf[p + 3] & 0xFF) << 24);
+        p += 4;
+        if (n < 0 || p + n > len) {
+            cur[0] = len;
+            return "";
+        }
+        cur[0] = p + n;
+        return new String(buf, p, n, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private void applyStatus(TextView tv, SampInfo info) {
+        if (tv == null) return;
+        if (info == null) {
+            tv.setText("\u25CF  OFFLINE  \u2022  tidak merespon");
+            tv.setTextColor(0xFFF87171);
+        } else {
+            tv.setText("\u25CF  ONLINE  \u2022  " + info.players + "/" + info.maxPlayers + " pemain  \u2022  " + info.pingMs + " ms");
+            tv.setTextColor(0xFF34D399);
+        }
+    }
+
+    private void requestSampStatus(final String host, final int port, final TextView target) {
+        if (target == null) return;
+        final String key = host + ":" + port;
+        Long at = queryCacheAt.get(key);
+        if (at != null && System.currentTimeMillis() - at < 20000L) {
+            applyStatus(target, queryCache.get(key));
+            return;
+        }
+        target.setText("\u25CB  Memeriksa server...");
+        target.setTextColor(0xFF94A3B8);
+        new Thread(() -> {
+            final SampInfo info = querySamp(host, port);
+            runOnUiThread(() -> {
+                queryCache.put(key, info);
+                queryCacheAt.put(key, System.currentTimeMillis());
+                applyStatus(target, info);
+            });
+        }).start();
+    }
+
+    private void refreshHomeStatus() {
+        ServerEntry sel = getSelectedServer();
+        if (homeServerStatus != null && sel != null) requestSampStatus(sel.host, sel.port, homeServerStatus);
+    }
+
     private void refreshServerList() {
         if (serverListContainer == null) return;
         serverListContainer.removeAllViews();
@@ -515,6 +624,7 @@ public class MainActivity extends AppCompatActivity {
         if (homeServerText != null && selected != null) {
             homeServerText.setText(selected.name + "  •  " + selected.host + ":" + selected.port);
         }
+        refreshHomeStatus();
         for (ServerEntry entry : servers) {
             boolean active = selected != null && entry.key().equalsIgnoreCase(selected.key());
             LinearLayout card = new LinearLayout(this);
@@ -540,6 +650,12 @@ public class MainActivity extends AppCompatActivity {
             address.setTextSize(10f);
             detail.addView(title);
             detail.addView(address);
+            TextView status = new TextView(this);
+            status.setTextSize(10f);
+            status.setTypeface(null, android.graphics.Typeface.BOLD);
+            status.setPadding(0, dp(3), 0, 0);
+            detail.addView(status);
+            requestSampStatus(entry.host, entry.port, status);
             card.addView(detail);
 
             Button select = new Button(this);
@@ -1691,6 +1807,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        refreshHomeStatus();
         handler.removeCallbacks(bannerTicker);
         handler.postDelayed(bannerTicker, 6000L);
     }

@@ -1,11 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Lombok Holiday v3.1 UI: sidebar kiri (landscape), konten kanan. Semua ukuran dp/sp. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:background="@drawable/background"
-    android:baselineAligned="false">
+    android:background="#060A14">
+
+    <!-- Background gambar senja + scrim gelap agar konten tetap terbaca -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/lh_bg" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#D9060A14" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
 
     <!-- SIDEBAR -->
     <LinearLayout
@@ -200,6 +216,7 @@
 <TextView android:id="@+id/homeServerText" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginTop="0dp" android:text="Lombok Holiday Roleplay" android:textColor="#F1F5F9"
                     android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/homeServerStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="○  Memeriksa server..." android:textColor="#94A3B8" android:textSize="12sp" android:textStyle="bold" />
 <Button android:id="@+id/btnOpenServers" android:layout_width="match_parent" android:layout_height="42dp"
                     android:layout_marginTop="12dp" android:background="@drawable/bg_button_muted"
                     android:text="KELOLA SERVER" android:textColor="#FFFFFF" android:textSize="13sp"
@@ -565,3 +582,4 @@
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>
+</FrameLayout>
