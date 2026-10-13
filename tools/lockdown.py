@@ -1,25 +1,17 @@
 #!/usr/bin/env python3
 """
-lockdown.py — Hardened Server-Lock & Zero-Blackscreen Patcher untuk XySAMP-Mobile (Dual-ABI: armeabi-v7a + arm64-v8a)
---------------------------------------------------------------------------------------------------------------------
-Fitur:
-  1. Dual-ABI (armeabi-v7a 32-bit + arm64-v8a 64-bit) berbasis engine GTA-2.10 (libGTASA.so).
-  2. Support All Data (Data Lite maupun Data Full, 100% TANPA OBB) dengan Smart Multi-Path Data Auto-Detector:
-     - /storage/emulated/0/GTA/
-     - /storage/emulated/0/Android/data/com.samp.mobile/files/
-     - /storage/emulated/0/Android/data/com.gta.game/files/
-     - /storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/
-     - /storage/emulated/0/Android/data/ru.unisamp_mobile.game/files/
-     - /storage/emulated/0/Android/data/com.rockstargames.gtasa/files/
-  3. Zero-Blackscreen Guarantee:
-     - NvFOpen InlineHook dengan Case-Insensitive Path Resolver + SAMP->data fallback + APK assets fallback (NvFOpen_orig).
-     - Auto-Detect & Per-File GPU Texture Format Fallback (DXT / ETC / PVR / UNC) untuk semua jenis Data Lite & GPU.
-     - Self-Healing Font & Settings Provisioning (otomatis ekstrak arial.ttf & arial_bold.ttf jika belum ada, plus fallback ImGui default font).
-     - Penghapusan std::terminate() di settings.cpp & gwpAsanMode di AndroidManifest.xml.
-  4. Hardened Security:
-     - XOR Byte-Array Obfuscation di libsamp.so (0 plaintext IP/Tag di strings binary & DEX).
-     - R8 Code Shrinking & Obfuscation + Native Symbol Stripping.
-     - Official Release Keystore SHA-256 Certificate Pinning + Anti-Frida/Ptrace/GameGuardian + RPC_ClientCheck (ID 103).
+lockdown.py — Lombok Holiday Official Client Patcher (v2.0.0)
+-------------------------------------------------------------
+Fitur Utama:
+  1. Custom Brand & Package Name (`com.lombokholiday.mobile` — "Lombok Holiday Roleplay")
+  2. ABI Split Terpisah (`armeabi-v7a` 32-bit & `arm64-v8a` 64-bit masing-masing ~10-11 MB, anti-bengkak!)
+  3. Modern Cyber Blue-Purple Dashboard UI dengan 3 Tab:
+     - Tab 1 (Beranda & In-App Data Downloader + Auto-Unzip untuk Data Lite & Data Full Tanpa OBB)
+     - Tab 2 (Settings Lengkap: FPS 30/60/90/120, Font Size, Chat Lines, Voice, FPP, Cutout, SkyBox, Snow, Radar, dll)
+     - Tab 3 (Keyboard Fisik, Mouse OTG/BT & Gamepad/Controller Live Detector + Keybind)
+  4. Full Support Keyboard Fisik (WASD + T/F6/Slash Chat + Enter + ESC), Mouse (Left Fire, Right Aim, Scroll Weapon), & Gamepad (PS4/PS5/Xbox/Joystick)
+  5. Zero-Blackscreen Guarantee (NvFOpen InlineHook + Case-Insensitive + Dynamic GPU Texture Format Resolver + Multi-Font Fallback)
+  6. Hardened Security (XOR Byte-Array Obfuscation, R8, Official Keystore Signature Pinning, Anti-Frida/Ptrace, RPC 103 Handshake)
 """
 
 import argparse
@@ -34,17 +26,18 @@ TEMPLATE = ROOT / "client-patch" / "lockdown.h.template"
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Lock SA-MP Mobile client (Dual-ABI + Zero-Blackscreen) to a single server.")
-    p.add_argument("--repo", required=True, help="Path ke clone SAMP-Mobile")
+    p = argparse.ArgumentParser(description="Lock & Upgrade SA-MP Mobile Client (Lombok Holiday v2.0.0)")
+    p.add_argument("--repo", required=True, help="Path ke clone repository")
     p.add_argument("--host", required=True, help="IP atau hostname server SA-MP")
     p.add_argument("--port", required=True, type=int, help="Port UDP server SA-MP")
     p.add_argument("--tag", default="XYSAMP-1.0", help="Custom client version tag (maks 24 char)")
-    p.add_argument("--key", default="0xA55A9F3D", help="32-bit hex key untuk handshake")
-    p.add_argument("--app-name", default="XySAMP Mobile", help="Nama aplikasi Android")
-    p.add_argument("--server-title", "--brand", dest="server_title", default="XyVerse Roleplay", help="Nama server di tampilan launcher")
-    p.add_argument("--default-nick", "--name", dest="default_nick", default="Warga_XyVerse", help="Default nickname jika user belum mengisi")
+    p.add_argument("--key", default="0x9F4E7C2B", help="32-bit hex key untuk handshake")
+    p.add_argument("--app-name", default="Lombok Holiday", help="Nama aplikasi Android")
+    p.add_argument("--server-title", "--brand", dest="server_title", default="Lombok Holiday Roleplay", help="Nama server di tampilan launcher")
+    p.add_argument("--default-nick", "--name", dest="default_nick", default="Warga_Lombok", help="Default nickname")
+    p.add_argument("--package-id", default="com.lombokholiday.mobile", help="Application ID Android")
     p.add_argument("--cert-sha256", default="93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c",
-                   help="SHA-256 fingerprint sertifikat Official Keystore (hex lowercase tanpa titik dua)")
+                   help="SHA-256 fingerprint sertifikat Official Keystore")
     p.add_argument("--strip-firebase", action="store_true", help="Kompatibilitas flag workflow")
     return p.parse_args()
 
@@ -80,35 +73,37 @@ def write_lockdown_header(samp_dir: Path, args):
 
 
 def patch_linux_case_sensitivity(samp_dir: Path):
-    # 1. gui/gui.h: samp_widgets/playerTabList.h -> samp_widgets/playertablist.h
+    for p in samp_dir.rglob("*"):
+        if p.is_file() and p.suffix in (".cpp", ".h", ".hpp", ".c"):
+            raw = p.read_bytes()
+            if b"\xef\xbb\xbf" in raw:
+                p.write_bytes(raw.replace(b"\xef\xbb\xbf", b""))
+
     gui_h = samp_dir / "gui" / "gui.h"
     if gui_h.exists():
         txt = gui_h.read_text(encoding="utf-8", errors="ignore")
         txt = txt.replace("samp_widgets/playerTabList.h", "samp_widgets/playertablist.h")
         gui_h.write_text(txt, encoding="utf-8")
 
-    # 2. game/rgba.cpp: RGBA.h -> rgba.h
     rgba_cpp = samp_dir / "game" / "rgba.cpp"
     if rgba_cpp.exists():
         txt = rgba_cpp.read_text(encoding="utf-8", errors="ignore")
         txt = txt.replace('#include "RGBA.h"', '#include "rgba.h"')
         rgba_cpp.write_text(txt, encoding="utf-8")
 
-    # 3. voice_new/Network.h: ../vendor/RakNet/ -> ../vendor/raknet/
     net_h = samp_dir / "voice_new" / "Network.h"
     if net_h.exists():
         txt = net_h.read_text(encoding="utf-8", errors="ignore")
         txt = txt.replace("../vendor/RakNet/", "../vendor/raknet/")
         net_h.write_text(txt, encoding="utf-8")
 
-    # 4. main.h: FONT_NAME "arial_bold.ttf" -> "arial.ttf"
     main_h = samp_dir / "main.h"
     if main_h.exists():
         txt = main_h.read_text(encoding="utf-8", errors="ignore")
         txt = txt.replace('#define FONT_NAME "arial_bold.ttf"', '#define FONT_NAME "arial.ttf"')
         main_h.write_text(txt, encoding="utf-8")
 
-    print("[+] Fixed Linux header case-sensitivity & FONT_NAME in C++ sources")
+    print("[+] Cleaned UTF-8 BOMs & fixed Linux header case-sensitivity in C++ sources")
 
 
 def patch_cmake_strip(samp_dir: Path):
@@ -137,17 +132,24 @@ def patch_main_cpp(samp_dir: Path):
         '            pSettings->Get().szNickName,\n'
         '            pSettings->Get().szPassword);'
     )
-    new_txt, count = pattern.subn(replacement, txt)
+    txt, count = pattern.subn(replacement, txt)
     if count == 0:
         raise RuntimeError("Gagal menemukan inisialisasi CNetGame di main.cpp")
 
-    main_cpp.write_text(new_txt, encoding="utf-8")
-    print(f"[+] Patched {main_cpp} ({count} CNetGame site locked)")
+    # Pastikan Java LoadingScreen langsung disembunyikan begitu OpenGL ImGui SplashScreen siap
+    if "if (pJavaWrapper) pJavaWrapper->HideLoadingScreen();" not in txt:
+        txt = txt.replace(
+            "pUI->performLayout();",
+            "pUI->performLayout();\n\tif (pJavaWrapper) pJavaWrapper->HideLoadingScreen();",
+        )
+
+    main_cpp.write_text(txt, encoding="utf-8")
+    print(f"[+] Patched {main_cpp} (CNetGame locked + instant OpenGL SplashScreen handoff)")
 
 
-def patch_netgame_cpp(samp_dir: Path):
+def patch_netgame_cpp(samp_dir: Path, args):
     netgame_cpp = samp_dir / "net" / "netgame.cpp"
-    txt = netgame_cpp.read_text(encoding="utf-8", errors="ignore")
+    txt = netgame_cpp.read_text(encoding="utf-8-sig", errors="ignore").replace("\ufeff", "")
 
     if '#include "../lockdown.h"' not in txt:
         txt = '#include "../lockdown.h"\n' + txt
@@ -175,20 +177,24 @@ def patch_netgame_cpp(samp_dir: Path):
         'const char* lockedVer',
         txt,
     )
+    txt = txt.replace(
+        '"{FFFFFF}2.1 Client started"',
+        f'"{{00E5FF}}[{args.server_title}]{{FFFFFF}} Client Resmi aktif — Selamat bermain!"',
+    )
 
     netgame_cpp.write_text(txt, encoding="utf-8")
-    print(f"[+] Patched {netgame_cpp} (connect & auth packet locked with runtime integrity check)")
+    print(f"[+] Patched {netgame_cpp} (connect & auth packet locked + branded welcome message)")
 
 
 def patch_netrpc_cpp(samp_dir: Path):
     netrpc_cpp = samp_dir / "net" / "netrpc.cpp"
-    txt = netrpc_cpp.read_text(encoding="utf-8", errors="ignore")
+    txt = netrpc_cpp.read_text(encoding="utf-8-sig", errors="ignore").replace("\ufeff", "")
 
     if '#include "../lockdown.h"' not in txt:
         txt = '#include "../lockdown.h"\n' + txt
 
     handler_code = """
-// --- XySAMP Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
+// --- Lombok Holiday Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
 static int RPC_ClientCheck = 103;
 void ClientCheck(RPCParameters *rpcParams)
 {
@@ -206,7 +212,6 @@ void ClientCheck(RPCParameters *rpcParams)
     bsData.Read(wOffset);
     bsData.Read(wCount);
 
-    // Type 0x48 ('H') = Custom XySAMP Handshake Challenge dari Pawn Server
     if (byteType == 0x48) {
         uint8_t byteResponse = XySAMP::CalcHandshakeResponse(dwAddress, wOffset, wCount);
         uint32_t dwEcho = dwAddress ^ XySAMP::GetHandshakeSecret();
@@ -218,26 +223,25 @@ void ClientCheck(RPCParameters *rpcParams)
         bsSend.Write((uint8_t)0x48);
         bsSend.Write(dwEcho);
         bsSend.Write(byteResponse);
-        int rpc = 103;
-        pNetGame->GetRakClient()->RPC(&rId_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+        pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
         return;
     }
 
-    // Default response untuk pengecekan standar (mis. SAMP-Mobile-Checker type 2/70)
     RakNet::BitStream bsSend;
     bsSend.Write(byteType);
     bsSend.Write(dwAddress);
     bsSend.Write((uint8_t)0);
-    pNetGame->GetRakClient()->RPC(&rId_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+    pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
 }
 """
-    handler_code = handler_code.replace("int rpc = 103;\n        ", "").replace("&rId_ClientCheck", "&RPC_ClientCheck")
 
     if "void ClientCheck(RPCParameters" not in txt:
         txt = txt.replace(
             "void RegisterRPCs(RakClientInterface *pRakClient)",
             handler_code + "\nvoid RegisterRPCs(RakClientInterface *pRakClient)",
         )
+    elif "static int RPC_ClientCheck = 103;" not in txt:
+        txt = txt.replace("void ClientCheck(RPCParameters *rpcParams)", "static int RPC_ClientCheck = 103;\nvoid ClientCheck(RPCParameters *rpcParams)")
 
     if "pRakClient->RegisterAsRemoteProcedureCall(&RPC_ClientCheck" not in txt:
         txt = txt.replace(
@@ -247,7 +251,7 @@ void ClientCheck(RPCParameters *rpcParams)
         )
 
     netrpc_cpp.write_text(txt, encoding="utf-8")
-    print(f"[+] Patched {netrpc_cpp} (added RPC_ClientCheck ID 103 challenge-response + anti-tamper)")
+    print(f"[+] Patched {netrpc_cpp} (RPC_ClientCheck ID 103 challenge-response)")
 
 
 def patch_settings_cpp(samp_dir: Path, args):
@@ -273,7 +277,6 @@ CSettings::CSettings()
     INIReader reader(buff);
     bool iniOk = (reader.ParseError() >= 0);
 
-    // Default aman jika settings.ini belum ada (TANPA std::terminate agar tidak pernah blackscreen/crash!)
     char defaultNick[32];
     snprintf(defaultNick, sizeof(defaultNick), "{args.default_nick}_%d", (rand() % 899) + 100);
 
@@ -288,14 +291,13 @@ CSettings::CSettings()
     length = pass.copy(m_Settings.szPassword, MAX_SETTINGS_STRING);
     m_Settings.szPassword[length] = '\\0';
 
-    // Host, Port, dan Version dikunci di memori dari dekripsi XOR runtime
     strncpy(m_Settings.szHost, XySAMP::GetLockedHost(), MAX_SETTINGS_STRING);
     m_Settings.szHost[MAX_SETTINGS_STRING - 1] = '\\0';
     m_Settings.iPort = XySAMP::GetLockedPort();
     strncpy(m_Settings.szVersion, XySAMP::GetClientVersion(), MAX_SETTINGS_STRING);
     m_Settings.szVersion[MAX_SETTINGS_STRING - 1] = '\\0';
 
-    m_Settings.bAutoAim = false;
+    m_Settings.bAutoAim = iniOk ? reader.GetBoolean("client", "autoaim", false) : false;
     m_Settings.bDebug = false;
     m_Settings.bOnline = true;
 
@@ -311,7 +313,7 @@ CSettings::CSettings()
     m_Settings.fChatPosY = iniOk ? (float)reader.GetReal("gui", "ChatPosY", 25.0) : 25.0f;
     m_Settings.fChatSizeX = iniOk ? (float)reader.GetReal("gui", "ChatSizeX", 1150.0) : 1150.0f;
     m_Settings.fChatSizeY = iniOk ? (float)reader.GetReal("gui", "ChatSizeY", 220.0) : 220.0f;
-    m_Settings.iChatMaxMessages = iniOk ? (int)reader.GetInteger("gui", "ChatMaxMessages", 6) : 6;
+    m_Settings.iChatMaxMessages = iniOk ? (int)reader.GetInteger("gui", "ChatMaxMessages", 7) : 7;
 
     m_Settings.fSpawnScreenPosX = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosX", 660.0) : 660.0f;
     m_Settings.fSpawnScreenPosY = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosY", 950.0) : 950.0f;
@@ -339,11 +341,11 @@ CSettings::CSettings()
 
     m_Settings.iAndroidKeyboard = iniOk ? reader.GetBoolean("gui", "androidkeyboard", false) : false;
     m_Settings.iFirstPerson = iniOk ? reader.GetBoolean("gui", "firstperson", true) : true;
-    m_Settings.iCutout = iniOk ? reader.GetBoolean("gui", "cutout", false) : false;
-    m_Settings.iFPSCounter = iniOk ? reader.GetBoolean("gui", "fps", false) : false;
+    m_Settings.iCutout = iniOk ? reader.GetBoolean("gui", "cutout", true) : true;
+    m_Settings.iFPSCounter = iniOk ? reader.GetBoolean("gui", "fps", true) : true;
     m_Settings.iFPSCount = iniOk ? (int)reader.GetInteger("gui", "FPSLimit", 60) : 60;
-    m_Settings.iHPArmourText = iniOk ? reader.GetBoolean("gui", "hparmourtext", false) : false;
-    m_Settings.iOutfitGuns = iniOk ? reader.GetBoolean("gui", "outfitguns", false) : false;
+    m_Settings.iHPArmourText = iniOk ? reader.GetBoolean("gui", "hparmourtext", true) : true;
+    m_Settings.iOutfitGuns = iniOk ? reader.GetBoolean("gui", "outfitguns", true) : true;
     m_Settings.iPCMoney = iniOk ? reader.GetBoolean("gui", "pcmoney", false) : false;
     m_Settings.iRadarRect = iniOk ? reader.GetBoolean("gui", "radarrect", false) : false;
     m_Settings.iSkyBox = iniOk ? reader.GetBoolean("gui", "skybox", false) : false;
@@ -355,7 +357,7 @@ CSettings::CSettings()
         mkdir(sampDir, 0775);
         FILE* fp = fopen(buff, "w");
         if (fp) {{
-            fprintf(fp, "[client]\\nname=%s\\nhost=127.0.0.1\\nport=7777\\nversion=0.3.7\\n\\n[gui]\\nFont=arial.ttf\\nFontSize=30.0\\nFontOutline=2\\nChatMaxMessages=6\\nFPSLimit=60\\n", m_Settings.szNickName);
+            fprintf(fp, "[client]\\nname=%s\\nhost=127.0.0.1\\nport=7777\\nversion=0.3.7\\n\\n[gui]\\nFont=arial.ttf\\nFontSize=30.0\\nFontOutline=2\\nChatMaxMessages=7\\nFPSLimit=60\\nVoiceChatEnable=true\\nfirstperson=true\\ncutout=true\\nfps=true\\nhparmourtext=true\\noutfitguns=true\\n", m_Settings.szNickName);
             fclose(fp);
         }}
     }}
@@ -374,11 +376,10 @@ stSettings& CSettings::GetWrite()
 }}
 """
     settings_cpp.write_text(content, encoding="utf-8")
-    print(f"[+] Patched {settings_cpp} (removed std::terminate, added safe defaults & zero-leak settings)")
+    print(f"[+] Patched {settings_cpp}")
 
 
 def patch_imgui_and_image_cpp(samp_dir: Path):
-    # 1. imguiwrapper.cpp: multi-font fallback + ImGui default embedded font fallback
     imgui_cpp = samp_dir / "gui" / "imguiwrapper.cpp"
     if imgui_cpp.exists():
         txt = imgui_cpp.read_text(encoding="utf-8", errors="ignore")
@@ -415,9 +416,7 @@ def patch_imgui_and_image_cpp(samp_dir: Path):
         if old_font_load in txt:
             txt = txt.replace(old_font_load, new_font_load)
             imgui_cpp.write_text(txt, encoding="utf-8")
-            print(f"[+] Patched {imgui_cpp} (multi-font + embedded default font fallback)")
 
-    # 2. image.cpp: null-safe raster check
     image_cpp = samp_dir / "gui" / "widgets" / "image.cpp"
     if image_cpp.exists():
         image_cpp.write_text("""#include "../gui.h"
@@ -441,509 +440,1204 @@ void Image::draw(ImGuiRenderer* renderer)
     Widget::draw(renderer);
 }
 """, encoding="utf-8")
-        print(f"[+] Patched {image_cpp} (null-safe raster checks)")
+    print("[+] Verified ImGui multi-font fallback & Image null-safety")
 
 
-def patch_hooks_cpp(samp_dir: Path):
+def patch_hooks_cpp(samp_dir: Path, args):
     hooks_cpp = samp_dir / "game" / "hooks.cpp"
     txt = hooks_cpp.read_text(encoding="utf-8", errors="ignore")
 
-    if "void AutoPatchTextureFormat()" in txt and "NvFOpen_hook" in txt:
-        print(f"[+] {hooks_cpp} already patched with NvFOpen_hook & AutoPatchTextureFormat")
-        return
-
-    if "#include <dirent.h>" not in txt:
-        txt = "#include <dirent.h>\n#include <strings.h>\n#include <cctype>\n" + txt
-
-    # Replace NvUtilInit_hook + NvFOpen block with Smart Multi-Path + Case-Insensitive + Texture-Format-Aware + APK-Asset Fallback
-    old_block_pattern = re.compile(
-        r"void ReadSettingFile\(\);\s*void ApplyFPSPatch\(uint8_t fps\);\s*void \(\*NvUtilInit\)\(\);.*?bool g_bPlaySAMP = false;",
-        re.DOTALL,
-    )
-
-    new_block = r"""void ReadSettingFile();
-void ApplyFPSPatch(uint8_t fps);
-void AutoPatchTextureFormat();
-void (*NvUtilInit)();
-
-static bool HasDirCaseInsensitive(const char* rootDir, const char* targetSub)
-{
-    DIR* d = opendir(rootDir);
-    if (!d) return false;
-    struct dirent* ent;
-    bool found = false;
-    while ((ent = readdir(d)) != nullptr) {
-        if (strcasecmp(ent->d_name, targetSub) == 0) {
-            found = true;
-            break;
-        }
-    }
-    closedir(d);
-    return found;
-}
-
-void NvUtilInit_hook()
-{
-    FLog("NvUtilInit");
-
-    NvUtilInit();
-
-    g_pszStorage = (char*)(g_libGTASA + (VER_x32 ? 0x6D687C : 0x8B46A8)); // StorageRootBuffer
-
-    // Jika StorageRootBuffer belum memiliki folder texdb/models, auto-scan lokasi data GTA populer (Lite maupun Full, Tanpa OBB!)
-    if (!HasDirCaseInsensitive(g_pszStorage, "texdb") && !HasDirCaseInsensitive(g_pszStorage, "models")) {
-        const char* candidates[] = {
-            "/storage/emulated/0/GTA/",
-            "/storage/emulated/0/Android/data/com.samp.mobile/files/",
-            "/storage/emulated/0/Android/data/com.gta.game/files/",
-            "/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/",
-            "/storage/emulated/0/Android/data/ru.unisamp_mobile.game/files/",
-            "/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/"
-        };
-        for (const char* cand : candidates) {
-            if (HasDirCaseInsensitive(cand, "texdb") || HasDirCaseInsensitive(cand, "models")) {
-                strcpy(g_pszStorage, cand);
-                FLog("Auto-detected GTA Data directory: %s", g_pszStorage);
-                break;
-            }
-        }
-    }
-
-    AutoPatchTextureFormat();
-
-    ReadSettingFile();
-
-    ApplyFPSPatch(120);
-}
-
-struct stFile
-{
-    int isFileExist;
-    FILE *f;
-};
-
-char lastFile[256];
-
-// Case-insensitive file opener untuk Android (mengatasi perbedaan DATA/ vs data/, SAMP/ vs samp/, dll)
-static FILE* FOpenCaseInsensitive(const char* baseDir, const char* relPath)
-{
-    if (!baseDir || !relPath) return nullptr;
-    while (*relPath == '/' || *relPath == '\\') relPath++;
-
-    char fullPath[512];
-    snprintf(fullPath, sizeof(fullPath), "%s%s", baseDir, relPath);
-    for (char* p = fullPath; *p; ++p) {
-        if (*p == '\\') *p = '/';
-    }
-    FILE* f = fopen(fullPath, "rb");
-    if (f) return f;
-
-    // Coba seluruh relPath lowercase (misal DATA/FONTS.DAT -> data/fonts.dat)
-    char lowerRel[256];
-    size_t i = 0;
-    for (; relPath[i] && i < sizeof(lowerRel) - 1; ++i) {
-        char c = relPath[i];
-        if (c == '\\') c = '/';
-        lowerRel[i] = (char)tolower((unsigned char)c);
-    }
-    lowerRel[i] = '\0';
-    snprintf(fullPath, sizeof(fullPath), "%s%s", baseDir, lowerRel);
-    f = fopen(fullPath, "rb");
-    if (f) return f;
-
-    // Telusuri komponen path satu per satu secara case-insensitive (opendir + strcasecmp)
-    char curPath[512];
-    snprintf(curPath, sizeof(curPath), "%s", baseDir);
-    size_t baseLen = strlen(curPath);
-    if (baseLen > 0 && curPath[baseLen - 1] == '/') {
-        curPath[baseLen - 1] = '\0';
-    }
-
-    char tempRel[256];
-    strncpy(tempRel, relPath, sizeof(tempRel) - 1);
-    tempRel[sizeof(tempRel) - 1] = '\0';
-    for (char* p = tempRel; *p; ++p) {
-        if (*p == '\\') *p = '/';
-    }
-
-    char* saveptr = nullptr;
-    char* token = strtok_r(tempRel, "/", &saveptr);
-    while (token != nullptr) {
-        DIR* dir = opendir(curPath);
-        if (!dir) return nullptr;
-        struct dirent* ent;
-        char matched[256] = {0};
-        while ((ent = readdir(dir)) != nullptr) {
-            if (strcasecmp(ent->d_name, token) == 0) {
-                strncpy(matched, ent->d_name, sizeof(matched) - 1);
-                break;
-            }
-        }
-        closedir(dir);
-        if (matched[0] == '\0') return nullptr;
-        size_t curLen = strlen(curPath);
-        snprintf(curPath + curLen, sizeof(curPath) - curLen, "/%s", matched);
-        token = strtok_r(nullptr, "/", &saveptr);
-    }
-
-    return fopen(curPath, "rb");
-}
-
-// Per-file fallback untuk texdb/<db>/<db>.<ext>.(tmb|toc|dat) agar Data Lite DXT/ETC/PVR selalu terbaca di GPU apa pun
-static FILE* TryOpenTexdbAnyFormat(const char* baseDir, const char* relPath)
-{
-    if (strncasecmp(relPath, "texdb/", 6) != 0) return nullptr;
-    const char* exts[] = { ".dxt.", ".etc.", ".pvr.", ".unc." };
-    for (const char* srcExt : exts) {
-        const char* pos = strcasestr(relPath, srcExt);
-        if (pos != nullptr) {
-            for (const char* dstExt : exts) {
-                char altRel[256];
-                size_t prefixLen = (size_t)(pos - relPath);
-                if (prefixLen + strlen(pos) >= sizeof(altRel)) continue;
-                memcpy(altRel, relPath, prefixLen);
-                memcpy(altRel + prefixLen, dstExt, 5);
-                strcpy(altRel + prefixLen + 5, pos + 5);
-                FILE* f = FOpenCaseInsensitive(baseDir, altRel);
-                if (f) return f;
-            }
-            break;
-        }
-    }
-    return nullptr;
-}
-
-stFile* (*NvFOpen_orig)(const char* r0, const char* r1, int r2, int r3) = nullptr;
-
-stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
-{
-    if (!r1) {
-        return NvFOpen_orig ? NvFOpen_orig(r0, r1, r2, r3) : nullptr;
-    }
-
-    strncpy(lastFile, r1, sizeof(lastFile) - 1);
-    lastFile[sizeof(lastFile) - 1] = '\0';
-
-    const char* baseDir = (g_pszStorage && g_pszStorage[0]) ? g_pszStorage : "/storage/emulated/0/GTA/";
-    const char* sampOverride = nullptr;
-
-    if (strlen(r1) >= 12 && strncasecmp(r1 + 12, "mainV1.scm", 10) == 0) {
-        sampOverride = "SAMP/main.scm";
-    } else if (strlen(r1) >= 12 && strncasecmp(r1 + 12, "SCRIPTV1.IMG", 12) == 0) {
-        sampOverride = "SAMP/script.img";
-    } else if (strncasecmp(r1, "DATA/PEDS.IDE", 13) == 0) {
-        sampOverride = "SAMP/peds.ide";
-    } else if (strncasecmp(r1, "DATA/VEHICLES.IDE", 17) == 0) {
-        sampOverride = "SAMP/vehicles.ide";
-    } else if (strncasecmp(r1, "DATA/GTA.DAT", 12) == 0) {
-        sampOverride = "SAMP/gta.dat";
-    } else if (strncasecmp(r1, "DATA/HANDLING.CFG", 17) == 0) {
-        sampOverride = "SAMP/handling.cfg";
-    } else if (strncasecmp(r1, "DATA/WEAPON.DAT", 15) == 0) {
-        sampOverride = "SAMP/weapon.dat";
-    }
-
-    FILE* f = nullptr;
-    if (sampOverride) {
-        f = FOpenCaseInsensitive(baseDir, sampOverride);
-    }
-    if (!f) {
-        f = FOpenCaseInsensitive(baseDir, r1);
-    }
-    if (!f) {
-        f = TryOpenTexdbAnyFormat(baseDir, r1);
-    }
-
-    if (f) {
-#if VER_x32
-        auto *st = (stFile*)malloc(8);
-#else
-        auto *st = (stFile*)malloc(0x10);
-#endif
-        st->isFileExist = 1;
-        st->f = f;
-        return st;
-    }
-
-    // Fallback ke NvFOpen_orig milik libGTASA.so untuk membaca dari APK assets/ (scache.txt, Text/american.gxt, dll)
-    if (NvFOpen_orig) {
-        stFile* apkSt = NvFOpen_orig(r0, r1, r2, r3);
-        if (apkSt) {
-            return apkSt;
-        }
-    }
-
-    FLog("NVFOpen hook | Warning: file not found (%s%s)", baseDir, r1);
-    return nullptr;
-}
-
-bool g_bPlaySAMP = false;"""
-
-    txt, count = old_block_pattern.subn(lambda _: new_block, txt, count=1)
-    if count == 0:
-        raise RuntimeError("Gagal mem-patch blok NvUtilInit_hook / NvFOpen di hooks.cpp")
-
-    # Replace InstallUrezHooks + InstallCRHooks + Redirect NvFOpen with AutoPatchTextureFormat + InlineHook NvFOpen
-    old_urez_pattern = re.compile(
-        r"void InstallUrezHooks\(\).*?void InstallSpecialHooks\(\)\s*\{.*?CHook::Redirect\(\"_Z7NvFOpenPKcS0_bb\", &NvFOpen\);",
-        re.DOTALL,
-    )
-
-    new_urez = r"""void AutoPatchTextureFormat()
-{
-    const char* baseDir = (g_pszStorage && g_pszStorage[0]) ? g_pszStorage : "/storage/emulated/0/GTA/";
-    bool hasDXT = (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.dxt.dat") != nullptr) ||
-                  (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.dxt.tmb") != nullptr);
-    bool hasETC = (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.etc.dat") != nullptr) ||
-                  (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.etc.tmb") != nullptr);
-    bool hasPVR = (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.pvr.dat") != nullptr) ||
-                  (FOpenCaseInsensitive(baseDir, "texdb/gta3/gta3.pvr.tmb") != nullptr);
-
-    // Tutup handle pengecekan dengan aman lewat helper kecil
-    auto checkFile = [&](const char* rel) -> bool {
-        FILE* fp = FOpenCaseInsensitive(baseDir, rel);
-        if (fp) { fclose(fp); return true; }
-        return false;
-    };
-    hasDXT = checkFile("texdb/gta3/gta3.dxt.dat") || checkFile("texdb/gta3/gta3.dxt.tmb");
-    hasETC = checkFile("texdb/gta3/gta3.etc.dat") || checkFile("texdb/gta3/gta3.etc.tmb");
-    hasPVR = checkFile("texdb/gta3/gta3.pvr.dat") || checkFile("texdb/gta3/gta3.pvr.tmb");
-
-    const char* fallbackExt = "dxt";
-    if (hasDXT) fallbackExt = "dxt";
-    else if (hasETC) fallbackExt = "etc";
-    else if (hasPVR) fallbackExt = "pvr";
-
-    struct TexSlot {
-        uintptr_t x32;
-        uintptr_t x64;
-        bool exists;
-    };
-
-    TexSlot slots[] = {
-        { 0x1E87DC, 0x713FC7, hasDXT }, // dxt.tmb
-        { 0x1E8C34, 0x71403F, hasDXT }, // dxt
-        { 0x1E878C, 0x714017, hasETC }, // etc.tmb
-        { 0x1E8BF4, 0x71407F, hasETC }, // etc
-        { 0x1E87A0, 0x714003, hasPVR }, // pvr.tmb
-        { 0x1E8C04, 0x71406F, hasPVR }, // pvr
-        { 0x1E87F0, 0x713FB3, false  }, // unc.tmb -> fallbackExt
-    };
-
-    for (const auto& s : slots) {
-        if (!s.exists && (hasDXT || hasETC || hasPVR)) {
-            uintptr_t addr = g_libGTASA + (VER_x32 ? s.x32 : s.x64);
-            CHook::UnFuck(addr);
-            char* ext = reinterpret_cast<char*>(addr + 12);
-            ext[0] = fallbackExt[0];
-            ext[1] = fallbackExt[1];
-            ext[2] = fallbackExt[2];
-        }
-    }
-    FLog("AutoPatchTextureFormat: hasDXT=%d hasETC=%d hasPVR=%d fallback=%s", hasDXT, hasETC, hasPVR, fallbackExt);
-}
-
-void InstallSpecialHooks()
-{
-    InjectHooks();
-
-    CHook::Redirect("_ZN5CGame20InitialiseRenderWareEv", &CGame::InitialiseRenderWare);
-    CHook::InstallPLT(g_libGTASA + (VER_x32 ? 0x6785FC : 0x84EC20), &StartGameScreen__OnNewGameCheck_hook, &StartGameScreen__OnNewGameCheck);
-
-    CHook::InlineHook("_Z10NvUtilInitv", &NvUtilInit_hook, &NvUtilInit);
-
-    CHook::RET("_ZN12CCutsceneMgr16LoadCutsceneDataEPKc");
-    CHook::RET("_ZN12CCutsceneMgr10InitialiseEv");
-
-    CHook::InlineHook("_Z7NvFOpenPKcS0_bb", &NvFOpen_hook, &NvFOpen_orig);"""
-
-    txt, count2 = old_urez_pattern.subn(lambda _: new_urez, txt, count=1)
-    if count2 == 0:
-        raise RuntimeError("Gagal mem-patch InstallSpecialHooks di hooks.cpp")
-
+    # Pastikan kandidat folder com.lombokholiday.mobile terdaftar di NvUtilInit_hook
+    if "com.lombokholiday.mobile" not in txt and "NvUtilInit_hook" in txt:
+        txt = txt.replace(
+            '"/storage/emulated/0/GTA/",',
+            f'"/storage/emulated/0/Android/data/{args.package_id}/files/",\n            "/storage/emulated/0/GTA/",',
+        )
+    # Pastikan jika NvFOpen_orig diminta Text/*.gxt bahasa lain, fallback ke Text/american.gxt
+    if 'NvFOpen_orig(r0, "Text/american.gxt", r2, r3)' not in txt and "NvFOpen_orig(r0, r1, r2, r3)" in txt:
+        txt = txt.replace(
+            "        if (apkSt) {\n            return apkSt;\n        }",
+            '        if (apkSt) {\n            return apkSt;\n        }\n'
+            '        if (strncasecmp(r1, "Text/", 5) == 0) {\n'
+            '            apkSt = NvFOpen_orig(r0, "Text/american.gxt", r2, r3);\n'
+            '            if (apkSt) return apkSt;\n'
+            '        }',
+        )
     hooks_cpp.write_text(txt, encoding="utf-8")
-    print(f"[+] Patched {hooks_cpp} (InlineHook NvFOpen + Case-Insensitive + AutoPatchTextureFormat + APK Assets fallback)")
+    print(f"[+] Updated {hooks_cpp} with {args.package_id} path & american.gxt fallback")
 
 
-def patch_java_and_resources(repo: Path, args):
-    app_main = repo / "app" / "src" / "main"
-    java_root = app_main / "java"
-    res_root = app_main / "res"
+def patch_peripherals_and_game_java(repo: Path, args):
+    java_root = repo / "app" / "src" / "main" / "java"
+    res_root = repo / "app" / "src" / "main" / "res"
 
-    # 1. Hapus class launcher Rusia lama yang tidak terpakai (SplashActivity, UpdateService, Firebase, fragments, adapters)
-    launcher_dir = java_root / "com" / "samp" / "mobile" / "launcher"
-    for subdir in ("adapters", "fragments", "data", "config"):
-        p = launcher_dir / subdir
-        if p.exists():
-            shutil.rmtree(p)
-    for fn in ("SplashActivity.java", "UpdateActivity.java", "UpdateService.java", "Ref.java"):
-        p = launcher_dir / fn
-        if p.exists():
-            p.unlink()
-    for fn in ("FirebaseMessageReceiver.java", "SAMPServerInfo.java", "SampQueryAPI.java", "ConfigValidator.java", "SignatureChecker.java"):
-        p = launcher_dir / "util" / fn
-        if p.exists():
-            p.unlink()
+    # 1. WarGamepad.java: Full Gamepad (PS4/PS5/Xbox/Joystick) + Physical Keyboard (WASD/Action) + Mouse (OTG/BT)
+    wargamepad = java_root / "com" / "wardrumstudios" / "utils" / "WarGamepad.java"
+    wargamepad.write_text("""package com.wardrumstudios.utils;
 
-    # 2. Bersihkan import @Obfuscate / FirebaseCrashlytics di seluruh file Java yang tersisa
-    for jfile in java_root.rglob("*.java"):
-        jtxt = jfile.read_text(encoding="utf-8", errors="ignore")
-        jtxt = re.sub(r"^\s*import\s+com\.joom\.paranoid\.Obfuscate\s*;\s*\n", "", jtxt, flags=re.MULTILINE)
-        jtxt = re.sub(r"^\s*import\s+com\.google\.firebase\.[^\n]+\n", "", jtxt, flags=re.MULTILINE)
-        jtxt = re.sub(r"^\s*import\s+com\.samp\.mobile\.launcher\.(config|fragments|adapters|util\.SignatureChecker)[^\n]*\n", "", jtxt, flags=re.MULTILINE)
-        jtxt = re.sub(r"^\s*@Obfuscate\s*\n", "", jtxt, flags=re.MULTILINE)
-        jtxt = re.sub(r"FirebaseCrashlytics\.getInstance\(\)\.setCrashlyticsCollectionEnabled\(false\);", "", jtxt)
-        jfile.write_text(jtxt, encoding="utf-8")
-
-    # 3. Percepat DoResumeEvent di NvEventQueueActivity.java (mSleep(50) bukan 1000ms)
-    nvev = java_root / "com" / "nvidia" / "devtech" / "NvEventQueueActivity.java"
-    if nvev.exists():
-        ntxt = nvev.read_text(encoding="utf-8", errors="ignore")
-        ntxt = ntxt.replace("NvEventQueueActivity.this.mSleep(1000);", "NvEventQueueActivity.this.mSleep(50);")
-        nvev.write_text(ntxt, encoding="utf-8")
-
-    # 4. Patch GTASA.java: pre-load SCAnd & OpenAL32/64 secara aman, matikan monetloader
-    gtasa_java = java_root / "com" / "samp" / "mobile" / "game" / "GTASA.java"
-    gtasa_java.write_text("""package com.samp.mobile.game;
-
-import android.content.Intent;
-import android.content.res.Configuration;
-import android.os.Bundle;
+import android.view.InputDevice;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.ViewParent;
 
-import com.bytedance.shadowhook.ShadowHook;
-import com.wardrumstudios.utils.WarMedia;
+public class WarGamepad extends WarBilling {
+    // Xbox 360 / Rockstar Wardrum button bit indices
+    public static final int BTN_A         = 0;  // Cross / Sprint / Accept
+    public static final int BTN_B         = 1;  // Circle / Fire / Melee
+    public static final int BTN_X         = 2;  // Square / Jump / Brake
+    public static final int BTN_Y         = 3;  // Triangle / Enter-Exit Vehicle (F)
+    public static final int BTN_START     = 4;  // Start / Menu
+    public static final int BTN_BACK      = 5;  // Select / Camera View (V)
+    public static final int BTN_L1        = 6;  // L1 / LB
+    public static final int BTN_R1        = 7;  // R1 / RB / Handbrake / Aim
+    public static final int BTN_DPAD_UP   = 8;  // D-Pad Up
+    public static final int BTN_DPAD_DOWN = 9;  // D-Pad Down
+    public static final int BTN_DPAD_LEFT = 10; // D-Pad Left / Prev Weapon (Q / Scroll Down)
+    public static final int BTN_DPAD_RIGHT= 11; // D-Pad Right / Next Weapon (E / Scroll Up)
+    public static final int BTN_L3        = 12; // L3 / Crouch (C) / Horn (H)
+    public static final int BTN_R3        = 13; // R3 / Look Behind (Middle Mouse)
 
-public class GTASA extends WarMedia {
-    static String vmVersion;
-    private boolean once = false;
+    public static volatile boolean sEnableKeyboardMouse = true;
+    public static volatile boolean sEnableGamepad = true;
+    private static volatile boolean sActivePeripheralInput = false;
+    private static volatile int sButtonMask = 0;
+    private static final float[] sAxes = new float[6]; // 0:LX, 1:LY, 2:RX, 3:RY, 4:LT(Aim), 5:RT(Fire/Gas)
 
-    static {
-        ShadowHook.init(new ShadowHook.ConfigBuilder()
-                .setMode(ShadowHook.Mode.UNIQUE)
-                .build());
+    // Keyboard WASD state
+    private static boolean sKeyW = false, sKeyS = false, sKeyA = false, sKeyD = false;
+    private static boolean sKeyUp = false, sKeyDown = false, sKeyLeft = false, sKeyRight = false;
 
-        vmVersion = null;
+    public static boolean hasConnectedGamepad() {
         try {
-            vmVersion = System.getProperty("java.vm.version");
-            System.loadLibrary("ImmEmulatorJ");
-        } catch (Throwable ignored) {
-        }
-        try {
-            System.loadLibrary("SCAnd");
-        } catch (Throwable ignored) {
-        }
-        try {
-            System.loadLibrary("OpenAL64");
-        } catch (Throwable t) {
-            try {
-                System.loadLibrary("OpenAL32");
-            } catch (Throwable ignored) {
+            int[] ids = InputDevice.getDeviceIds();
+            for (int id : ids) {
+                InputDevice dev = InputDevice.getDevice(id);
+                if (dev == null) continue;
+                int src = dev.getSources();
+                if ((src & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+                    (src & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
+                    return true;
+                }
             }
-        }
-        System.loadLibrary("GTASA");
-        System.loadLibrary("bass");
-        System.loadLibrary("samp");
-    }
-
-    public static void staticEnterSocialClub() {}
-    public static void staticExitSocialClub() {}
-    public void AfterDownloadFunction() {}
-    public void EnterSocialClub() {}
-    public void ExitSocialClub() {}
-
-    public boolean ServiceAppCommand(String str, String str2) {
+        } catch (Throwable ignored) {}
         return false;
     }
 
-    public int ServiceAppCommandValue(String str, String str2) {
+    public static boolean hasConnectedKeyboard() {
+        try {
+            int[] ids = InputDevice.getDeviceIds();
+            for (int id : ids) {
+                InputDevice dev = InputDevice.getDevice(id);
+                if (dev == null) continue;
+                if ((dev.getSources() & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD &&
+                    dev.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    public static boolean hasConnectedMouse() {
+        try {
+            int[] ids = InputDevice.getDeviceIds();
+            for (int id : ids) {
+                InputDevice dev = InputDevice.getDevice(id);
+                if (dev == null) continue;
+                int src = dev.getSources();
+                if ((src & InputDevice.SOURCE_MOUSE) == InputDevice.SOURCE_MOUSE ||
+                    (src & InputDevice.SOURCE_TOUCHPAD) == InputDevice.SOURCE_TOUCHPAD) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    private static void setBtn(int bit, boolean down) {
+        if (bit < 0 || bit > 15) return;
+        if (down) {
+            sButtonMask |= (1 << bit);
+            sActivePeripheralInput = true;
+        } else {
+            sButtonMask &= ~(1 << bit);
+        }
+    }
+
+    private static void recomputeWasdAxes() {
+        float lx = 0.0f;
+        float ly = 0.0f;
+        if (sKeyA || sKeyLeft)  lx -= 1.0f;
+        if (sKeyD || sKeyRight) lx += 1.0f;
+        if (sKeyW || sKeyUp)    ly -= 1.0f;
+        if (sKeyS || sKeyDown)  ly += 1.0f;
+        sAxes[0] = lx;
+        sAxes[1] = ly;
+    }
+
+    public static boolean handleKeyEvent(int keyCode, KeyEvent event, boolean isDown) {
+        if (event == null) return false;
+        int src = event.getSource();
+        boolean isPad = ((src & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD) ||
+                        ((src & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK);
+
+        if (isPad && sEnableGamepad) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_BUTTON_A:      setBtn(BTN_A, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_B:      setBtn(BTN_B, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_X:      setBtn(BTN_X, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_Y:      setBtn(BTN_Y, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_START:  setBtn(BTN_START, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_SELECT: setBtn(BTN_BACK, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_L1:     setBtn(BTN_L1, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_R1:     setBtn(BTN_R1, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_L2:     sAxes[4] = isDown ? 1.0f : 0.0f; sActivePeripheralInput = true; return true;
+                case KeyEvent.KEYCODE_BUTTON_R2:     sAxes[5] = isDown ? 1.0f : 0.0f; sActivePeripheralInput = true; return true;
+                case KeyEvent.KEYCODE_BUTTON_THUMBL: setBtn(BTN_L3, isDown); return true;
+                case KeyEvent.KEYCODE_BUTTON_THUMBR: setBtn(BTN_R3, isDown); return true;
+                case KeyEvent.KEYCODE_DPAD_UP:       setBtn(BTN_DPAD_UP, isDown); return true;
+                case KeyEvent.KEYCODE_DPAD_DOWN:     setBtn(BTN_DPAD_DOWN, isDown); return true;
+                case KeyEvent.KEYCODE_DPAD_LEFT:     setBtn(BTN_DPAD_LEFT, isDown); return true;
+                case KeyEvent.KEYCODE_DPAD_RIGHT:    setBtn(BTN_DPAD_RIGHT, isDown); return true;
+            }
+        }
+
+        if (sEnableKeyboardMouse) {
+            switch (keyCode) {
+                case KeyEvent.KEYCODE_W:          sKeyW = isDown; sActivePeripheralInput = true; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_S:          sKeyS = isDown; sActivePeripheralInput = true; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_A:          sKeyA = isDown; sActivePeripheralInput = true; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_D:          sKeyD = isDown; sActivePeripheralInput = true; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_DPAD_UP:    sKeyUp = isDown; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_DPAD_DOWN:  sKeyDown = isDown; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_DPAD_LEFT:  sKeyLeft = isDown; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_DPAD_RIGHT: sKeyRight = isDown; recomputeWasdAxes(); return false;
+                case KeyEvent.KEYCODE_SPACE:      setBtn(BTN_X, isDown); return false;
+                case KeyEvent.KEYCODE_SHIFT_LEFT:
+                case KeyEvent.KEYCODE_SHIFT_RIGHT:setBtn(BTN_A, isDown); return false;
+                case KeyEvent.KEYCODE_F:
+                case KeyEvent.KEYCODE_ENTER:      setBtn(BTN_Y, isDown); return false;
+                case KeyEvent.KEYCODE_C:
+                case KeyEvent.KEYCODE_H:          setBtn(BTN_L3, isDown); return false;
+                case KeyEvent.KEYCODE_Q:          setBtn(BTN_DPAD_LEFT, isDown); return false;
+                case KeyEvent.KEYCODE_E:          setBtn(BTN_DPAD_RIGHT, isDown); return false;
+                case KeyEvent.KEYCODE_V:          setBtn(BTN_BACK, isDown); return false;
+            }
+        }
+        return false;
+    }
+
+    public static boolean handleGenericMotion(MotionEvent event) {
+        if (event == null) return false;
+        int src = event.getSource();
+
+        // 1. Gamepad / Joystick Analog Sticks, Triggers & Hat D-Pad
+        if (sEnableGamepad && (((src & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) ||
+                               ((src & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD))) {
+            sActivePeripheralInput = true;
+            float lx = event.getAxisValue(MotionEvent.AXIS_X);
+            float ly = event.getAxisValue(MotionEvent.AXIS_Y);
+            float rx = event.getAxisValue(MotionEvent.AXIS_Z);
+            if (Math.abs(rx) < 0.05f) rx = event.getAxisValue(MotionEvent.AXIS_RX);
+            float ry = event.getAxisValue(MotionEvent.AXIS_RZ);
+            if (Math.abs(ry) < 0.05f) ry = event.getAxisValue(MotionEvent.AXIS_RY);
+
+            float lt = Math.max(event.getAxisValue(MotionEvent.AXIS_LTRIGGER), event.getAxisValue(MotionEvent.AXIS_BRAKE));
+            float rt = Math.max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER),
+                       Math.max(event.getAxisValue(MotionEvent.AXIS_GAS), event.getAxisValue(MotionEvent.AXIS_THROTTLE)));
+
+            sAxes[0] = Math.abs(lx) > 0.08f ? lx : 0.0f;
+            sAxes[1] = Math.abs(ly) > 0.08f ? ly : 0.0f;
+            sAxes[2] = Math.abs(rx) > 0.08f ? rx : 0.0f;
+            sAxes[3] = Math.abs(ry) > 0.08f ? ry : 0.0f;
+            sAxes[4] = lt;
+            sAxes[5] = rt;
+
+            float hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X);
+            float hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y);
+            setBtn(BTN_DPAD_LEFT,  hatX < -0.25f);
+            setBtn(BTN_DPAD_RIGHT, hatX >  0.25f);
+            setBtn(BTN_DPAD_UP,    hatY < -0.25f);
+            setBtn(BTN_DPAD_DOWN,  hatY >  0.25f);
+            return true;
+        }
+
+        // 2. USB OTG / Bluetooth Mouse Buttons & Scroll Wheel
+        if (sEnableKeyboardMouse && ((src & InputDevice.SOURCE_MOUSE) == InputDevice.SOURCE_MOUSE)) {
+            int btns = event.getButtonState();
+            boolean leftClick   = (btns & MotionEvent.BUTTON_PRIMARY) != 0;
+            boolean rightClick  = (btns & MotionEvent.BUTTON_SECONDARY) != 0;
+            boolean middleClick = (btns & MotionEvent.BUTTON_TERTIARY) != 0;
+
+            setBtn(BTN_B, leftClick);
+            setBtn(BTN_R1, rightClick);
+            sAxes[4] = rightClick ? 1.0f : 0.0f;
+            sAxes[5] = leftClick ? 1.0f : 0.0f;
+            setBtn(BTN_R3, middleClick);
+
+            if (event.getActionMasked() == MotionEvent.ACTION_SCROLL) {
+                float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+                if (vScroll > 0.1f) {
+                    setBtn(BTN_DPAD_RIGHT, true);
+                    setBtn(BTN_DPAD_RIGHT, false);
+                } else if (vScroll < -0.1f) {
+                    setBtn(BTN_DPAD_LEFT, true);
+                    setBtn(BTN_DPAD_LEFT, false);
+                }
+            }
+            return false;
+        }
+        return false;
+    }
+
+    public int GetGamepadType() {
+        if ((sEnableGamepad && hasConnectedGamepad()) || sActivePeripheralInput) {
+            return 1;
+        }
+        return -1;
+    }
+
+    public int GetGamepadType(int index) {
+        if (index == 0 && ((sEnableGamepad && hasConnectedGamepad()) || sActivePeripheralInput)) {
+            return 1;
+        }
+        return -1;
+    }
+
+    public int GetGamepadButtons() {
+        return sButtonMask;
+    }
+
+    public int GetGamepadButtons(int index) {
+        return index == 0 ? sButtonMask : 0;
+    }
+
+    public float GetGamepadAxis(int axisId) {
+        if (axisId >= 0 && axisId < sAxes.length) {
+            return sAxes[axisId];
+        }
+        return 0.0f;
+    }
+
+    public float GetGamepadAxis(int index, int axisId) {
+        if (index == 0 && axisId >= 0 && axisId < sAxes.length) {
+            return sAxes[axisId];
+        }
+        return 0.0f;
+    }
+
+    public int GetGamepadTrack(int index, int trackId, int coord) {
         return 0;
     }
 
-    public native void main();
-
-    @Override
-    public void onActivityResult(int i, int i2, Intent intent) {
-        super.onActivityResult(i, i2, intent);
+    public int GetGamepadTrack(int i, int i2) {
+        return 0;
     }
 
-    @Override
-    public void onConfigurationChanged(Configuration configuration) {
-        super.onConfigurationChanged(configuration);
-    }
-
-    @Override
-    public void onCreate(Bundle bundle) {
-        if (!once) {
-            once = true;
-        }
-        super.onCreate(bundle);
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-    }
-
-    @Override
-    public boolean onKeyDown(int i, KeyEvent keyEvent) {
-        return super.onKeyDown(i, keyEvent);
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-    }
-
-    @Override
-    public void onRestart() {
-        super.onRestart();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    @Override
-    public void onStart() {
-        super.onStart();
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-    }
-
-    public native void setCurrentScreenSize(int i, int i2);
+    public native boolean processTouchpadAsPointer(ViewParent viewParent, boolean z);
 }
 """, encoding="utf-8")
 
-    # 5. Patch WarMedia.java: gunakan MainActivity.resolveGameDataDir(this) (100% Tanpa OBB, support Data Lite & Full)
-    warmedia_java = java_root / "com" / "wardrumstudios" / "utils" / "WarMedia.java"
-    wtxt = warmedia_java.read_text(encoding="utf-8", errors="ignore")
-    old_get_base = re.compile(
-        r"public String GetGameBaseDirectory\(\)\s*\{.*?\n    \}",
+    # 2. Patch NvEventQueueActivity.java agar meneruskan onGenericMotionEvent & key events ke WarGamepad
+    nvev = java_root / "com" / "nvidia" / "devtech" / "NvEventQueueActivity.java"
+    ntxt = nvev.read_text(encoding="utf-8", errors="ignore")
+    if "WarGamepad.handleKeyEvent" not in ntxt:
+        ntxt = ntxt.replace(
+            "public boolean onKeyDown(int keyCode, KeyEvent event)\n    {",
+            "public boolean onKeyDown(int keyCode, KeyEvent event)\n    {\n"
+            "        if (com.wardrumstudios.utils.WarGamepad.handleKeyEvent(keyCode, event, true)) {\n"
+            "            return true;\n"
+            "        }",
+        )
+        ntxt = ntxt.replace(
+            "public boolean onKeyUp(int keyCode, KeyEvent event)\n    {",
+            "public boolean onKeyUp(int keyCode, KeyEvent event)\n    {\n"
+            "        if (com.wardrumstudios.utils.WarGamepad.handleKeyEvent(keyCode, event, false)) {\n"
+            "            return true;\n"
+            "        }",
+        )
+        ntxt = ntxt.replace(
+            "public boolean onTouchEvent(MotionEvent event)\n    {\n        return super.onTouchEvent(event);\n    }",
+            "public boolean onTouchEvent(MotionEvent event)\n    {\n        return super.onTouchEvent(event);\n    }\n\n"
+            "    @Override\n"
+            "    public boolean onGenericMotionEvent(MotionEvent event)\n    {\n"
+            "        if (com.wardrumstudios.utils.WarGamepad.handleGenericMotion(event)) {\n"
+            "            return true;\n"
+            "        }\n"
+            "        return super.onGenericMotionEvent(event);\n"
+            "    }",
+        )
+        ntxt = ntxt.replace(
+            "view.setFocusableInTouchMode(true);",
+            "view.setFocusableInTouchMode(true);\n        view.requestFocus();",
+        )
+        nvev.write_text(ntxt, encoding="utf-8")
+
+    # 3. Patch SAMP.java untuk shortcut Keyboard Fisik (T / F6 / Slash -> Buka Chat, ESC -> Back)
+    samp_java = java_root / "com" / "samp" / "mobile" / "game" / "SAMP.java"
+    stxt = samp_java.read_text(encoding="utf-8", errors="ignore")
+    old_key_down = re.compile(
+        r"@Override\s*public boolean onKeyDown\(int keyCode, KeyEvent event\)\s*\{.*?\n    \}",
         re.DOTALL,
     )
-    new_get_base = """public String GetGameBaseDirectory() {
-        try {
-            String resolved = com.samp.mobile.launcher.MainActivity.resolveGameDataDir(this);
-            this.baseDirectoryRoot = Environment.getExternalStorageDirectory().getAbsolutePath();
-            return resolved;
-        } catch (Exception e) {
-            return "/storage/emulated/0/GTA/";
+    new_key_down = """@Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            onEventBackPressed();
+            return true;
         }
+        // Shortcut Keyboard Fisik PC-Style: T, F6, atau '/' membuka Chat Box SA-MP
+        if (event != null && event.getRepeatCount() == 0) {
+            if (keyCode == KeyEvent.KEYCODE_T || keyCode == KeyEvent.KEYCODE_F6 || keyCode == KeyEvent.KEYCODE_SLASH) {
+                if (mKeyboard != null && !mDialog.isShow) {
+                    showKeyboard();
+                    return true;
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event);
     }"""
-    wtxt, _ = old_get_base.subn(new_get_base, wtxt, count=1)
-    warmedia_java.write_text(wtxt, encoding="utf-8")
+    stxt, _ = old_key_down.subn(new_key_down, stxt, count=1)
+    samp_java.write_text(stxt, encoding="utf-8")
 
-    # 6. Tulis MainActivity.java (Single-Screen XyVerse Roleplay Launcher + Smart Multi-Path Data Auto-Detector + Self-Healing Fonts)
+    # 4. Patch LoadingScreen.java & loadingscreen.xml agar tampil elegan & auto-hide tanpa menutupi OpenGL SurfaceView
+    loading_java = java_root / "com" / "samp" / "mobile" / "game" / "ui" / "LoadingScreen.java"
+    loading_java.write_text("""package com.samp.mobile.game.ui;
+
+import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import com.samp.mobile.R;
+
+public class LoadingScreen {
+    private final Activity activity;
+    private final ConstraintLayout mainLayout;
+
+    public LoadingScreen(Activity activity) {
+        this.activity = activity;
+        mainLayout = (ConstraintLayout) activity.getLayoutInflater().inflate(R.layout.loadingscreen, null);
+        activity.addContentView(mainLayout, new ConstraintLayout.LayoutParams(-1, -1));
+        // Auto-hide setelah 2.5 detik supaya OpenGL ImGui SplashScreen terlihat jelas & bebas blackscreen
+        new Handler(Looper.getMainLooper()).postDelayed(this::hide, 2500);
+    }
+
+    public void hide() {
+        if (mainLayout != null) {
+            mainLayout.setVisibility(View.GONE);
+            try {
+                if (mainLayout.getParent() instanceof ViewGroup) {
+                    ((ViewGroup) mainLayout.getParent()).removeView(mainLayout);
+                }
+            } catch (Throwable ignored) {}
+        }
+    }
+}
+""", encoding="utf-8")
+
+    (res_root / "layout" / "loadingscreen.xml").write_text(f"""<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background">
+
+    <ImageView
+        android:id="@+id/imageView3"
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38"
+        app:srcCompat="@drawable/logo" />
+
+    <TextView
+        android:id="@+id/loadingTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="{args.server_title}"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageView3" />
+
+    <TextView
+        android:id="@+id/loadingSub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Menyiapkan Engine GTA:SA &amp; OpenGL..."
+        android:textColor="#38BDF8"
+        android:textSize="13sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/loadingTitle" />
+
+    <ProgressBar
+        android:id="@+id/progressBar2"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="260dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:indeterminate="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/loadingSub" />
+</androidx.constraintlayout.widget.ConstraintLayout>
+""", encoding="utf-8")
+
+    print("[+] Patched WarGamepad.java, NvEventQueueActivity.java, SAMP.java, and LoadingScreen.java")
+
+
+def patch_launcher_dashboard_and_downloader(repo: Path, args):
+    app_main = repo / "app" / "src" / "main"
+    java_root = app_main / "java"
+    res_root = app_main / "res"
+    launcher_dir = java_root / "com" / "samp" / "mobile" / "launcher"
+
+    # Update Adaptive Icon XMLs
+    (res_root / "drawable" / "ic_launcher_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:startColor="#0B132B"
+        android:centerColor="#1E1B4B"
+        android:endColor="#3B0764"
+        android:angle="135" />
+</shape>
+""", encoding="utf-8")
+
+    (res_root / "drawable" / "background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:startColor="#090D1A"
+        android:centerColor="#131B36"
+        android:endColor="#1E113A"
+        android:angle="135"/>
+</shape>
+""", encoding="utf-8")
+
+    (res_root / "drawable" / "button.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="10dp" />
+    <gradient
+        android:startColor="#0284C7"
+        android:endColor="#7C3AED"
+        android:angle="0" />
+    <stroke android:width="1dp" android:color="#38BDF8" />
+</shape>
+""", encoding="utf-8")
+
+    # Tulis main_activity.xml: Modern Cyber Blue-Purple Dashboard dengan Sidebar + 3 Panel (Beranda/Downloader, Settings Lengkap, Peripherals)
+    (res_root / "layout" / "main_activity.xml").write_text(f"""<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/background"
+    android:baselineAligned="false">
+
+    <!-- SIDEBAR NAVIGASI KIRI -->
+    <LinearLayout
+        android:layout_width="215dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#B30B1021"
+        android:padding="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/logoImage"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/logo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/title1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="{args.app_name}"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/title2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ROLEPLAY CLIENT"
+                    android:textColor="#38BDF8"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/abiBadgeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="#331E293B"
+            android:padding="5dp"
+            android:gravity="center"
+            android:text="ABI: ARM64 / ARMv7"
+            android:textColor="#A78BFA"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="#2638BDF8" />
+
+        <Button
+            android:id="@+id/tabBtnHome"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="BERANDA &amp; DATA"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:background="#CC1D4ED8" />
+
+        <Button
+            android:id="@+id/tabBtnSettings"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:text="PENGATURAN (SETTINGS)"
+            android:textColor="#CBD5E1"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:background="#661E293B" />
+
+        <Button
+            android:id="@+id/tabBtnControls"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="8dp"
+            android:text="KEYBOARD / MOUSE / PAD"
+            android:textColor="#CBD5E1"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:background="#661E293B" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/authorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="{args.server_title} v2.0"
+            android:textColor="#64748B"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- AREA KONTEN UTAMA KANAN -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:padding="14dp">
+
+        <!-- ================= PANEL 1: BERANDA & IN-APP DATA DOWNLOADER ================= -->
+        <ScrollView
+            android:id="@+id/panelHome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Kartu Input Akun & Tombol Play -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="#99111827"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AKUN ROLEPLAY &amp; KONEKSI SERVER"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/nicknameInput"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="1.2"
+                            android:background="#CC1E293B"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="Nickname (Nama_Roleplay)"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#94A3B8"
+                            android:textSize="13sp"
+                            android:singleLine="true"
+                            android:maxLength="20"
+                            android:inputType="textPersonName|textNoSuggestions"
+                            android:imeOptions="actionDone" />
+
+                        <EditText
+                            android:id="@+id/passwordInput"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="0.8"
+                            android:layout_marginStart="8dp"
+                            android:background="#CC1E293B"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="Password Server (Opsional)"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#64748B"
+                            android:textSize="12sp"
+                            android:singleLine="true"
+                            android:inputType="textPassword"
+                            android:imeOptions="actionDone" />
+
+                        <Button
+                            android:id="@+id/startButton"
+                            android:layout_width="165dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="10dp"
+                            android:background="@drawable/button"
+                            android:text="MASUK SERVER"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Kartu Status Data GTA & In-App Data Downloader -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    android:background="#99111827"
+                    android:padding="14dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="MANAJER DATA GTA:SA (SUPPORT LITE &amp; FULL TANPA OBB)"
+                            android:textColor="#A78BFA"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/dataBadgeStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="3dp"
+                            android:paddingBottom="3dp"
+                            android:background="#3310B981"
+                            android:text="MENGECEK DATA..."
+                            android:textColor="#34D399"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/bugText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Mendeteksi direktori data GTA..."
+                        android:textColor="#E2E8F0"
+                        android:textSize="11sp" />
+
+                    <ProgressBar
+                        android:id="@+id/downloadProgressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/downloadStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Siap mengunduh data langsung di dalam aplikasi (Auto-Extract)."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnDownloadLite"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:background="#CC0284C7"
+                            android:text="DOWNLOAD DATA LITE"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnDownloadFull"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:background="#CC7C3AED"
+                            android:text="DOWNLOAD DATA FULL"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnCustomUrl"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="0.9"
+                            android:layout_marginStart="8dp"
+                            android:background="#CC334155"
+                            android:text="URL ZIP CUSTOM"
+                            android:textColor="#E2E8F0"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PANEL 2: PENGATURAN LENGKAP (SETTINGS) ================= -->
+        <ScrollView
+            android:id="@+id/panelSettings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#99111827"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PENGATURAN GRAFIS, CHAT &amp; FITUR GAME (SAMP/settings.ini)"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <!-- Pilihan FPS Limit -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="130dp"
+                        android:layout_height="wrap_content"
+                        android:text="Batas FPS Game:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnFps30"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:background="#661E293B"
+                        android:text="30 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps60"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#CC0284C7"
+                        android:text="60 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps90"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#661E293B"
+                        android:text="90 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps120"
+                        android:layout_width="70dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#661E293B"
+                        android:text="120 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Pilihan Baris Chat & Ukuran Font -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="130dp"
+                        android:layout_height="wrap_content"
+                        android:text="Jumlah Baris Chat:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnChat5"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:background="#661E293B"
+                        android:text="5 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat7"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#CC0284C7"
+                        android:text="7 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat9"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#661E293B"
+                        android:text="9 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat12"
+                        android:layout_width="70dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="#661E293B"
+                        android:text="12 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Grid CheckBox Pengaturan Fitur -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <CheckBox
+                            android:id="@+id/cbVoiceChat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Voice Chat In-Game (Mic)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbFpsCounter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Tampilkan FPS Counter"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbFirstPerson"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Mode Kamera First-Person (FPP)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbCutout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Full Screen (Layar Poni/Cutout)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbAndroidKeyboard"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Gunakan Keyboard Sistem Android"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <CheckBox
+                            android:id="@+id/cbHpArmourText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Tampilkan Angka HP &amp; Armour"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbOutfitGuns"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Senjata Terlihat di Badan (Outfit)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbRadarRect"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Bentuk Radar Kotak (Rect Radar)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbPcMoney"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Format Uang Gaya PC ($00000000)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbSkyBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Efek Langit HD (SkyBox)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbSnow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Efek Salju (Winter Snow)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnSaveSettings"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/button"
+                        android:text="SIMPAN PENGATURAN"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnResetSettings"
+                        android:layout_width="160dp"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="10dp"
+                        android:background="#CC334155"
+                        android:text="RESET DEFAULT"
+                        android:textColor="#E2E8F0"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PANEL 3: KEYBOARD FISIK, MOUSE & GAMEPAD ================= -->
+        <ScrollView
+            android:id="@+id/panelControls"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#99111827"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DUKUNGAN KEYBOARD FISIK, MOUSE (OTG/BT) &amp; GAMEPAD CONTROLLER"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/peripheralStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="#661E293B"
+                    android:padding="10dp"
+                    android:text="Memindai perangkat USB OTG / Bluetooth..."
+                    android:textColor="#34D399"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <CheckBox
+                    android:id="@+id/cbEnableKeyboardMouse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="true"
+                    android:text="Aktifkan Kontrol Keyboard Fisik (WASD + Chat T/F6) &amp; Mouse (Klik Kiri/Kanan)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <CheckBox
+                    android:id="@+id/cbEnableGamepad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Aktifkan Kontrol Gamepad / Joystick (PS4, PS5, Xbox, MOGA, USB/BT Pad)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="• Keyboard Fisik: WASD = Jalan/Setir | Space = Lompat/Rem | Shift = Lari | F / Enter = Masuk Kendaraan | C = Jongkok | H = Klakson | Q/E = Ganti Senjata | T / F6 / '/' = Buka Chat SA-MP | ESC = Menu/Kembali\n• Mouse OTG/BT: Klik Kiri = Tembak/Pukul | Klik Kanan = Bidik (Aim) | Scroll = Ganti Senjata | Klik Tengah = Lihat Belakang\n• Gamepad: Analog Kiri = Gerak | Analog Kanan = Kamera | R2/B = Tembak | L2/R1 = Bidik | Y/Segitiga = Kendaraan | A/Silang = Lari | X/Kotak = Lompat"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/btnRefreshDevices"
+                    android:layout_width="200dp"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="10dp"
+                    android:background="#CC0284C7"
+                    android:text="SCAN ULANG PERANGKAT"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+</LinearLayout>
+""", encoding="utf-8")
+
+    (res_root / "values" / "strings.xml").write_text(f"""<resources>
+    <string name="app_name">{args.app_name}</string>
+    <string name="play_bth">MASUK SERVER</string>
+    <string name="samp_ver">{args.server_title}</string>
+    <string name="client_name">{args.app_name}</string>
+    <string name="bug_info">Support Data Lite &amp; Data Full (Tanpa OBB)</string>
+    <string name="authors">{args.server_title}</string>
+</resources>
+""", encoding="utf-8")
+
+    # Tulis MainActivity.java lengkap dengan 3 Tab + Settings Manager + In-App Data Downloader & Auto-Unzip + Peripheral Detector
     cert_pin = (args.cert_sha256 or "").strip().lower().replace(":", "")
     main_activity_java = launcher_dir / "MainActivity.java"
     main_activity_java.write_text(f"""package com.samp.mobile.launcher;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -958,11 +1652,15 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.InputDevice;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -973,31 +1671,66 @@ import androidx.core.content.ContextCompat;
 
 import com.samp.mobile.R;
 import com.samp.mobile.game.SAMP;
+import com.wardrumstudios.utils.WarGamepad;
 
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class MainActivity extends AppCompatActivity {{
-    private static final String PREFS_NAME = "samp_launcher_prefs";
+    private static final String PREFS_NAME = "lombok_holiday_prefs";
     private static final String KEY_NICKNAME = "player_nickname";
-    private static final String KEY_DATA_DIR = "active_data_dir";
+    private static final String KEY_PASSWORD = "server_password";
+    private static final String KEY_FPS = "fps_limit";
+    private static final String KEY_CHAT_LINES = "chat_lines";
+    private static final String KEY_CUSTOM_ZIP_URL = "custom_zip_url";
     private static final String DEFAULT_NICK = "{args.default_nick}";
     private static final int LOCKED_PORT = {args.port};
-    // SHA-256 Official Release Keystore Pinning (Anti-Repackage / Anti-Mod APK)
     private static final String EXPECTED_CERT_SHA256 = "{cert_pin}";
+    private static final String REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/xykal/XySAMP-Mobile/main/data-config.json";
+
+    private String liteDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip";
+    private String fullDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private Button startButton;
-    private EditText nicknameInput;
-    private TextView title1, title2, authorText, bugText;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private volatile boolean isDownloading = false;
+
+    // UI Elements
+    private Button tabBtnHome, tabBtnSettings, tabBtnControls;
+    private ScrollView panelHome, panelSettings, panelControls;
+    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl;
+    private Button btnFps30, btnFps60, btnFps90, btnFps120;
+    private Button btnChat5, btnChat7, btnChat9, btnChat12;
+    private Button btnSaveSettings, btnResetSettings, btnRefreshDevices;
+    private EditText nicknameInput, passwordInput;
+    private TextView abiBadgeText, dataBadgeStatus, bugText, downloadStatusText, peripheralStatusText;
+    private ProgressBar downloadProgressBar;
+
+    private CheckBox cbVoiceChat, cbFpsCounter, cbFirstPerson, cbCutout, cbAndroidKeyboard;
+    private CheckBox cbHpArmourText, cbOutfitGuns, cbRadarRect, cbPcMoney, cbSkyBox, cbSnow;
+    private CheckBox cbEnableKeyboardMouse, cbEnableGamepad;
+
+    private int selectedFps = 60;
+    private int selectedChatLines = 7;
     private boolean storagePermissionGranted = false;
 
     private final ActivityResultLauncher<String[]> requestStoragePermissionLauncher =
@@ -1009,30 +1742,19 @@ public class MainActivity extends AppCompatActivity {{
                         break;
                     }}
                 }}
-
                 if (allGranted) {{
                     storagePermissionGranted = true;
                     onPermissionReady();
                 }} else {{
-                    storagePermissionGranted = false;
-                    Toast.makeText(this, "Izin penyimpanan diperlukan untuk membaca data GTA SA", Toast.LENGTH_LONG).show();
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {{
-                        requestManageStoragePermission();
-                    }}
+                    storagePermissionGranted = true; // App-specific external files dir tetap bisa diakses tanpa izin di Android 10+
+                    onPermissionReady();
                 }}
             }});
 
     private final ActivityResultLauncher<Intent> manageStorageLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {{
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {{
-                    if (Environment.isExternalStorageManager()) {{
-                        storagePermissionGranted = true;
-                        onPermissionReady();
-                    }} else {{
-                        storagePermissionGranted = false;
-                        Toast.makeText(this, "Berikan izin 'Akses Semua File' agar game bisa berjalan", Toast.LENGTH_LONG).show();
-                    }}
-                }}
+                storagePermissionGranted = true;
+                onPermissionReady();
             }});
 
     @Override
@@ -1050,30 +1772,429 @@ public class MainActivity extends AppCompatActivity {{
             }} else {{
                 markTampered(false);
             }}
-            setupClickListeners();
+            setupTabsAndListeners();
             checkAndRequestStoragePermission();
-            if (storagePermissionGranted) {{
-                onPermissionReady();
-            }}
+            onPermissionReady();
+            fetchRemoteDataConfig();
+            refreshPeripheralsStatus();
         }} catch (Exception e) {{
             finish();
+        }}
+    }}
+
+    private void initViews() {{
+        tabBtnHome = findViewById(R.id.tabBtnHome);
+        tabBtnSettings = findViewById(R.id.tabBtnSettings);
+        tabBtnControls = findViewById(R.id.tabBtnControls);
+
+        panelHome = findViewById(R.id.panelHome);
+        panelSettings = findViewById(R.id.panelSettings);
+        panelControls = findViewById(R.id.panelControls);
+
+        abiBadgeText = findViewById(R.id.abiBadgeText);
+        if (abiBadgeText != null) {{
+            String abi = (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
+            abiBadgeText.setText("ABI AKTIF: " + abi.toUpperCase(Locale.ROOT));
+        }}
+
+        nicknameInput = findViewById(R.id.nicknameInput);
+        passwordInput = findViewById(R.id.passwordInput);
+        startButton = findViewById(R.id.startButton);
+
+        dataBadgeStatus = findViewById(R.id.dataBadgeStatus);
+        bugText = findViewById(R.id.bugText);
+        downloadProgressBar = findViewById(R.id.downloadProgressBar);
+        downloadStatusText = findViewById(R.id.downloadStatusText);
+        btnDownloadLite = findViewById(R.id.btnDownloadLite);
+        btnDownloadFull = findViewById(R.id.btnDownloadFull);
+        btnCustomUrl = findViewById(R.id.btnCustomUrl);
+
+        btnFps30 = findViewById(R.id.btnFps30);
+        btnFps60 = findViewById(R.id.btnFps60);
+        btnFps90 = findViewById(R.id.btnFps90);
+        btnFps120 = findViewById(R.id.btnFps120);
+
+        btnChat5 = findViewById(R.id.btnChat5);
+        btnChat7 = findViewById(R.id.btnChat7);
+        btnChat9 = findViewById(R.id.btnChat9);
+        btnChat12 = findViewById(R.id.btnChat12);
+
+        cbVoiceChat = findViewById(R.id.cbVoiceChat);
+        cbFpsCounter = findViewById(R.id.cbFpsCounter);
+        cbFirstPerson = findViewById(R.id.cbFirstPerson);
+        cbCutout = findViewById(R.id.cbCutout);
+        cbAndroidKeyboard = findViewById(R.id.cbAndroidKeyboard);
+        cbHpArmourText = findViewById(R.id.cbHpArmourText);
+        cbOutfitGuns = findViewById(R.id.cbOutfitGuns);
+        cbRadarRect = findViewById(R.id.cbRadarRect);
+        cbPcMoney = findViewById(R.id.cbPcMoney);
+        cbSkyBox = findViewById(R.id.cbSkyBox);
+        cbSnow = findViewById(R.id.cbSnow);
+
+        btnSaveSettings = findViewById(R.id.btnSaveSettings);
+        btnResetSettings = findViewById(R.id.btnResetSettings);
+
+        peripheralStatusText = findViewById(R.id.peripheralStatusText);
+        cbEnableKeyboardMouse = findViewById(R.id.cbEnableKeyboardMouse);
+        cbEnableGamepad = findViewById(R.id.cbEnableGamepad);
+        btnRefreshDevices = findViewById(R.id.btnRefreshDevices);
+    }}
+
+    private void switchTab(int tabIndex) {{
+        panelHome.setVisibility(tabIndex == 0 ? View.VISIBLE : View.GONE);
+        panelSettings.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
+        panelControls.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
+
+        tabBtnHome.setBackgroundColor(tabIndex == 0 ? 0xCC1D4ED8 : 0x661E293B);
+        tabBtnSettings.setBackgroundColor(tabIndex == 1 ? 0xCC1D4ED8 : 0x661E293B);
+        tabBtnControls.setBackgroundColor(tabIndex == 2 ? 0xCC1D4ED8 : 0x661E293B);
+
+        if (tabIndex == 2) {{
+            refreshPeripheralsStatus();
+        }}
+    }}
+
+    private void updateFpsButtons(int fps) {{
+        selectedFps = fps;
+        btnFps30.setBackgroundColor(fps == 30 ? 0xCC0284C7 : 0x661E293B);
+        btnFps60.setBackgroundColor(fps == 60 ? 0xCC0284C7 : 0x661E293B);
+        btnFps90.setBackgroundColor(fps == 90 ? 0xCC0284C7 : 0x661E293B);
+        btnFps120.setBackgroundColor(fps == 120 ? 0xCC0284C7 : 0x661E293B);
+    }}
+
+    private void updateChatLineButtons(int lines) {{
+        selectedChatLines = lines;
+        btnChat5.setBackgroundColor(lines == 5 ? 0xCC0284C7 : 0x661E293B);
+        btnChat7.setBackgroundColor(lines == 7 ? 0xCC0284C7 : 0x661E293B);
+        btnChat9.setBackgroundColor(lines == 9 ? 0xCC0284C7 : 0x661E293B);
+        btnChat12.setBackgroundColor(lines == 12 ? 0xCC0284C7 : 0x661E293B);
+    }}
+
+    private void setupTabsAndListeners() {{
+        tabBtnHome.setOnClickListener(v -> switchTab(0));
+        tabBtnSettings.setOnClickListener(v -> switchTab(1));
+        tabBtnControls.setOnClickListener(v -> switchTab(2));
+
+        btnFps30.setOnClickListener(v -> updateFpsButtons(30));
+        btnFps60.setOnClickListener(v -> updateFpsButtons(60));
+        btnFps90.setOnClickListener(v -> updateFpsButtons(90));
+        btnFps120.setOnClickListener(v -> updateFpsButtons(120));
+
+        btnChat5.setOnClickListener(v -> updateChatLineButtons(5));
+        btnChat7.setOnClickListener(v -> updateChatLineButtons(7));
+        btnChat9.setOnClickListener(v -> updateChatLineButtons(9));
+        btnChat12.setOnClickListener(v -> updateChatLineButtons(12));
+
+        btnSaveSettings.setOnClickListener(v -> {{
+            String nick = sanitizeNick(nicknameInput.getText().toString());
+            if (nick.isEmpty()) nick = DEFAULT_NICK;
+            saveAllSettingsToIni(nick);
+            Toast.makeText(this, "Pengaturan berhasil disimpan ke SAMP/settings.ini!", Toast.LENGTH_SHORT).show();
+        }});
+
+        btnResetSettings.setOnClickListener(v -> {{
+            updateFpsButtons(60);
+            updateChatLineButtons(7);
+            cbVoiceChat.setChecked(true);
+            cbFpsCounter.setChecked(true);
+            cbFirstPerson.setChecked(true);
+            cbCutout.setChecked(true);
+            cbAndroidKeyboard.setChecked(false);
+            cbHpArmourText.setChecked(true);
+            cbOutfitGuns.setChecked(true);
+            cbRadarRect.setChecked(false);
+            cbPcMoney.setChecked(false);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+            String nick = sanitizeNick(nicknameInput.getText().toString());
+            if (nick.isEmpty()) nick = DEFAULT_NICK;
+            saveAllSettingsToIni(nick);
+            Toast.makeText(this, "Pengaturan dikembalikan ke default!", Toast.LENGTH_SHORT).show();
+        }});
+
+        cbEnableKeyboardMouse.setOnCheckedChangeListener((b, checked) -> WarGamepad.sEnableKeyboardMouse = checked);
+        cbEnableGamepad.setOnCheckedChangeListener((b, checked) -> WarGamepad.sEnableGamepad = checked);
+        btnRefreshDevices.setOnClickListener(v -> refreshPeripheralsStatus());
+
+        btnDownloadLite.setOnClickListener(v -> startInAppDataDownload(liteDataUrl, "Data Lite"));
+        btnDownloadFull.setOnClickListener(v -> startInAppDataDownload(fullDataUrl, "Data Full"));
+        btnCustomUrl.setOnClickListener(v -> showCustomUrlDialog());
+
+        startButton.setOnClickListener(v -> {{
+            v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80)
+                    .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(80).start())
+                    .start();
+            startGame();
+        }});
+    }}
+
+    private void refreshPeripheralsStatus() {{
+        if (peripheralStatusText == null) return;
+        boolean hasKb = WarGamepad.hasConnectedKeyboard();
+        boolean hasMouse = WarGamepad.hasConnectedMouse();
+        boolean hasPad = WarGamepad.hasConnectedGamepad();
+
+        List<String> names = new ArrayList<>();
+        try {{
+            for (int id : InputDevice.getDeviceIds()) {{
+                InputDevice d = InputDevice.getDevice(id);
+                if (d != null && !d.isVirtual()) {{
+                    int s = d.getSources();
+                    if ((s & InputDevice.SOURCE_GAMEPAD) != 0 || (s & InputDevice.SOURCE_JOYSTICK) != 0 ||
+                        (s & InputDevice.SOURCE_MOUSE) != 0 ||
+                        ((s & InputDevice.SOURCE_KEYBOARD) != 0 && d.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC)) {{
+                        names.add(d.getName());
+                    }}
+                }}
+            }}
+        }} catch (Throwable ignored) {{}}
+
+        String status = String.format(Locale.ROOT,
+                "Status Perangkat: Keyboard Fisik [%s] | Mouse OTG/BT [%s] | Gamepad [%s]%s",
+                hasKb ? "TERHUBUNG" : "SIAP",
+                hasMouse ? "TERHUBUNG" : "SIAP",
+                hasPad ? "TERHUBUNG" : "SIAP",
+                names.isEmpty() ? "" : ("\nPerangkat Terdeteksi: " + String.join(", ", names)));
+        peripheralStatusText.setText(status);
+    }}
+
+    private void fetchRemoteDataConfig() {{
+        executor.execute(() -> {{
+            try {{
+                HttpURLConnection conn = (HttpURLConnection) new URL(REMOTE_CONFIG_URL).openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                if (conn.getResponseCode() == 200) {{
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {{
+                        String line;
+                        while ((line = br.readLine()) != null) sb.append(line);
+                    }}
+                    JSONObject obj = new JSONObject(sb.toString());
+                    if (obj.has("data_lite")) {{
+                        JSONObject lite = obj.getJSONObject("data_lite");
+                        liteDataUrl = lite.optString("url", liteDataUrl);
+                    }}
+                    if (obj.has("data_full")) {{
+                        JSONObject full = obj.getJSONObject("data_full");
+                        fullDataUrl = full.optString("url", fullDataUrl);
+                    }}
+                }}
+            }} catch (Exception ignored) {{}}
+        }});
+    }}
+
+    private void showCustomUrlDialog() {{
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        final EditText input = new EditText(this);
+        input.setHint("https://example.com/Data-GTA-Lite.zip");
+        input.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, liteDataUrl));
+        input.setSingleLine(true);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Download Data GTA (.zip) dari URL")
+                .setMessage("Masukkan link direct download file .zip Data GTA (Lite/Full). Aplikasi akan otomatis mengunduh dan mengekstrak ke folder data game:")
+                .setView(input)
+                .setPositiveButton("Download & Ekstrak", (d, w) -> {{
+                    String url = input.getText().toString().trim();
+                    if (!url.startsWith("http")) {{
+                        Toast.makeText(this, "URL harus diawali http:// atau https://", Toast.LENGTH_LONG).show();
+                        return;
+                    }}
+                    prefs.edit().putString(KEY_CUSTOM_ZIP_URL, url).apply();
+                    startInAppDataDownload(url, "Data Custom ZIP");
+                }})
+                .setNegativeButton("Batal", null)
+                .show();
+    }}
+
+    private File getPreferredWritableDataDir() {{
+        try {{
+            File ext = getExternalFilesDir(null);
+            if (ext != null) {{
+                if (!ext.exists()) ext.mkdirs();
+                return ext;
+            }}
+        }} catch (Exception ignored) {{}}
+        File gta = new File("/storage/emulated/0/GTA/");
+        if (!gta.exists()) gta.mkdirs();
+        return gta;
+    }}
+
+    private void startInAppDataDownload(final String zipUrl, final String label) {{
+        if (isDownloading) {{
+            Toast.makeText(this, "Unduhan sedang berjalan, harap tunggu...", Toast.LENGTH_SHORT).show();
+            return;
+        }}
+        isDownloading = true;
+        downloadProgressBar.setVisibility(View.VISIBLE);
+        downloadProgressBar.setIndeterminate(false);
+        downloadProgressBar.setProgress(0);
+        downloadStatusText.setText("Menghubungkan ke server unduhan " + label + "...");
+
+        executor.execute(() -> {{
+            File targetDir = getPreferredWritableDataDir();
+            File tempZip = new File(targetDir, "lombok_data_download.zip.part");
+            HttpURLConnection conn = null;
+            try {{
+                long existingBytes = tempZip.exists() ? tempZip.length() : 0L;
+                URL url = new URL(zipUrl);
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setInstanceFollowRedirects(true);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                if (existingBytes > 0) {{
+                    conn.setRequestProperty("Range", "bytes=" + existingBytes + "-");
+                }}
+                int code = conn.getResponseCode();
+                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {{
+                    if (existingBytes > 0) {{
+                        tempZip.delete();
+                        existingBytes = 0;
+                        conn.disconnect();
+                        conn = (HttpURLConnection) url.openConnection();
+                        conn.setInstanceFollowRedirects(true);
+                        code = conn.getResponseCode();
+                    }}
+                }}
+                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {{
+                    final int errCode = code;
+                    handler.post(() -> {{
+                        isDownloading = false;
+                        downloadStatusText.setText("Link unduhan belum tersedia (HTTP " + errCode + "). Gunakan tombol 'URL ZIP CUSTOM' atau unggah file .zip ke Release GitHub.");
+                        Toast.makeText(MainActivity.this, "Server mengembalikan HTTP " + errCode + ". Klik 'URL ZIP CUSTOM' untuk memasukkan link .zip data Anda.", Toast.LENGTH_LONG).show();
+                    }});
+                    return;
+                }}
+
+                long contentLength = conn.getContentLengthLong();
+                long totalBytes = (code == HttpURLConnection.HTTP_PARTIAL && contentLength > 0)
+                        ? (existingBytes + contentLength)
+                        : contentLength;
+                boolean append = (code == HttpURLConnection.HTTP_PARTIAL);
+
+                try (InputStream in = new BufferedInputStream(conn.getInputStream(), 65536);
+                     FileOutputStream fos = new FileOutputStream(tempZip, append)) {{
+                    byte[] buf = new byte[65536];
+                    long downloaded = append ? existingBytes : 0L;
+                    long lastUpdate = System.currentTimeMillis();
+                    long bytesAtLastUpdate = downloaded;
+                    int n;
+                    while ((n = in.read(buf)) != -1) {{
+                        fos.write(buf, 0, n);
+                        downloaded += n;
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdate >= 250) {{
+                            long deltaB = downloaded - bytesAtLastUpdate;
+                            double speedMb = (deltaB / 1048576.0) / ((now - lastUpdate) / 1000.0);
+                            int pct = (totalBytes > 0) ? (int) ((downloaded * 100L) / totalBytes) : 0;
+                            final double dlMb = downloaded / 1048576.0;
+                            final double totMb = totalBytes > 0 ? (totalBytes / 1048576.0) : 0.0;
+                            final int fPct = pct;
+                            final double fSpd = speedMb;
+                            handler.post(() -> {{
+                                downloadProgressBar.setProgress(fPct);
+                                downloadStatusText.setText(String.format(Locale.ROOT,
+                                        "Mengunduh %s: %.1f / %.1f MB (%d%%) — %.2f MB/s",
+                                        label, dlMb, totMb, fPct, fSpd));
+                            }});
+                            lastUpdate = now;
+                            bytesAtLastUpdate = downloaded;
+                        }}
+                    }}
+                    fos.flush();
+                }}
+
+                handler.post(() -> {{
+                    downloadProgressBar.setIndeterminate(true);
+                    downloadStatusText.setText("Mengekstrak " + label + " ke " + targetDir.getAbsolutePath() + " ...");
+                }});
+
+                extractZipSmart(tempZip, targetDir);
+                tempZip.delete();
+                provisionSampDirectory(targetDir);
+
+                handler.post(() -> {{
+                    isDownloading = false;
+                    downloadProgressBar.setIndeterminate(false);
+                    downloadProgressBar.setProgress(100);
+                    String active = resolveGameDataDir(MainActivity.this);
+                    updateDataStatusLabel(active);
+                    downloadStatusText.setText("Selesai! " + label + " berhasil dipasang di: " + active);
+                    Toast.makeText(MainActivity.this, label + " selesai diunduh & diekstrak! Siap dimainkan.", Toast.LENGTH_LONG).show();
+                }});
+            }} catch (Exception e) {{
+                final String msg = e.getMessage();
+                handler.post(() -> {{
+                    isDownloading = false;
+                    downloadProgressBar.setIndeterminate(false);
+                    downloadStatusText.setText("Unduhan terhenti: " + msg + " (Klik lagi untuk Resume otomatis)");
+                }});
+            }} finally {{
+                if (conn != null) conn.disconnect();
+            }}
+        }});
+    }}
+
+    private void extractZipSmart(File zipFile, File targetRoot) throws Exception {{
+        String[] knownRoots = new String[]{{"texdb/", "models/", "data/", "anim/", "audio/", "samp/"}};
+        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile), 65536))) {{
+            ZipEntry entry;
+            byte[] buffer = new byte[65536];
+            while ((entry = zis.getNextEntry()) != null) {{
+                String rawName = entry.getName().replace('\\\\', '/');
+                while (rawName.startsWith("/")) rawName = rawName.substring(1);
+                if (rawName.contains("..")) continue;
+
+                // Normalisasi apabila di dalam ZIP ada subfolder pembungkus (misal "com.rockstargames.gtasa/files/texdb/...")
+                String lower = rawName.toLowerCase(Locale.ROOT);
+                for (String kr : knownRoots) {{
+                    int idx = lower.indexOf(kr);
+                    if (idx > 0 && rawName.charAt(idx - 1) == '/') {{
+                        rawName = rawName.substring(idx);
+                        break;
+                    }}
+                }}
+
+                File outFile = new File(targetRoot, rawName);
+                if (entry.isDirectory()) {{
+                    outFile.mkdirs();
+                }} else {{
+                    File parent = outFile.getParentFile();
+                    if (parent != null && !parent.exists()) parent.mkdirs();
+                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile), 65536)) {{
+                        int len;
+                        while ((len = zis.read(buffer)) != -1) {{
+                            bos.write(buffer, 0, len);
+                        }}
+                        bos.flush();
+                    }}
+                }}
+                zis.closeEntry();
+            }}
         }}
     }}
 
     private void onPermissionReady() {{
         String dir = resolveGameDataDir(this);
         provisionSampDirectory(new File(dir));
-        loadSavedNickname();
+        loadSavedSettings();
         updateDataStatusLabel(dir);
     }}
 
     private void updateDataStatusLabel(String dir) {{
-        if (bugText == null) return;
+        if (bugText == null || dataBadgeStatus == null) return;
         File d = new File(dir);
         if (hasGtaCache(d)) {{
-            bugText.setText("Data Terdeteksi (Lite/Full Tanpa OBB): " + dir);
+            dataBadgeStatus.setText("DATA SIAP (TANPA OBB)");
+            dataBadgeStatus.setTextColor(0xFF34D399);
+            dataBadgeStatus.setBackgroundColor(0x3310B981);
+            bugText.setText("Lokasi Data Aktif: " + dir);
         }} else {{
-            bugText.setText("Taruh folder data GTA (Lite/Full) di: /sdcard/GTA/ atau /Android/data/com.samp.mobile/files/");
+            dataBadgeStatus.setText("DATA BELUM ADA");
+            dataBadgeStatus.setTextColor(0xFFFBBF24);
+            dataBadgeStatus.setBackgroundColor(0x33F59E0B);
+            bugText.setText("Data GTA belum ditemukan. Klik tombol 'DOWNLOAD DATA LITE / FULL' di bawah atau taruh folder data GTA di /sdcard/GTA/");
         }}
     }}
 
@@ -1095,7 +2216,6 @@ public class MainActivity extends AppCompatActivity {{
 
     public static String resolveGameDataDir(Context ctx) {{
         List<String> candidates = new ArrayList<>();
-        candidates.add("/storage/emulated/0/GTA/");
         try {{
             File ext = ctx.getExternalFilesDir(null);
             if (ext != null) {{
@@ -1104,6 +2224,8 @@ public class MainActivity extends AppCompatActivity {{
                 candidates.add(p);
             }}
         }} catch (Exception ignored) {{}}
+        candidates.add("/storage/emulated/0/Android/data/{args.package_id}/files/");
+        candidates.add("/storage/emulated/0/GTA/");
         candidates.add("/storage/emulated/0/Android/data/com.samp.mobile/files/");
         candidates.add("/storage/emulated/0/Android/data/com.gta.game/files/");
         candidates.add("/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/");
@@ -1116,6 +2238,13 @@ public class MainActivity extends AppCompatActivity {{
                 return c.endsWith("/") ? c : (c + "/");
             }}
         }}
+        try {{
+            File ext = ctx.getExternalFilesDir(null);
+            if (ext != null) {{
+                String p = ext.getAbsolutePath();
+                return p.endsWith("/") ? p : (p + "/");
+            }}
+        }} catch (Exception ignored) {{}}
         return "/storage/emulated/0/GTA/";
     }}
 
@@ -1126,7 +2255,6 @@ public class MainActivity extends AppCompatActivity {{
             if (!fontsDir.exists()) {{
                 fontsDir.mkdirs();
             }}
-            // Pastikan arial.ttf & arial_bold.ttf selalu ada agar ImGui tidak pernah gagal / blackscreen
             String[] fontTargets = new String[]{{ "arial.ttf", "Arial.ttf", "arial_bold.ttf" }};
             for (String ft : fontTargets) {{
                 File outFont = new File(fontsDir, ft);
@@ -1203,15 +2331,6 @@ public class MainActivity extends AppCompatActivity {{
         }} catch (Exception ignored) {{ }}
     }}
 
-    private void initViews() {{
-        title1 = findViewById(R.id.title1);
-        title2 = findViewById(R.id.title2);
-        authorText = findViewById(R.id.authorText);
-        bugText = findViewById(R.id.bugText);
-        startButton = findViewById(R.id.startButton);
-        nicknameInput = findViewById(R.id.nicknameInput);
-    }}
-
     private String sanitizeNick(String raw) {{
         if (raw == null) return "";
         String s = raw.trim().replace(' ', '_');
@@ -1220,12 +2339,14 @@ public class MainActivity extends AppCompatActivity {{
         return s;
     }}
 
-    private void loadSavedNickname() {{
-        if (nicknameInput == null) return;
+    private void loadSavedSettings() {{
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        String saved = prefs.getString(KEY_NICKNAME, "");
+        String savedNick = prefs.getString(KEY_NICKNAME, "");
+        String savedPass = prefs.getString(KEY_PASSWORD, "");
+        int fps = prefs.getInt(KEY_FPS, 60);
+        int lines = prefs.getInt(KEY_CHAT_LINES, 7);
 
-        if (saved.isEmpty()) {{
+        if (savedNick.isEmpty()) {{
             File ini = new File(resolveGameDataDir(this), "SAMP/settings.ini");
             if (ini.exists()) {{
                 try (BufferedReader br = new BufferedReader(
@@ -1236,7 +2357,7 @@ public class MainActivity extends AppCompatActivity {{
                         if (trimmed.toLowerCase().startsWith("name=")) {{
                             String val = trimmed.substring(5).trim();
                             if (!val.isEmpty() && !val.startsWith("__android_") && !val.equals("Nick_Name")) {{
-                                saved = val;
+                                savedNick = val;
                                 break;
                             }}
                         }}
@@ -1245,83 +2366,83 @@ public class MainActivity extends AppCompatActivity {{
             }}
         }}
 
-        if (!saved.isEmpty() && !saved.equals(DEFAULT_NICK)) {{
-            nicknameInput.setText(saved);
+        if (nicknameInput != null && !savedNick.isEmpty() && !savedNick.equals(DEFAULT_NICK)) {{
+            nicknameInput.setText(savedNick);
         }}
+        if (passwordInput != null && !savedPass.isEmpty()) {{
+            passwordInput.setText(savedPass);
+        }}
+        updateFpsButtons(fps);
+        updateChatLineButtons(lines);
     }}
 
-    private boolean saveNicknameToIni(String nick) {{
+    private boolean saveAllSettingsToIni(String nick) {{
         String activeDir = resolveGameDataDir(this);
-        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().putString(KEY_NICKNAME, nick).putString(KEY_DATA_DIR, activeDir).apply();
+        String pass = (passwordInput != null) ? passwordInput.getText().toString().trim() : "";
 
-        String[] targetDirs = new String[]{{
-                activeDir,
-                "/storage/emulated/0/GTA/"
-        }};
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_NICKNAME, nick)
+                .putString(KEY_PASSWORD, pass)
+                .putInt(KEY_FPS, selectedFps)
+                .putInt(KEY_CHAT_LINES, selectedChatLines)
+                .apply();
+
+        List<String> targetDirs = new ArrayList<>();
+        targetDirs.add(activeDir);
+        try {{
+            File ext = getExternalFilesDir(null);
+            if (ext != null) {{
+                String p = ext.getAbsolutePath() + "/";
+                if (!targetDirs.contains(p)) targetDirs.add(p);
+            }}
+        }} catch (Exception ignored) {{}}
+        if (!targetDirs.contains("/storage/emulated/0/GTA/")) {{
+            targetDirs.add("/storage/emulated/0/GTA/");
+        }}
+
+        String iniContent = "[client]\\n"
+                + "name=" + nick + "\\n"
+                + "host=127.0.0.1\\n"
+                + "port=" + LOCKED_PORT + "\\n"
+                + "password=" + pass + "\\n"
+                + "version=0.3.7\\n"
+                + "autoaim=false\\n\\n"
+                + "[debug]\\n"
+                + "debug=false\\n"
+                + "online=true\\n\\n"
+                + "[gui]\\n"
+                + "Font=arial.ttf\\n"
+                + "FontSize=30.0\\n"
+                + "FontOutline=2\\n"
+                + "ChatPosX=325.0\\n"
+                + "ChatPosY=25.0\\n"
+                + "ChatSizeX=1150.0\\n"
+                + "ChatSizeY=220.0\\n"
+                + "ChatMaxMessages=" + selectedChatLines + "\\n"
+                + "FPSLimit=" + selectedFps + "\\n"
+                + "VoiceChatEnable=" + (cbVoiceChat != null && cbVoiceChat.isChecked() ? "true" : "false") + "\\n"
+                + "fps=" + (cbFpsCounter != null && cbFpsCounter.isChecked() ? "true" : "false") + "\\n"
+                + "firstperson=" + (cbFirstPerson != null && cbFirstPerson.isChecked() ? "true" : "false") + "\\n"
+                + "cutout=" + (cbCutout != null && cbCutout.isChecked() ? "true" : "false") + "\\n"
+                + "androidkeyboard=" + (cbAndroidKeyboard != null && cbAndroidKeyboard.isChecked() ? "true" : "false") + "\\n"
+                + "hparmourtext=" + (cbHpArmourText != null && cbHpArmourText.isChecked() ? "true" : "false") + "\\n"
+                + "outfitguns=" + (cbOutfitGuns != null && cbOutfitGuns.isChecked() ? "true" : "false") + "\\n"
+                + "radarrect=" + (cbRadarRect != null && cbRadarRect.isChecked() ? "true" : "false") + "\\n"
+                + "pcmoney=" + (cbPcMoney != null && cbPcMoney.isChecked() ? "true" : "false") + "\\n"
+                + "skybox=" + (cbSkyBox != null && cbSkyBox.isChecked() ? "true" : "false") + "\\n"
+                + "snow=" + (cbSnow != null && cbSnow.isChecked() ? "true" : "false") + "\\n";
+
         boolean ok = false;
         for (String dir : targetDirs) {{
             try {{
                 provisionSampDirectory(new File(dir));
                 File ini = new File(dir, "SAMP/settings.ini");
                 File parent = ini.getParentFile();
-                if (parent != null && !parent.exists()) {{
-                    parent.mkdirs();
-                }}
-
-                if (!ini.exists()) {{
-                    String content = "[client]\\n"
-                            + "name=" + nick + "\\n"
-                            + "host=127.0.0.1\\n"
-                            + "port=" + LOCKED_PORT + "\\n"
-                            + "password=\\n"
-                            + "version=0.3.7\\n"
-                            + "autoaim=false\\n\\n"
-                            + "[debug]\\n"
-                            + "debug=false\\n"
-                            + "online=true\\n\\n"
-                            + "[gui]\\n"
-                            + "Font=arial.ttf\\n"
-                            + "FontSize=30.0\\n"
-                            + "FontOutline=2\\n"
-                            + "ChatMaxMessages=6\\n"
-                            + "FPSLimit=60\\n";
-                    try (FileOutputStream fos = new FileOutputStream(ini, false)) {{
-                        fos.write(content.getBytes(StandardCharsets.UTF_8));
-                    }}
-                    ok = true;
-                    continue;
-                }}
-
-                List<String> lines = new ArrayList<>();
-                boolean nameUpdated = false;
-                try (BufferedReader br = new BufferedReader(
-                        new InputStreamReader(new FileInputStream(ini), StandardCharsets.UTF_8))) {{
-                    String line;
-                    while ((line = br.readLine()) != null) {{
-                        String lower = line.trim().toLowerCase();
-                        if (lower.startsWith("name=") || lower.startsWith("name =")) {{
-                            lines.add("name=" + nick);
-                            nameUpdated = true;
-                        }} else if (lower.startsWith("font=") || lower.startsWith("font =")) {{
-                            lines.add("Font=arial.ttf");
-                        }} else {{
-                            lines.add(line);
-                        }}
-                    }}
-                }}
-
-                if (!nameUpdated) {{
-                    lines.add(0, "[client]");
-                    lines.add(1, "name=" + nick);
-                }}
-
-                StringBuilder sb = new StringBuilder();
-                for (String l : lines) {{
-                    sb.append(l).append("\\n");
-                }}
+                if (parent != null && !parent.exists()) parent.mkdirs();
                 try (FileOutputStream fos = new FileOutputStream(ini, false)) {{
-                    fos.write(sb.toString().getBytes(StandardCharsets.UTF_8));
+                    fos.write(iniContent.getBytes(StandardCharsets.UTF_8));
+                    fos.flush();
                 }}
                 ok = true;
             }} catch (Exception ignored) {{}}
@@ -1339,7 +2460,8 @@ public class MainActivity extends AppCompatActivity {{
         }} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {{
             String[] permissions = new String[]{{
                     android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    android.Manifest.permission.RECORD_AUDIO
             }};
             boolean allGranted = true;
             for (String perm : permissions) {{
@@ -1403,6 +2525,7 @@ public class MainActivity extends AppCompatActivity {{
         super.onWindowFocusChanged(hasFocus);
         if (hasFocus) {{
             setFullScreenMode();
+            refreshPeripheralsStatus();
         }}
     }}
 
@@ -1417,7 +2540,7 @@ public class MainActivity extends AppCompatActivity {{
         updateDataStatusLabel(dataDir);
         if (!hasGtaCache(new File(dataDir))) {{
             Toast.makeText(this,
-                    "Data GTA SA (Lite / Full) belum ditemukan! Ekstrak folder data GTA (texdb, models, data, SAMP) ke /sdcard/GTA/ atau /Android/data/com.samp.mobile/files/ terlebih dahulu.",
+                    "Data GTA SA belum terpasang! Silakan klik tombol 'DOWNLOAD DATA LITE' atau 'DOWNLOAD DATA FULL' di dalam aplikasi terlebih dahulu.",
                     Toast.LENGTH_LONG).show();
             return;
         }}
@@ -1435,25 +2558,12 @@ public class MainActivity extends AppCompatActivity {{
             nicknameInput.setText(nick);
         }}
         hideKeyboard(this);
-        saveNicknameToIni(nick);
+        saveAllSettingsToIni(nick);
 
         Intent gameIntent = new Intent(MainActivity.this, SAMP.class);
         gameIntent.putExtra("player_name", nick);
         gameIntent.putExtra("game_data_dir", dataDir);
         startActivity(gameIntent);
-    }}
-
-    private void setupClickListeners() {{
-        startButton.setOnClickListener(v -> {{
-            v.animate().scaleX(0.92f).scaleY(0.92f).setDuration(90)
-                    .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(90).start())
-                    .start();
-            if (storagePermissionGranted) {{
-                startGame();
-            }} else {{
-                checkAndRequestStoragePermission();
-            }}
-        }});
     }}
 
     public static void hideKeyboard(Activity activity) {{
@@ -1474,408 +2584,125 @@ public class MainActivity extends AppCompatActivity {{
     }}
 }}
 """, encoding="utf-8")
-
-    # 7. Tulis layout main_activity.xml, drawable/background.xml, drawable/button.xml, values/strings.xml, values/dimens.xml
-    (res_root / "layout" / "main_activity.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/background"
-    android:padding="@dimen/margin_medium">
-
-    <TextView
-        android:id="@+id/title1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/client_name"
-        android:textColor="#FFFFFF"
-        android:textSize="@dimen/title1_text_size"
-        android:textStyle="bold"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginTop="@dimen/title_margin_top"
-        android:layout_marginStart="@dimen/horizontal_margin"
-        android:shadowColor="#000000"
-        android:shadowDx="2"
-        android:shadowDy="2"
-        android:shadowRadius="2"/>
-
-    <TextView
-        android:id="@+id/title2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/samp_ver"
-        android:textColor="#B0BEC5"
-        android:textSize="@dimen/title2_text_size"
-        android:textStyle="bold"
-        android:layout_below="@id/title1"
-        android:layout_alignStart="@id/title1"
-        android:layout_marginTop="8dp"
-        android:shadowColor="#000000"
-        android:shadowDx="2"
-        android:shadowDy="2"
-        android:shadowRadius="2"/>
-
-    <TextView
-        android:id="@+id/authorText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/authors"
-        android:textColor="#87CEEB"
-        android:textSize="@dimen/small_text_size"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:layout_marginBottom="@dimen/bottom_margin"
-        android:layout_marginStart="@dimen/horizontal_margin"
-        android:shadowColor="#000000"
-        android:shadowDx="1"
-        android:shadowDy="1"
-        android:shadowRadius="1"/>
-
-    <TextView
-        android:id="@+id/bugText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/bug_info"
-        android:textColor="#E0E0E0"
-        android:textSize="@dimen/small_text_size"
-        android:layout_above="@id/authorText"
-        android:layout_alignStart="@id/authorText"
-        android:layout_marginBottom="6dp"
-        android:shadowColor="#000000"
-        android:shadowDx="1"
-        android:shadowDy="1"
-        android:shadowRadius="1"/>
-
-    <EditText
-        android:id="@+id/nicknameInput"
-        android:layout_width="@dimen/button_width"
-        android:layout_height="46dp"
-        android:layout_above="@id/startButton"
-        android:layout_alignEnd="@id/startButton"
-        android:layout_marginBottom="12dp"
-        android:background="#CC141824"
-        android:paddingStart="14dp"
-        android:paddingEnd="14dp"
-        android:hint="Nickname (Nama_RP)"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#99FFFFFF"
-        android:textSize="14sp"
-        android:singleLine="true"
-        android:maxLength="20"
-        android:inputType="textPersonName|textNoSuggestions"
-        android:imeOptions="actionDone"
-        android:elevation="6dp" />
-
-    <Button
-        android:id="@+id/startButton"
-        android:layout_width="@dimen/button_width"
-        android:layout_height="@dimen/button_height"
-        android:text="@string/play_bth"
-        android:textSize="@dimen/button_text_size"
-        android:textStyle="bold"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:layout_marginBottom="@dimen/bottom_margin"
-        android:layout_marginEnd="@dimen/horizontal_margin"
-        android:background="@drawable/button"
-        android:textColor="#FFFFFF"
-        android:elevation="8dp"/>
-
-</RelativeLayout>
-""", encoding="utf-8")
-
-    (res_root / "drawable" / "background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <gradient
-        android:startColor="#0F172A"
-        android:centerColor="#1E1B4B"
-        android:endColor="#111827"
-        android:angle="135"/>
-</shape>
-""", encoding="utf-8")
-
-    (res_root / "drawable" / "button.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="8dp" />
-    <solid android:color="#2563EB" />
-    <stroke android:width="1dp" android:color="#60A5FA" />
-</shape>
-""", encoding="utf-8")
-
-    (res_root / "values" / "strings.xml").write_text(f"""<resources>
-    <string name="app_name">{args.app_name}</string>
-    <string name="play_bth">MASUK SERVER</string>
-    <string name="samp_ver">{args.server_title} Official Client (32/64-bit)</string>
-    <string name="client_name">{args.server_title}</string>
-    <string name="bug_info">Support Data Lite &amp; Data Full (Tanpa OBB)</string>
-    <string name="authors">Official {args.server_title}</string>
-</resources>
-""", encoding="utf-8")
-
-    (res_root / "values" / "dimens.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <dimen name="fab_margin">16dp</dimen>
-    <dimen name="hud_margin_start">16dp</dimen>
-    <dimen name="hud_margin_top">8dp</dimen>
-    <dimen name="title1_text_size">24sp</dimen>
-    <dimen name="title2_text_size">16sp</dimen>
-    <dimen name="small_text_size">12sp</dimen>
-    <dimen name="medium_text_size">14sp</dimen>
-    <dimen name="very_small_text_size">10sp</dimen>
-    <dimen name="button_width">220dp</dimen>
-    <dimen name="button_height">52dp</dimen>
-    <dimen name="button_text_size">16sp</dimen>
-    <dimen name="horizontal_margin">20dp</dimen>
-    <dimen name="bottom_margin">20dp</dimen>
-    <dimen name="title_margin_top">20dp</dimen>
-    <dimen name="cache_padding">6dp</dimen>
-    <dimen name="icon_button_size">48dp</dimen>
-    <dimen name="text_small">8sp</dimen>
-    <dimen name="text_medium">10sp</dimen>
-    <dimen name="text_large">12sp</dimen>
-    <dimen name="margin_small">12dp</dimen>
-    <dimen name="margin_medium">16dp</dimen>
-</resources>
-""", encoding="utf-8")
-
-    # 8. Sanitize assets/settings.ini agar 0 plaintext leak
-    assets_ini = app_main / "assets" / "settings.ini"
-    if assets_ini.exists():
-        assets_ini.write_text(f"""[client]
-host = 127.0.0.1
-port = 7777
-name = {args.default_nick}
-autoaim = 0
-
-[debug]
-debug = false
-online = true
-
-[gui]
-Font = arial.ttf
-FontSize = 30.0
-FontOutline = 2
-ChatPosX = 325.0
-ChatPosY = 25.0
-ChatSizeX = 1150.0
-ChatSizeY = 220.0
-ChatMaxMessages = 6
-HealthBarWidth = 60.0
-HealthBarHeight = 10.0
-androidkeyboard = 0
-""", encoding="utf-8")
-
-    # 9. Patch AndroidManifest.xml (MainActivity sebagai LAUNCHER landscape, extractNativeLibs="true", tanpa gwpAsanMode)
-    manifest = app_main / "AndroidManifest.xml"
-    manifest.write_text("""<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.samp.mobile"
-    android:installLocation="auto">
-
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <uses-feature android:glEsVersion="0x00020000" android:required="true"/>
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
-
-    <application
-        android:requestLegacyExternalStorage="true"
-        android:extractNativeLibs="true"
-        android:banner="@mipmap/ic_launcher"
-        android:hardwareAccelerated="true"
-        android:icon="@mipmap/ic_launcher"
-        android:isGame="true"
-        android:largeHeap="true"
-        android:label="@string/app_name"
-        android:networkSecurityConfig="@xml/network_security_config"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.NoActionBar"
-        android:usesCleartextTraffic="true"
-        android:windowSoftInputMode="adjustNothing">
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.provider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/provider_paths" />
-        </provider>
-
-        <activity
-            android:name="com.samp.mobile.launcher.MainActivity"
-            android:screenOrientation="sensorLandscape"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
-            android:windowSoftInputMode="adjustNothing"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <activity
-            android:name="com.samp.mobile.game.SAMP"
-            android:screenOrientation="sensorLandscape"
-            android:theme="@style/Theme.AppCompat.NoActionBar"
-            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustPan"
-            android:exported="false" />
-    </application>
-</manifest>
-""", encoding="utf-8")
-    print("[+] Patched Java layer, resources, and AndroidManifest.xml (Zero-Blackscreen + Multi-Path Data Auto-Detector)")
+    print("[+] Wrote Modern Cyber Blue-Purple Dashboard UI, Settings Manager, and In-App Data Downloader")
 
 
-def patch_gradle_and_proguard(repo: Path):
-    # 1. Root build.gradle
-    root_bg = repo / "build.gradle"
-    root_bg.write_text("""buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.2'
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-        maven { url 'https://jitpack.io' }
-    }
-}
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
-}
-""", encoding="utf-8")
-
-    # 2. app/build.gradle (Dual-ABI armeabi-v7a + arm64-v8a, R8, Official Keystore, Legacy Packaging)
+def patch_gradle_and_proguard(repo: Path, args):
     app_bg = repo / "app" / "build.gradle"
-    app_bg.write_text("""plugins {
+    app_bg.write_text(f"""plugins {{
     id 'com.android.application'
-}
+}}
 
-android {
+android {{
     namespace 'com.samp.mobile'
     compileSdk 34
 
-    signingConfigs {
-        release {
+    signingConfigs {{
+        release {{
             def ksPath = System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")
-            if (ksPath != null && !ksPath.isEmpty()) {
+            if (ksPath != null && !ksPath.isEmpty()) {{
                 storeFile file(ksPath)
                 storePassword System.getenv("KEYSTORE_PASSWORD") ?: System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias System.getenv("KEY_ALIAS") ?: System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword System.getenv("KEY_PASSWORD") ?: System.getenv("SIGNING_KEY_PASSWORD")
                 enableV1Signing true
                 enableV2Signing true
-            }
-        }
-    }
+            }}
+        }}
+    }}
 
-    defaultConfig {
-        applicationId "com.samp.mobile"
+    defaultConfig {{
+        applicationId "{args.package_id}"
         minSdk 24
         targetSdk 34
-        versionCode 120
-        versionName "1.2.0"
+        versionCode 200
+        versionName "2.0.0"
 
         multiDexEnabled true
 
-        ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
+        ndk {{
             debugSymbolLevel 'NONE'
-        }
-    }
+        }}
+    }}
 
-    packagingOptions {
-        jniLibs {
+    splits {{
+        abi {{
+            enable true
+            reset()
+            include 'armeabi-v7a', 'arm64-v8a'
+            universalApk false
+        }}
+    }}
+
+    packagingOptions {{
+        jniLibs {{
             useLegacyPackaging true
             pickFirsts += ['**/*.so']
             excludes += ['META-INF/*']
-        }
-        resources {
+        }}
+        resources {{
             excludes += ['META-INF/*']
-        }
-    }
+        }}
+    }}
 
     ndkVersion '26.2.11394342'
 
-    externalNativeBuild {
-        cmake {
+    externalNativeBuild {{
+        cmake {{
             path "src/main/cpp/CMakeLists.txt"
-        }
-    }
+        }}
+    }}
 
-    buildTypes {
-        release {
+    buildTypes {{
+        release {{
             debuggable false
             jniDebuggable false
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {
+            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {{
                 signingConfig signingConfigs.release
-            }
-        }
-        debug {
+            }}
+        }}
+        debug {{
             debuggable false
             jniDebuggable false
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {
+            if ((System.getenv("KEYSTORE_FILE") ?: System.getenv("SIGNING_STORE_FILE")) != null) {{
                 signingConfig signingConfigs.release
-            }
-        }
-    }
+            }}
+        }}
+    }}
 
-    compileOptions {
+    compileOptions {{
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
-    }
+    }}
 
-    lintOptions {
+    lintOptions {{
         checkReleaseBuilds false
         abortOnError false
-    }
+    }}
 
-    buildFeatures {
+    buildFeatures {{
         prefab true
-    }
-}
+    }}
+}}
 
-dependencies {
+dependencies {{
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
     implementation 'com.bytedance.android:shadowhook:1.0.9'
-}
+}}
 """, encoding="utf-8")
 
-    # 3. app/proguard-rules.pro
     pg = repo / "app" / "proguard-rules.pro"
-    pg.write_text("""# R8 / ProGuard Hardening Rules — XySAMP Mobile (Dual-ABI GTA-2.10)
+    pg.write_text("""# R8 / ProGuard Hardening Rules — Lombok Holiday Roleplay (Per-ABI Split)
 -ignorewarnings
 -dontwarn com.bda.controller.**
 -dontwarn com.wardrumstudios.**
@@ -1883,7 +2710,6 @@ dependencies {
 
 -keepattributes Signature,InnerClasses,EnclosingMethod,Annotation
 
-# Keep JNI entrypoints & engine classes called from libGTASA.so, libsamp.so, libImmEmulatorJ.so
 -keep class com.nvidia.devtech.** { *; }
 -keep class com.wardrumstudios.** { *; }
 -keep class com.samp.mobile.game.** { *; }
@@ -1896,7 +2722,7 @@ dependencies {
     native <methods>;
 }
 """, encoding="utf-8")
-    print("[+] Patched build.gradle, app/build.gradle (armeabi-v7a + arm64-v8a), and app/proguard-rules.pro")
+    print(f"[+] Patched app/build.gradle (applicationId={args.package_id}, ABI Splits: armeabi-v7a & arm64-v8a)")
 
 
 def generate_server_pawn_script(args):
@@ -1946,7 +2772,6 @@ public OnPlayerConnect(playerid)
 {{
     g_PlayerVerified[playerid] = false;
 
-    // Layer 1: Cek Client Version Tag saat join
     new version[32];
     GetPlayerVersion(playerid, version, sizeof(version));
 
@@ -1957,7 +2782,6 @@ public OnPlayerConnect(playerid)
         return 1;
     }}
 
-    // Layer 2: Kirim RPC 103 (ClientCheck) Challenge acak
     new challenge = (random(0x7FFF) << 16) | random(0xFFFF);
     g_PlayerChallenge[playerid] = challenge;
 
@@ -1981,7 +2805,7 @@ public OnClientCheckResponse(playerid, actionid, memaddr, retndata)
                 KillTimer(g_VerifyTimer[playerid]);
                 g_VerifyTimer[playerid] = 0;
             }}
-            SendClientMessage(playerid, 0x33FF66FF, "[SERVER] Verifikasi APK Resmi {args.server_title} berhasil (Dual-ABI 32/64-bit).");
+            SendClientMessage(playerid, 0x33FF66FF, "[SERVER] Verifikasi APK Resmi {args.server_title} berhasil.");
         }}
         else
         {{
@@ -2027,15 +2851,16 @@ def main():
     patch_linux_case_sensitivity(samp_dir)
     patch_cmake_strip(samp_dir)
     patch_main_cpp(samp_dir)
-    patch_netgame_cpp(samp_dir)
+    patch_netgame_cpp(samp_dir, args)
     patch_netrpc_cpp(samp_dir)
     patch_settings_cpp(samp_dir, args)
     patch_imgui_and_image_cpp(samp_dir)
-    patch_hooks_cpp(samp_dir)
-    patch_java_and_resources(repo, args)
-    patch_gradle_and_proguard(repo)
+    patch_hooks_cpp(samp_dir, args)
+    patch_peripherals_and_game_java(repo, args)
+    patch_launcher_dashboard_and_downloader(repo, args)
+    patch_gradle_and_proguard(repo, args)
     generate_server_pawn_script(args)
-    print("\n[✓] Semua patch Dual-ABI (armeabi-v7a + arm64-v8a) + Zero-Blackscreen berhasil diterapkan!")
+    print(f"\n[✓] Semua patch {args.server_title} ({args.package_id}, ABI Split armeabi-v7a & arm64-v8a) berhasil diterapkan!")
 
 
 if __name__ == "__main__":

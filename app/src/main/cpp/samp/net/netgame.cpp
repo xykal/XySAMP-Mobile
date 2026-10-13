@@ -103,7 +103,7 @@ CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char *szPlayerName, 
     if(pSettings)
         sampVer = pSettings->Get().szVersion;
 
-	if (pUI) pUI->chat()->addDebugMessage("{FFFFFF}2.1 Client started", sampVer);
+	if (pUI) pUI->chat()->addDebugMessage("{00E5FF}[Lombok Holiday Roleplay]{FFFFFF} Client Resmi aktif — Selamat bermain!", sampVer);
 }
 // 0.3.7
 CNetGame::~CNetGame()

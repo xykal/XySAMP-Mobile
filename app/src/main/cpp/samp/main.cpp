@@ -335,6 +335,7 @@ void InitGui()
 	pUI = new UI(ImVec2(RsGlobal->maximumWidth, RsGlobal->maximumHeight), font_path.c_str());
 	pUI->initialize();
 	pUI->performLayout();
+	if (pJavaWrapper) pJavaWrapper->HideLoadingScreen();
 }
 
 #include "game/multitouch.h"

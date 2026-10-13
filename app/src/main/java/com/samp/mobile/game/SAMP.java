@@ -225,9 +225,18 @@ public class SAMP extends GTASA implements CustomKeyboard.InputListener, HeightP
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if(keyCode == KeyEvent.KEYCODE_BACK)
-        {
+        if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
             onEventBackPressed();
+            return true;
+        }
+        // Shortcut Keyboard Fisik PC-Style: T, F6, atau '/' membuka Chat Box SA-MP
+        if (event != null && event.getRepeatCount() == 0) {
+            if (keyCode == KeyEvent.KEYCODE_T || keyCode == KeyEvent.KEYCODE_F6 || keyCode == KeyEvent.KEYCODE_SLASH) {
+                if (mKeyboard != null && !mDialog.isShow) {
+                    showKeyboard();
+                    return true;
+                }
+            }
         }
         return super.onKeyDown(keyCode, event);
     }

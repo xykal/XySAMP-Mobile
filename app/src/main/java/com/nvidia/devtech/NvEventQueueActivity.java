@@ -594,6 +594,15 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
         return super.onTouchEvent(event);
     }
 
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event)
+    {
+        if (com.wardrumstudios.utils.WarGamepad.handleGenericMotion(event)) {
+            return true;
+        }
+        return super.onGenericMotionEvent(event);
+    }
+
     /**
      * Implementation function: defined in libnvevent.a
      * The application does not and should not overide this; nv_event handles this internally
@@ -602,6 +611,9 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event)
     {
+        if (com.wardrumstudios.utils.WarGamepad.handleKeyEvent(keyCode, event, true)) {
+            return true;
+        }
         boolean ret = false;
 
         if (keyCode == 24 || keyCode == 25) {
@@ -627,6 +639,9 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event)
     {
+        if (com.wardrumstudios.utils.WarGamepad.handleKeyEvent(keyCode, event, false)) {
+            return true;
+        }
         if (keyCode == 115 && Build.VERSION.SDK_INT >= 11)
         {
             boolean capsLockOn = event.isCapsLockOn();
@@ -719,6 +734,7 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
 
         view.setFocusable(true);
         view.setFocusableInTouchMode(true);
+        view.requestFocus();
 
         mSurfaceView.setOnTouchListener(this);
 

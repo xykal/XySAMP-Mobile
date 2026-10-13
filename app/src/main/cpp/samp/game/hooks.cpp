@@ -1342,6 +1342,7 @@ void NvUtilInit_hook()
     // Jika StorageRootBuffer belum memiliki folder texdb/models, auto-scan lokasi data GTA populer (Lite maupun Full, Tanpa OBB!)
     if (!HasDirCaseInsensitive(g_pszStorage, "texdb") && !HasDirCaseInsensitive(g_pszStorage, "models")) {
         const char* candidates[] = {
+            "/storage/emulated/0/Android/data/com.lombokholiday.mobile/files/",
             "/storage/emulated/0/GTA/",
             "/storage/emulated/0/Android/data/com.samp.mobile/files/",
             "/storage/emulated/0/Android/data/com.gta.game/files/",
@@ -1519,6 +1520,10 @@ stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
         stFile* apkSt = NvFOpen_orig(r0, r1, r2, r3);
         if (apkSt) {
             return apkSt;
+        }
+        if (strncasecmp(r1, "Text/", 5) == 0) {
+            apkSt = NvFOpen_orig(r0, "Text/american.gxt", r2, r3);
+            if (apkSt) return apkSt;
         }
     }
 

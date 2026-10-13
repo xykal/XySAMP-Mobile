@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">XySAMP Mobile</string>
+    <string name="app_name">Lombok Holiday</string>
     <string name="play_bth">MASUK SERVER</string>
-    <string name="samp_ver">XyVerse Roleplay Official Client (32/64-bit)</string>
-    <string name="client_name">XyVerse Roleplay</string>
+    <string name="samp_ver">Lombok Holiday Roleplay</string>
+    <string name="client_name">Lombok Holiday</string>
     <string name="bug_info">Support Data Lite &amp; Data Full (Tanpa OBB)</string>
-    <string name="authors">Official XyVerse Roleplay</string>
+    <string name="authors">Lombok Holiday Roleplay</string>
 </resources>

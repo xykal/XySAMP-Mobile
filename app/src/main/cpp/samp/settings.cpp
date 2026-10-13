@@ -19,9 +19,8 @@ CSettings::CSettings()
     INIReader reader(buff);
     bool iniOk = (reader.ParseError() >= 0);
 
-    // Default aman jika settings.ini belum ada (TANPA std::terminate agar tidak pernah blackscreen/crash!)
     char defaultNick[32];
-    snprintf(defaultNick, sizeof(defaultNick), "Warga_XyVerse_%d", (rand() % 899) + 100);
+    snprintf(defaultNick, sizeof(defaultNick), "Warga_Lombok_%d", (rand() % 899) + 100);
 
     std::string nick = iniOk ? reader.Get("client", "name", defaultNick) : std::string(defaultNick);
     if (nick.empty() || nick == "Nick_Name" || nick.find("__android_") == 0) {
@@ -34,14 +33,13 @@ CSettings::CSettings()
     length = pass.copy(m_Settings.szPassword, MAX_SETTINGS_STRING);
     m_Settings.szPassword[length] = '\0';
 
-    // Host, Port, dan Version dikunci di memori dari dekripsi XOR runtime
     strncpy(m_Settings.szHost, XySAMP::GetLockedHost(), MAX_SETTINGS_STRING);
     m_Settings.szHost[MAX_SETTINGS_STRING - 1] = '\0';
     m_Settings.iPort = XySAMP::GetLockedPort();
     strncpy(m_Settings.szVersion, XySAMP::GetClientVersion(), MAX_SETTINGS_STRING);
     m_Settings.szVersion[MAX_SETTINGS_STRING - 1] = '\0';
 
-    m_Settings.bAutoAim = false;
+    m_Settings.bAutoAim = iniOk ? reader.GetBoolean("client", "autoaim", false) : false;
     m_Settings.bDebug = false;
     m_Settings.bOnline = true;
 
@@ -57,7 +55,7 @@ CSettings::CSettings()
     m_Settings.fChatPosY = iniOk ? (float)reader.GetReal("gui", "ChatPosY", 25.0) : 25.0f;
     m_Settings.fChatSizeX = iniOk ? (float)reader.GetReal("gui", "ChatSizeX", 1150.0) : 1150.0f;
     m_Settings.fChatSizeY = iniOk ? (float)reader.GetReal("gui", "ChatSizeY", 220.0) : 220.0f;
-    m_Settings.iChatMaxMessages = iniOk ? (int)reader.GetInteger("gui", "ChatMaxMessages", 6) : 6;
+    m_Settings.iChatMaxMessages = iniOk ? (int)reader.GetInteger("gui", "ChatMaxMessages", 7) : 7;
 
     m_Settings.fSpawnScreenPosX = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosX", 660.0) : 660.0f;
     m_Settings.fSpawnScreenPosY = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosY", 950.0) : 950.0f;
@@ -85,11 +83,11 @@ CSettings::CSettings()
 
     m_Settings.iAndroidKeyboard = iniOk ? reader.GetBoolean("gui", "androidkeyboard", false) : false;
     m_Settings.iFirstPerson = iniOk ? reader.GetBoolean("gui", "firstperson", true) : true;
-    m_Settings.iCutout = iniOk ? reader.GetBoolean("gui", "cutout", false) : false;
-    m_Settings.iFPSCounter = iniOk ? reader.GetBoolean("gui", "fps", false) : false;
+    m_Settings.iCutout = iniOk ? reader.GetBoolean("gui", "cutout", true) : true;
+    m_Settings.iFPSCounter = iniOk ? reader.GetBoolean("gui", "fps", true) : true;
     m_Settings.iFPSCount = iniOk ? (int)reader.GetInteger("gui", "FPSLimit", 60) : 60;
-    m_Settings.iHPArmourText = iniOk ? reader.GetBoolean("gui", "hparmourtext", false) : false;
-    m_Settings.iOutfitGuns = iniOk ? reader.GetBoolean("gui", "outfitguns", false) : false;
+    m_Settings.iHPArmourText = iniOk ? reader.GetBoolean("gui", "hparmourtext", true) : true;
+    m_Settings.iOutfitGuns = iniOk ? reader.GetBoolean("gui", "outfitguns", true) : true;
     m_Settings.iPCMoney = iniOk ? reader.GetBoolean("gui", "pcmoney", false) : false;
     m_Settings.iRadarRect = iniOk ? reader.GetBoolean("gui", "radarrect", false) : false;
     m_Settings.iSkyBox = iniOk ? reader.GetBoolean("gui", "skybox", false) : false;
@@ -101,7 +99,7 @@ CSettings::CSettings()
         mkdir(sampDir, 0775);
         FILE* fp = fopen(buff, "w");
         if (fp) {
-            fprintf(fp, "[client]\nname=%s\nhost=127.0.0.1\nport=7777\nversion=0.3.7\n\n[gui]\nFont=arial.ttf\nFontSize=30.0\nFontOutline=2\nChatMaxMessages=6\nFPSLimit=60\n", m_Settings.szNickName);
+            fprintf(fp, "[client]\nname=%s\nhost=127.0.0.1\nport=7777\nversion=0.3.7\n\n[gui]\nFont=arial.ttf\nFontSize=30.0\nFontOutline=2\nChatMaxMessages=7\nFPSLimit=60\nVoiceChatEnable=true\nfirstperson=true\ncutout=true\nfps=true\nhparmourtext=true\noutfitguns=true\n", m_Settings.szNickName);
             fclose(fp);
         }
     }

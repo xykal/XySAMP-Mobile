@@ -1,4 +1,4 @@
-# R8 / ProGuard Hardening Rules — XySAMP Mobile (Dual-ABI GTA-2.10)
+# R8 / ProGuard Hardening Rules — Lombok Holiday Roleplay (Per-ABI Split)
 -ignorewarnings
 -dontwarn com.bda.controller.**
 -dontwarn com.wardrumstudios.**
@@ -6,7 +6,6 @@
 
 -keepattributes Signature,InnerClasses,EnclosingMethod,Annotation
 
-# Keep JNI entrypoints & engine classes called from libGTASA.so, libsamp.so, libImmEmulatorJ.so
 -keep class com.nvidia.devtech.** { *; }
 -keep class com.wardrumstudios.** { *; }
 -keep class com.samp.mobile.game.** { *; }

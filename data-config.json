@@ -1,0 +1,16 @@
+{
+  "server_name": "Lombok Holiday Roleplay",
+  "version": "2.0.0",
+  "data_lite": {
+    "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
+    "size_mb": 280,
+    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip",
+    "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
+  },
+  "data_full": {
+    "name": "Data Full HD Lombok Holiday (Tanpa OBB)",
+    "size_mb": 950,
+    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip",
+    "description": "Data Full dengan audio lengkap dan tekstur HD, 100% Tanpa OBB."
+  }
+}

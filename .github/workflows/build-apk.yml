@@ -1,4 +1,4 @@
-name: Build XySAMP Official Signed APK
+name: Build Lombok Holiday Official Signed APK (Per-ABI Split)
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       server_host:
         description: "IP / Domain Server SA-MP"
         required: false
-        default: "play.xyverse.my.id"
+        default: "play.lombokholiday.my.id"
         type: string
       server_port:
         description: "Port UDP Server SA-MP"
@@ -26,17 +26,22 @@ on:
       default_nick:
         description: "Nickname default (tanpa spasi)"
         required: false
-        default: "Warga_XyVerse"
+        default: "Warga_Lombok"
         type: string
       app_name:
         description: "Nama Aplikasi di HP"
         required: false
-        default: "XySAMP Mobile"
+        default: "Lombok Holiday"
         type: string
       brand_name:
         description: "Nama Brand / Server di Launcher"
         required: false
-        default: "XyVerse Roleplay"
+        default: "Lombok Holiday Roleplay"
+        type: string
+      package_id:
+        description: "Package Name Android (applicationId)"
+        required: false
+        default: "com.lombokholiday.mobile"
         type: string
 
 permissions:
@@ -44,8 +49,7 @@ permissions:
 
 jobs:
   build-apk:
-    name: Build Official Signed + R8 Hardened APK (Restricted to xykal)
-    # HANYA jalan kalau dijalankan oleh owner (xykal) atau pemegang token xykal di repo asli
+    name: Build Lombok Holiday Signed Split APKs (arm64-v8a & armeabi-v7a)
     if: github.repository == 'xykal/XySAMP-Mobile' && github.actor == 'xykal'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -85,15 +89,17 @@ jobs:
           IN_NICK: ${{ inputs.default_nick }}
           IN_APP: ${{ inputs.app_name }}
           IN_BRAND: ${{ inputs.brand_name }}
+          IN_PKG: ${{ inputs.package_id }}
         run: |
-          HOST="${IN_HOST:-play.xyverse.my.id}"
+          HOST="${IN_HOST:-play.lombokholiday.my.id}"
           PORT="${IN_PORT:-7777}"
           TAG="${IN_TAG:-${SECRET_TAG:-XYSAMP-1.0}}"
-          NICK="${IN_NICK:-Warga_XyVerse}"
+          NICK="${IN_NICK:-Warga_Lombok}"
           KEY="${SECRET_KEY:-0x9F4E7C2B}"
           CERT="${SECRET_CERT:-93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c}"
-          APP="${IN_APP:-XySAMP Mobile}"
-          BRAND="${IN_BRAND:-XyVerse Roleplay}"
+          APP="${IN_APP:-Lombok Holiday}"
+          BRAND="${IN_BRAND:-Lombok Holiday Roleplay}"
+          PKG="${IN_PKG:-com.lombokholiday.mobile}"
 
           python3 tools/lockdown.py \
             --repo . \
@@ -105,6 +111,7 @@ jobs:
             --cert-sha256 "$CERT" \
             --app-name "$APP" \
             --brand "$BRAND" \
+            --package-id "$PKG" \
             --strip-firebase
 
       - name: Setup Android SDK 34/36 & NDK 26.2.11394342
@@ -128,7 +135,7 @@ jobs:
           chmod 600 /dev/shm/xysamp-official.jks
           echo "KEYSTORE_FILE=/dev/shm/xysamp-official.jks" >> $GITHUB_ENV
 
-      - name: Build Official Signed + R8 Minified Release APK
+      - name: Build Official Signed + R8 Minified Release APKs (Split per ABI)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -142,19 +149,25 @@ jobs:
         run: |
           shred -u /dev/shm/xysamp-official.jks 2>/dev/null || rm -f /dev/shm/xysamp-official.jks
 
-      - name: Verifikasi Signature APK Resmi (apksigner)
+      - name: Verifikasi Signature Kedua APK Resmi (arm64-v8a & armeabi-v7a)
         run: |
-          APK_FILE=$(ls app/build/outputs/apk/release/*.apk | head -n1)
-          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs -v "$APK_FILE"
           mkdir -p dist-paket
-          cp "$APK_FILE" dist-paket/XySAMP-Mobile-Official-Signed.apk
+          ls -lh app/build/outputs/apk/release/
+          for ABI in arm64-v8a armeabi-v7a; do
+            SRC_APK="app/build/outputs/apk/release/app-${ABI}-release.apk"
+            OUT_APK="dist-paket/LombokHoliday-${ABI}-Official-Signed.apk"
+            if [ -f "$SRC_APK" ]; then
+              $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs -v "$SRC_APK"
+              cp "$SRC_APK" "$OUT_APK"
+            fi
+          done
           ls -lh dist-paket/
 
-      - name: Upload Artifact Resmi (Hanya APK Signed, Keystore Tidak Di-expose)
+      - name: Upload Artifact Resmi (arm64-v8a & armeabi-v7a Terpisah)
         uses: actions/upload-artifact@v4
         with:
-          name: XySAMP-Mobile-Official-Signed-APK
-          path: dist-paket/XySAMP-Mobile-Official-Signed.apk
+          name: LombokHoliday-Official-Signed-APKs
+          path: dist-paket/LombokHoliday-*-Official-Signed.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -163,5 +176,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist-paket/XySAMP-Mobile-Official-Signed.apk
+            dist-paket/LombokHoliday-arm64-v8a-Official-Signed.apk
+            dist-paket/LombokHoliday-armeabi-v7a-Official-Signed.apk
           generate_release_notes: true
