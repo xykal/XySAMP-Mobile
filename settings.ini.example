@@ -1,18 +1,13 @@
-; ============================================================
-;  settings.ini - contoh config client SA-MP Mobile (khusus)
-;  Lokasi asli di HP: /storage/emulated/0/GTA/SAMP/settings.ini
-;
-;  CATATAN: kalau client udah dipatch pake lockdown.py (LOCK_ALLOW_INI_OVERRIDE = 0),
-;  nilai host / port / version di bawah ini DIABAIKAN - yang kepake nilai
-;  yang nempel di APK. Ini cuma referensi / buat mode debug.
-; ============================================================
+; Contoh settings.ini Lombok Holiday
+; Launcher akan menulis host/port dari server yang dipilih di Daftar Server.
+; File aktif disimpan di folder data game aplikasi /SAMP/settings.ini (tanpa OBB).
 
 [client]
-name=Player
-host=play.serverlu.com
-port=1417
+name=Player_Lombok
+host=play.lombokholiday.my.id
+port=7777
 password=
-version=MYSRV-1.7
+version=0.3.7
 autoaim=false
 
 [debug]
@@ -27,5 +22,17 @@ ChatPosX=325
 ChatPosY=25
 ChatSizeX=1150
 ChatSizeY=220
-ChatMaxMessages=6
+ChatMaxMessages=7
+FPSLimit=60
+VoiceChatEnable=true
+androidkeyboard=false
+firstperson=true
+cutout=true
+fps=true
+hparmourtext=true
+outfitguns=true
+radarrect=false
+pcmoney=false
+skybox=false
+snow=false
 Dialog=true

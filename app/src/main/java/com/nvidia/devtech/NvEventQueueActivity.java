@@ -125,6 +125,9 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
     private boolean viewIsActive = false;
 
     private SurfaceView mSurfaceView = null;
+    private final int[] touchSlotByPointerId = new int[32];
+    private final int[] touchPointerIdBySlot = new int[]{-1, -1, -1, -1};
+    private boolean touchSlotMapInitialized = false;
 
     //private HeightProvider mHeightProvider = null;
 
@@ -175,29 +178,81 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
-    @Override
-    public boolean onTouch(View view, MotionEvent event) {
-        int x1 = 0, y1 = 0, x2 = 0, y2 = 0, x3 = 0, y3 = 0;
-        // marshal up the data.
-        int numEvents = event.getPointerCount();
-        for (int i = 0; i < numEvents; i++) {
-            // only use pointers 0 and 1, 2, 3
-            int pointerId = event.getPointerId(i);
-            if (pointerId == 0) {
-                x1 = (int) event.getX(i);
-                y1 = (int) event.getY(i);
-            } else if (pointerId == 1) {
-                x2 = (int) event.getX(i);
-                y2 = (int) event.getY(i);
-            } else if (pointerId == 2) {
-                x3 = (int) event.getX(i);
-                y3 = (int) event.getY(i);
+    private void ensureTouchSlotMap() {
+        if (!touchSlotMapInitialized) {
+            java.util.Arrays.fill(touchSlotByPointerId, -1);
+            touchSlotMapInitialized = true;
+        }
+    }
+
+    private int slotForPointerId(int pointerId, boolean allocate) {
+        ensureTouchSlotMap();
+        if (pointerId < 0 || pointerId >= touchSlotByPointerId.length) return -1;
+        int existing = touchSlotByPointerId[pointerId];
+        if (existing >= 0) return existing;
+        if (!allocate) return -1;
+        for (int slot = 0; slot < touchPointerIdBySlot.length; slot++) {
+            if (touchPointerIdBySlot[slot] < 0) {
+                touchPointerIdBySlot[slot] = pointerId;
+                touchSlotByPointerId[pointerId] = slot;
+                return slot;
             }
         }
+        return -1;
+    }
 
-        int pointerId = event.getPointerId(event.getActionIndex());
+    private void releaseTouchPointer(int pointerId) {
+        if (pointerId < 0 || pointerId >= touchSlotByPointerId.length) return;
+        int slot = touchSlotByPointerId[pointerId];
+        if (slot >= 0 && slot < touchPointerIdBySlot.length) touchPointerIdBySlot[slot] = -1;
+        touchSlotByPointerId[pointerId] = -1;
+    }
+
+    @Override
+    public boolean onTouch(View view, MotionEvent event) {
+        if (event == null) return false;
+        ensureTouchSlotMap();
+        int pointerCount = event.getPointerCount();
+        if (pointerCount <= 0) return true;
         int action = event.getActionMasked();
-        customMultiTouchEvent(action, pointerId, x1, y1, x2, y2, x3, y3);
+        int actionIndex = Math.min(event.getActionIndex(), pointerCount - 1);
+        int actionPointerId = event.getPointerId(actionIndex);
+
+        if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_POINTER_DOWN) {
+            slotForPointerId(actionPointerId, true);
+        }
+
+        int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+        int x3 = 0, y3 = 0, x4 = 0, y4 = 0;
+        int numEvents = Math.min(event.getPointerCount(), 4);
+        for (int i = 0; i < numEvents; i++) {
+            int pointerId = event.getPointerId(i);
+            int slot = slotForPointerId(pointerId, true);
+            if (slot < 0) continue;
+            int x = (int) event.getX(i);
+            int y = (int) event.getY(i);
+            if (slot == 0) { x1 = x; y1 = y; }
+            else if (slot == 1) { x2 = x; y2 = y; }
+            else if (slot == 2) { x3 = x; y3 = y; }
+            else if (slot == 3) { x4 = x; y4 = y; }
+        }
+
+        if (action == MotionEvent.ACTION_CANCEL) {
+            for (int i = 0; i < numEvents; i++) {
+                int pointerId = event.getPointerId(i);
+                int slot = slotForPointerId(pointerId, false);
+                if (slot >= 0) customMultiTouchEvent(action, slot, x1, y1, x2, y2, x3, y3, x4, y4);
+            }
+            for (int i = 0; i < numEvents; i++) releaseTouchPointer(event.getPointerId(i));
+            return true;
+        }
+
+        int actionSlot = slotForPointerId(actionPointerId, false);
+        if (actionSlot >= 0) customMultiTouchEvent(action, actionSlot, x1, y1, x2, y2, x3, y3, x4, y4);
+
+        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_POINTER_UP) {
+            releaseTouchPointer(actionPointerId);
+        }
         return true;
     }
 
@@ -394,7 +449,7 @@ public abstract class NvEventQueueActivity extends AppCompatActivity implements 
     public native boolean multiTouchEvent4(int i, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, MotionEvent motionEvent);
 
     public native boolean customMultiTouchEvent(int action, int count, int x1, int y1, int x2, int y2,
-                                                int x3, int y3);
+                                                int x3, int y3, int x4, int y4);
 	/**
 	 * END indented block, see in comment at top of block
 	 */

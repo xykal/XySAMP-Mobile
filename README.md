@@ -1,59 +1,35 @@
-# SA-MP 2.10 (Android)
+# Lombok Holiday Mobile Client
 
-Modern **SA-MP 2.10** client for **Grand Theft Auto: San Andreas (Android)**.
+Launcher/client SA-MP Mobile berbasis proyek open source SA-MP 2.10, disesuaikan untuk Lombok Holiday. Package name Android: `com.lombokholiday.mobile`.
 
-> **Status:** Active Development 🚧
+## Fitur v2.1.0
 
-## Features
+- APK resmi terpisah untuk `arm64-v8a` dan `armeabi-v7a`, ditandatangani dengan keystore produksi dan R8.
+- Dashboard lanskap dengan sidebar rounded, banner carousel otomatis, berita konfigurasi, dan menu Settings/Controls.
+- Daftar server lokal: server resmi sudah disediakan, server domain/IPv4 dan port UDP lain dapat ditambahkan/dihapus dari aplikasi.
+- Input sentuh hingga empat pointer, serta dukungan input keyboard fisik, mouse, dan gamepad dari fork sebelumnya.
+- Preset FPS hemat/seimbang/maksimum dan pengaturan client yang dikenali oleh engine.
+- Konfigurasi banner, berita, endpoint server resmi, dan URL data berada di [`data-config.json`](data-config.json).
+- MonetLoader 3.8.0 opsional untuk Lua, dibangun dari source GPLv3 yang dipin; folder data disiapkan di `Android/media/com.lombokholiday.mobile/monetloader/`.
 
-* ✅ Android **ARM32 and ARM64** support
-* ✅ ShadowHook integration
-* ✅ Support for modern Android devices
-* ✅ Game cache location:
+## Mod & kompatibilitas
 
-```text
-/storage/emulated/0/GTA/
-```
+MonetLoader bersifat opsional/eksperimental. Jalur dasar Lua disertakan; kompatibilitas API SA-MP di semua ABI dan script pihak ketiga belum diverifikasi. Instal script hanya dari sumber tepercaya.
 
-## Requirements
+Mod Center dapat menyalin CLEO Android `.csa`/`.csi` ke folder `Android/media/com.lombokholiday.mobile/cleo/sa/`, tetapi build ini **tidak menyertakan atau memverifikasi runtime CLEO**. File Windows `.dll` bukan format Android; plugin native Android harus berupa `.so` yang dibuat untuk ABI yang sesuai.
 
-* Android device
-* ARM32 or ARM64 processor
+## Server & handshake
 
-## Installation
+Launcher menulis host/port server terpilih ke `SAMP/settings.ini`. Handshake privat RPC 103 dengan secret produksi hanya dijawab untuk hostname/port Lombok Holiday resmi; server tambahan tidak menerima secret tersebut. Server kustom tetap dapat menolak client berdasarkan kebijakan/protokolnya sendiri. Filterscript produksi dibuat oleh `tools/lockdown.py` dari secret owner dan ditempatkan di direktori `dist` lokal/build; file template bertanda placeholder tidak untuk dikompilasi. Workflow rilis menolak build bila secret handshake tidak tersedia.
 
-1. Install the APK.
+## Data game
 
-2. Download the game cache:
+Aplikasi mendukung download ZIP dan ekstraksi ke folder data tanpa OBB. Isi `data_lite.url` dan `data_full.url` saat file ZIP sudah diunggah ke URL publik; kedua nilai saat ini sengaja kosong agar launcher tidak mengarahkan pengguna ke release yang belum memiliki arsip data.
 
-[**Download GTA game cache**](https://drive.google.com/file/d/1JW2RscmpHNz8g51phxjjKkubTV2ZDEmD/view?usp=drivesdk)
+## Build resmi
 
-[**Download CRMP game cache**](https://drive.google.com/file/d/13W2zAgsMAFAvTTS7YVGtgSgyv2BPYbLk/view?usp=drivesdk)
+Build rilis dilakukan lewat GitHub Actions pada repository publik ini. Workflow memverifikasi repository/actor dan keystore resmi, membangun MonetLoader dari revision yang dipin, lalu menandatangani APK ABI-split. Trigger rilis dengan tag `v*` hanya untuk owner `xykal`.
 
-3. Extract the cache to:
+## Notifikasi lisensi
 
-```text
-/storage/emulated/0/GTA/
-```
-
-4. Launch the game.
-
-## Building
-
-Clone the `GTA-2.10` branch:
-
-```bash
-git clone --branch GTA-2.10 --single-branch https://github.com/kuzia15/SAMP-Mobile.git
-```
-
-Open the project in Android Studio and build it using the appropriate ARM32 or ARM64 configuration.
-
-## Project Status
-
-This project is under active development. New fixes and improvements may be added over time.
-
-## License
-
-This project is provided for educational and research purposes only.
-
-Grand Theft Auto, Grand Theft Auto: San Andreas and SA-MP are trademarks of their respective owners. This project is not affiliated with or endorsed by Rockstar Games, Take-Two Interactive or the original SA-MP development team.
+Lihat [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) untuk MonetLoader dan source revision yang dipakai. Proyek ini tidak berafiliasi dengan Rockstar Games, Take-Two Interactive, atau pemegang merek SA-MP.

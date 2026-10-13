@@ -33,9 +33,13 @@ CSettings::CSettings()
     length = pass.copy(m_Settings.szPassword, MAX_SETTINGS_STRING);
     m_Settings.szPassword[length] = '\0';
 
-    strncpy(m_Settings.szHost, XySAMP::GetLockedHost(), MAX_SETTINGS_STRING);
-    m_Settings.szHost[MAX_SETTINGS_STRING - 1] = '\0';
-    m_Settings.iPort = XySAMP::GetLockedPort();
+    std::string host = iniOk ? reader.Get("client", "host", XySAMP::GetLockedHost()) : XySAMP::GetLockedHost();
+    if (host.empty() || host.size() > MAX_SETTINGS_STRING) host = XySAMP::GetLockedHost();
+    size_t hostLength = host.copy(m_Settings.szHost, MAX_SETTINGS_STRING);
+    m_Settings.szHost[hostLength] = '\0';
+    long configuredPort = iniOk ? reader.GetInteger("client", "port", XySAMP::GetLockedPort()) : XySAMP::GetLockedPort();
+    if (configuredPort < 1 || configuredPort > 65535) configuredPort = XySAMP::GetLockedPort();
+    m_Settings.iPort = static_cast<int>(configuredPort);
     strncpy(m_Settings.szVersion, XySAMP::GetClientVersion(), MAX_SETTINGS_STRING);
     m_Settings.szVersion[MAX_SETTINGS_STRING - 1] = '\0';
 
@@ -99,7 +103,7 @@ CSettings::CSettings()
         mkdir(sampDir, 0775);
         FILE* fp = fopen(buff, "w");
         if (fp) {
-            fprintf(fp, "[client]\nname=%s\nhost=127.0.0.1\nport=7777\nversion=0.3.7\n\n[gui]\nFont=arial.ttf\nFontSize=30.0\nFontOutline=2\nChatMaxMessages=7\nFPSLimit=60\nVoiceChatEnable=true\nfirstperson=true\ncutout=true\nfps=true\nhparmourtext=true\noutfitguns=true\n", m_Settings.szNickName);
+            fprintf(fp, "[client]\nname=%s\nhost=%s\nport=%d\nversion=0.3.7\n\n[gui]\nFont=arial.ttf\nFontSize=30.0\nFontOutline=2\nChatMaxMessages=7\nFPSLimit=60\nVoiceChatEnable=true\nfirstperson=true\ncutout=true\nfps=true\nhparmourtext=true\noutfitguns=true\n", m_Settings.szNickName, XySAMP::GetLockedHost(), XySAMP::GetLockedPort());
             fclose(fp);
         }
     }

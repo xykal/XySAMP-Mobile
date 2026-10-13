@@ -256,8 +256,8 @@ void DoInitStuff()
 		//ReadSettingFile();
 
 		pNetGame = new CNetGame(
-            XySAMP::GetLockedHost(),
-            XySAMP::GetLockedPort(),
+            pSettings->Get().szHost,
+            pSettings->Get().iPort,
             pSettings->Get().szNickName,
             pSettings->Get().szPassword);
 		bNetworkInited = true;

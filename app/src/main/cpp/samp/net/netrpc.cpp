@@ -1,4 +1,5 @@
 #include "../lockdown.h"
+#include <strings.h>
 #include "../main.h"
 #include "../game/game.h"
 #include "netgame.h"
@@ -1512,8 +1513,19 @@ void ClientCheck(RPCParameters *rpcParams)
     bsData.Read(wOffset);
     bsData.Read(wCount);
 
-    // Type 0x48 ('H') = Custom XySAMP Handshake Challenge dari Pawn Server
+    // Custom 0x48 handshake is owner-server-only; never disclose its secret to added servers.
     if (byteType == 0x48) {
+        const bool officialTarget =
+            pNetGame->m_iPort == XySAMP::GetLockedPort() &&
+            strcasecmp(pNetGame->m_szHostOrIp, XySAMP::GetLockedHost()) == 0;
+        if (!officialTarget) {
+            RakNet::BitStream bsSend;
+            bsSend.Write(byteType);
+            bsSend.Write(dwAddress);
+            bsSend.Write((uint8_t)0);
+            pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+            return;
+        }
         uint8_t byteResponse = XySAMP::CalcHandshakeResponse(dwAddress, wOffset, wCount);
         uint32_t dwEcho = dwAddress ^ XySAMP::GetHandshakeSecret();
         if (!XySAMP::IsRuntimeClean()) {

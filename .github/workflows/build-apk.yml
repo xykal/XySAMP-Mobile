@@ -1,4 +1,4 @@
-name: Build Lombok Holiday Official Signed APK (Per-ABI Split)
+name: Build Lombok Holiday v2.1.0 Official Signed APKs (Per-ABI Split)
 
 on:
   push:
@@ -19,7 +19,7 @@ on:
         default: "7777"
         type: string
       client_tag:
-        description: "Tag Versi Client (kosongin = pakai PROD_CLIENT_TAG dari Secrets)"
+        description: "Tag versi client (maks 24 karakter; default LOMBOKHOLIDAY-2.1)"
         required: false
         default: ""
         type: string
@@ -58,6 +58,7 @@ jobs:
       - name: Verifikasi Otorisasi Owner & Token
         env:
           HAS_KEYSTORE: ${{ secrets.KEYSTORE_BASE64 != '' }}
+          HAS_HANDSHAKE_KEY: ${{ secrets.PROD_HANDSHAKE_KEY != '' }}
         run: |
           if [ "${GITHUB_ACTOR}" != "xykal" ] || [ "${GITHUB_REPOSITORY}" != "xykal/XySAMP-Mobile" ]; then
             echo "::error::Akses ditolak: Workflow ini hanya boleh dijalankan oleh xykal / pemegang token resmi."
@@ -65,6 +66,10 @@ jobs:
           fi
           if [ "${HAS_KEYSTORE}" != "true" ]; then
             echo "::error::Official Keystore Secret (KEYSTORE_BASE64) tidak ditemukan."
+            exit 1
+          fi
+          if [ "${HAS_HANDSHAKE_KEY}" != "true" ]; then
+            echo "::error::PROD_HANDSHAKE_KEY Secret wajib diatur; key tidak lagi punya fallback plaintext."
             exit 1
           fi
           echo "Otorisasi valid: Actor=${GITHUB_ACTOR}"
@@ -80,7 +85,6 @@ jobs:
 
       - name: Inject Production Secrets, XOR Obfuscation, Cert Pinning & R8 Config
         env:
-          SECRET_TAG: ${{ secrets.PROD_CLIENT_TAG }}
           SECRET_KEY: ${{ secrets.PROD_HANDSHAKE_KEY }}
           SECRET_CERT: ${{ secrets.CERT_SHA256 }}
           IN_HOST: ${{ inputs.server_host }}
@@ -93,9 +97,10 @@ jobs:
         run: |
           HOST="${IN_HOST:-play.lombokholiday.my.id}"
           PORT="${IN_PORT:-7777}"
-          TAG="${IN_TAG:-${SECRET_TAG:-XYSAMP-1.0}}"
+          TAG="${IN_TAG:-LOMBOKHOLIDAY-2.1}"
           NICK="${IN_NICK:-Warga_Lombok}"
-          KEY="${SECRET_KEY:-0x9F4E7C2B}"
+          KEY="${SECRET_KEY}"
+          if [ -z "$KEY" ]; then echo "::error::PROD_HANDSHAKE_KEY missing"; exit 1; fi
           CERT="${SECRET_CERT:-93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c}"
           APP="${IN_APP:-Lombok Holiday}"
           BRAND="${IN_BRAND:-Lombok Holiday Roleplay}"
@@ -123,6 +128,36 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;26.2.11394342" \
             "cmake;3.22.1"
+
+      - name: Build MonetLoader 3.8.0 from pinned GPLv3 source for both ABIs
+        env:
+          MONETLOADER_COMMIT: 9fa9fdb305634e6012734e7e10c38bb9bff2a9cd
+        run: |
+          set -euo pipefail
+          ML_SRC="$RUNNER_TEMP/MonetLoaderOSS"
+          mkdir -p "$ML_SRC"
+          git -C "$ML_SRC" init -q
+          git -C "$ML_SRC" remote add origin https://github.com/xefinity/MonetLoaderOSS.git
+          git -C "$ML_SRC" fetch --depth 1 origin "$MONETLOADER_COMMIT"
+          git -C "$ML_SRC" checkout --detach FETCH_HEAD
+          test "$(git -C "$ML_SRC" rev-parse HEAD)" = "$MONETLOADER_COMMIT"
+          cp "$ML_SRC/LICENSE" app/src/main/assets/MonetLoader-GPL-3.0.txt
+          (cd "$ML_SRC" && zip -qr "$GITHUB_WORKSPACE/app/src/main/assets/monetloader-dist.zip" dist)
+          NDK="$ANDROID_HOME/ndk/26.2.11394342"
+          CMAKE="$ANDROID_HOME/cmake/3.22.1/bin/cmake"
+          for ABI in arm64-v8a armeabi-v7a; do
+            BUILD_DIR="$RUNNER_TEMP/monetloader-build-$ABI"
+            "$CMAKE" -S "$ML_SRC" -B "$BUILD_DIR" \
+              -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI="$ABI" \
+              -DANDROID_PLATFORM=android-24 \
+              -DCMAKE_BUILD_TYPE=Release
+            "$CMAKE" --build "$BUILD_DIR" --target monetloader --parallel 2
+            test -f "$BUILD_DIR/libmonetloader.so"
+            mkdir -p "app/src/main/jniLibs/$ABI"
+            cp "$BUILD_DIR/libmonetloader.so" "app/src/main/jniLibs/$ABI/libmonetloader.so"
+            cp "$ML_SRC/lib/lua/bin/$ABI/shared_release/libluajit-5.1.so" "app/src/main/jniLibs/$ABI/libluajit-5.1.so"
+          done
 
       - name: Setup Gradle Cache
         uses: gradle/actions/setup-gradle@v4
@@ -178,4 +213,5 @@ jobs:
           files: |
             dist-paket/LombokHoliday-arm64-v8a-Official-Signed.apk
             dist-paket/LombokHoliday-armeabi-v7a-Official-Signed.apk
+            THIRD_PARTY_NOTICES.md
           generate_release_notes: true

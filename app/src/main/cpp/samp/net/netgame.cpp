@@ -60,8 +60,10 @@ CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char *szPlayerName, 
 	memset(m_szHostOrIp, 0, 256);
 
 	strcpy(m_szHostName, "SA-MP");
-	strncpy(m_szHostOrIp, XySAMP::GetLockedHost(), sizeof(m_szHostOrIp));
-	m_iPort = XySAMP::GetLockedPort();
+	const char* targetHost = (szHostOrIp && szHostOrIp[0]) ? szHostOrIp : XySAMP::GetLockedHost();
+	strncpy(m_szHostOrIp, targetHost, sizeof(m_szHostOrIp) - 1);
+	m_szHostOrIp[sizeof(m_szHostOrIp) - 1] = '\0';
+	m_iPort = (iPort >= 1 && iPort <= 65535) ? iPort : XySAMP::GetLockedPort();
 
 	m_pRakClient = RakNetworkFactory::GetRakClientInterface();
 	InitializePools();

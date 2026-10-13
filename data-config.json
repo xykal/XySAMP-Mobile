@@ -1,16 +1,55 @@
 {
   "server_name": "Lombok Holiday Roleplay",
-  "version": "2.0.0",
+  "version": "2.1.0",
+  "official_server": {
+    "name": "Lombok Holiday Roleplay [OFFICIAL]",
+    "host": "play.lombokholiday.my.id",
+    "port": 7777
+  },
+  "banners": [
+    {
+      "badge": "LOMBOK HOLIDAY",
+      "title": "Selamat datang di Lombok Holiday",
+      "subtitle": "Pilih server, siapkan nickname, dan mulai bermain dari dashboard baru."
+    },
+    {
+      "badge": "SERVER FAVORIT",
+      "title": "Simpan server pilihanmu",
+      "subtitle": "Tambahkan domain atau alamat IPv4 dan port SA-MP dari menu Daftar Server."
+    },
+    {
+      "badge": "KONTROL LEBIH LUWES",
+      "title": "Sentuhan, keyboard, mouse, dan gamepad",
+      "subtitle": "Atur pilihan kontrol dan pengaturan kinerja dari launcher."
+    }
+  ],
+  "news": [
+    {
+      "date": "Launcher 2.1.0",
+      "title": "Dashboard rounded dan navigasi sidebar",
+      "body": "Beranda, daftar server, berita, mod center, pengaturan, dan kontrol kini tersedia lewat sidebar. Banner dan berita dapat diperbarui dari file konfigurasi ini."
+    },
+    {
+      "date": "Server",
+      "title": "Daftar server multi-server",
+      "body": "Simpan beberapa domain/IP dan port pada perangkat ini, lalu pilih tujuan sebelum masuk game."
+    },
+    {
+      "date": "Mod Center",
+      "title": "MonetLoader opsional dan impor file",
+      "body": "Script Lua dapat disalin ke folder MonetLoader. File CLEO Android .csa/.csi hanya disalin; runtime CLEO tidak dibundel atau diverifikasi untuk client ini."
+    }
+  ],
   "data_lite": {
-    "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
-    "size_mb": 280,
-    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip",
-    "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
+    "name": "Data Lite Lombok Holiday",
+    "size_mb": 0,
+    "url": "",
+    "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Lite diunggah."
   },
   "data_full": {
-    "name": "Data Full HD Lombok Holiday (Tanpa OBB)",
-    "size_mb": 950,
-    "url": "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip",
-    "description": "Data Full dengan audio lengkap dan tekstur HD, 100% Tanpa OBB."
+    "name": "Data Full Lombok Holiday",
+    "size_mb": 0,
+    "url": "",
+    "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Full diunggah."
   }
 }

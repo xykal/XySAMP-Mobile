@@ -1,0 +1,1081 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/background"
+    android:padding="8dp"
+    android:baselineAligned="false">
+
+    <!-- SIDEBAR NAVIGASI KIRI -->
+    <LinearLayout
+        android:layout_width="205dp"
+        android:layout_height="match_parent"
+        android:layout_margin="4dp"
+        android:orientation="vertical"
+        android:background="@drawable/bg_sidebar"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/logoImage"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:src="@drawable/logo" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/title1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Lombok Holiday"
+                    android:textColor="#FFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/title2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ROLEPLAY CLIENT"
+                    android:textColor="#38BDF8"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/abiBadgeText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_chip"
+            android:padding="5dp"
+            android:gravity="center"
+            android:text="ABI: ARM64 / ARMv7"
+            android:textColor="#A78BFA"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="#2638BDF8" />
+
+        <Button
+            android:id="@+id/tabBtnHome"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:text="⌂  Beranda"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item_selected" />
+
+        <Button
+            android:id="@+id/tabBtnServers"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◎  Daftar Server"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnNews"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◷  Berita &amp; Update"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnMods"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◈  Mod Center"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnSettings"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="⚙  Pengaturan"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnControls"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="⌗  Kontrol"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/authorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Lombok Holiday  •  v2.1.0"
+            android:textColor="#64748B"
+            android:textSize="10sp" />
+    </LinearLayout>
+
+    <!-- AREA KONTEN UTAMA KANAN -->
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:padding="14dp">
+
+        <!-- ================= PANEL 1: BERANDA & IN-APP DATA DOWNLOADER ================= -->
+        <ScrollView
+            android:id="@+id/panelHome"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="9dp"
+                    android:text="Selamat datang kembali"
+                    android:textColor="#F8FAFC"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <ViewFlipper
+                    android:id="@+id/bannerFlipper"
+                    android:layout_width="match_parent"
+                    android:layout_height="136dp"
+                    android:background="@drawable/bg_banner"
+                    android:flipInterval="6000"
+                    android:inAnimation="@android:anim/fade_in"
+                    android:outAnimation="@android:anim/fade_out"
+                    android:autoStart="false" />
+
+                <TextView
+                    android:id="@+id/bannerIndicator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="● ○ ○"
+                    android:textColor="#A78BFA"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="11dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SERVER TERPILIH"
+                            android:textColor="#94A3B8"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/homeServerText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="Lombok Holiday Roleplay"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnOpenServers"
+                        android:layout_width="132dp"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="9dp"
+                        android:background="@drawable/bg_button_muted"
+                        android:text="KELOLA SERVER"
+                        android:textColor="#E2E8F0"
+                        android:textSize="10sp"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
+                <!-- Kartu Input Akun & Tombol Play -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="AKUN ROLEPLAY &amp; KONEKSI SERVER"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <EditText
+                            android:id="@+id/nicknameInput"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="1.2"
+                            android:background="@drawable/bg_input"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="Nickname (Nama_Roleplay)"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#94A3B8"
+                            android:textSize="13sp"
+                            android:singleLine="true"
+                            android:maxLength="20"
+                            android:inputType="textPersonName|textNoSuggestions"
+                            android:imeOptions="actionDone" />
+
+                        <EditText
+                            android:id="@+id/passwordInput"
+                            android:layout_width="0dp"
+                            android:layout_height="44dp"
+                            android:layout_weight="0.8"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_input"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:hint="Password Server (Opsional)"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#64748B"
+                            android:textSize="12sp"
+                            android:singleLine="true"
+                            android:inputType="textPassword"
+                            android:imeOptions="actionDone" />
+
+                        <Button
+                            android:id="@+id/startButton"
+                            android:layout_width="165dp"
+                            android:layout_height="44dp"
+                            android:layout_marginStart="10dp"
+                            android:background="@drawable/bg_button_primary"
+                            android:text="MASUK GAME"
+                            android:textColor="#FFFFFF"
+                            android:textSize="13sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Kartu Status Data GTA & In-App Data Downloader -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="14dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="MANAJER DATA GTA:SA (SUPPORT LITE &amp; FULL TANPA OBB)"
+                            android:textColor="#A78BFA"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/dataBadgeStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:paddingTop="3dp"
+                            android:paddingBottom="3dp"
+                            android:background="@drawable/bg_chip_success"
+                            android:text="MENGECEK DATA..."
+                            android:textColor="#34D399"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/bugText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Mendeteksi direktori data GTA..."
+                        android:textColor="#E2E8F0"
+                        android:textSize="11sp" />
+
+                    <ProgressBar
+                        android:id="@+id/downloadProgressBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:visibility="gone" />
+
+                    <TextView
+                        android:id="@+id/downloadStatusText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="Siap mengunduh data langsung di dalam aplikasi (Auto-Extract)."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <Button
+                            android:id="@+id/btnDownloadLite"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_blue"
+                            android:text="DOWNLOAD DATA LITE"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnDownloadFull"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_button_purple"
+                            android:text="DOWNLOAD DATA FULL"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+
+                        <Button
+                            android:id="@+id/btnCustomUrl"
+                            android:layout_width="0dp"
+                            android:layout_height="38dp"
+                            android:layout_weight="0.9"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_button_muted"
+                            android:text="URL ZIP CUSTOM"
+                            android:textColor="#E2E8F0"
+                            android:textSize="11sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+                </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="13dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="BERITA TERBARU"
+                            android:textColor="#A78BFA"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                        <Button
+                            android:id="@+id/btnOpenNews"
+                            android:layout_width="92dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="LIHAT SEMUA"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/homeNewsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PANEL 2: PENGATURAN LENGKAP (SETTINGS) ================= -->
+        <ScrollView
+            android:id="@+id/panelSettings"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="PENGATURAN GRAFIS, CHAT &amp; FITUR GAME (SAMP/settings.ini)"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <!-- Pilihan FPS Limit -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="130dp"
+                        android:layout_height="wrap_content"
+                        android:text="Batas FPS Game:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnFps30"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="30 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps60"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_blue"
+                        android:text="60 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps90"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="90 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnFps120"
+                        android:layout_width="70dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="120 FPS"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="11dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OPTIMASI CEPAT"
+                        android:textColor="#A78BFA"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:orientation="horizontal">
+                        <Button
+                            android:id="@+id/btnProfileBattery"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="HEMAT"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                        <Button
+                            android:id="@+id/btnProfileBalanced"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="7dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_blue"
+                            android:text="SEIMBANG"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="10sp" />
+                        <Button
+                            android:id="@+id/btnProfilePerformance"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="7dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="FPS MAKS"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text="Preset hanya mengubah opsi FPS dan efek SkyBox/Salju yang tersedia. Hasil bergantung pada perangkat."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <!-- Pilihan Baris Chat & Ukuran Font -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="130dp"
+                        android:layout_height="wrap_content"
+                        android:text="Jumlah Baris Chat:"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnChat5"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="5 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat7"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_blue"
+                        android:text="7 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat9"
+                        android:layout_width="64dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="9 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnChat12"
+                        android:layout_width="70dp"
+                        android:layout_height="34dp"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_button_idle"
+                        android:text="12 Baris"
+                        android:textColor="#FFFFFF"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Grid CheckBox Pengaturan Fitur -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <CheckBox
+                            android:id="@+id/cbVoiceChat"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Voice Chat In-Game (Mic)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbFpsCounter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Tampilkan FPS Counter"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbFirstPerson"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Mode Kamera First-Person (FPP)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbCutout"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Full Screen (Layar Poni/Cutout)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbAndroidKeyboard"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Gunakan Keyboard Sistem Android"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <CheckBox
+                            android:id="@+id/cbHpArmourText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Tampilkan Angka HP &amp; Armour"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbOutfitGuns"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Senjata Terlihat di Badan (Outfit)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbRadarRect"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Bentuk Radar Kotak (Rect Radar)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbPcMoney"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Format Uang Gaya PC ($00000000)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbSkyBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Efek Langit HD (SkyBox)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+
+                        <CheckBox
+                            android:id="@+id/cbSnow"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="false"
+                            android:text="Efek Salju (Winter Snow)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnSaveSettings"
+                        android:layout_width="0dp"
+                        android:layout_height="38dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_button_primary"
+                        android:text="SIMPAN PENGATURAN"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnResetSettings"
+                        android:layout_width="160dp"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/bg_button_muted"
+                        android:text="RESET DEFAULT"
+                        android:textColor="#E2E8F0"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/panelServers"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DAFTAR SERVER"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Pilih server untuk bermain, atau tambahkan domain/IP dan port milikmu. Server tersimpan di perangkat ini."
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+                <Button
+                    android:id="@+id/btnAddServer"
+                    android:layout_width="160dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_button_primary"
+                    android:text="＋ TAMBAH SERVER"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp" />
+                <LinearLayout
+                    android:id="@+id/serverListContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/panelNews"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BERITA &amp; UPDATE"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Info dimuat dari konfigurasi online. Koneksi gagal tidak menghalangi launcher untuk dibuka."
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+                <LinearLayout
+                    android:id="@+id/newsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/panelMods"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOD CENTER"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/modRuntimeStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="MonetLoader opsional untuk script Lua. CLEO hanya menerima file; runtime CLEO belum terpasang."
+                    android:textColor="#CBD5E1"
+                    android:textSize="11sp" />
+                <CheckBox
+                    android:id="@+id/cbMonetLoaderEnabled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="false"
+                    android:text="Aktifkan MonetLoader saat memulai game (eksperimental)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+                <Button
+                    android:id="@+id/btnImportLua"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_button_blue"
+                    android:text="IMPORT SCRIPT MONETLOADER (.lua / .luac)"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp" />
+                <Button
+                    android:id="@+id/btnImportCleo"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="7dp"
+                    android:background="@drawable/bg_button_muted"
+                    android:text="SALIN SCRIPT CLEO ANDROID (.csa / .csi)"
+                    android:textAllCaps="false"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/modStoragePath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_info"
+                    android:padding="10dp"
+                    android:text="Folder mod akan disiapkan saat fitur dipakai."
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Catatan: script Lua/mod dapat menjalankan kode dan mengubah perilaku game; instal hanya dari sumber tepercaya. CLEO .csa/.csi hanya disalin ke folder Android/media; runtime CLEO untuk build ini belum diverifikasi. File Windows .dll tidak kompatibel dengan Android (gunakan .so yang memang dibuat untuk Android/ABI yang sesuai)."
+                    android:textColor="#FBBF24"
+                    android:textSize="10sp" />
+                <Button
+                    android:id="@+id/btnClearTemp"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_button_idle"
+                    android:text="BERSIHKAN FILE SEMENTARA"
+                    android:textAllCaps="false"
+                    android:textColor="#CBD5E1"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PANEL 6: KEYBOARD FISIK, MOUSE &amp; GAMEPAD ================= -->
+        <ScrollView
+            android:id="@+id/panelControls"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="14dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="KONTROL PERANGKAT"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_info"
+                    android:padding="10dp"
+                    android:text="Multi-sentuh 4 jari aktif: gerakan, kamera, dan aksi dapat digunakan bersamaan (tergantung dukungan layar/perangkat)."
+                    android:textColor="#C4B5FD"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/peripheralStatusText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_button_idle"
+                    android:padding="10dp"
+                    android:text="Memindai perangkat USB OTG / Bluetooth..."
+                    android:textColor="#34D399"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <CheckBox
+                    android:id="@+id/cbEnableKeyboardMouse"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="true"
+                    android:text="Aktifkan Kontrol Keyboard Fisik (WASD + Chat T/F6) &amp; Mouse (Klik Kiri/Kanan)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <CheckBox
+                    android:id="@+id/cbEnableGamepad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="Aktifkan Kontrol Gamepad / Joystick (PS4, PS5, Xbox, MOGA, USB/BT Pad)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="• Keyboard Fisik: WASD = Jalan/Setir | Space = Lompat/Rem | Shift = Lari | F / Enter = Masuk Kendaraan | C = Jongkok | H = Klakson | Q/E = Ganti Senjata | T / F6 / '/' = Buka Chat SA-MP | ESC = Menu/Kembali
+• Mouse OTG/BT: Klik Kiri = Tembak/Pukul | Klik Kanan = Bidik (Aim) | Scroll = Ganti Senjata | Klik Tengah = Lihat Belakang
+• Gamepad: Analog Kiri = Gerak | Analog Kanan = Kamera | R2/B = Tembak | L2/R1 = Bidik | Y/Segitiga = Kendaraan | A/Silang = Lari | X/Kotak = Lompat"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11sp" />
+
+                <Button
+                    android:id="@+id/btnRefreshDevices"
+                    android:layout_width="200dp"
+                    android:layout_height="36dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_button_blue"
+                    android:text="SCAN ULANG PERANGKAT"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
+</LinearLayout>

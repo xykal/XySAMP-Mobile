@@ -10,22 +10,32 @@ import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.pm.SigningInfo;
 import android.net.Uri;
+import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.provider.OpenableColumns;
+import android.text.InputType;
+import android.view.Gravity;
 import android.view.InputDevice;
+import android.view.ViewGroup;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.ViewFlipper;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -37,6 +47,7 @@ import com.samp.mobile.R;
 import com.samp.mobile.game.SAMP;
 import com.wardrumstudios.utils.WarGamepad;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -66,32 +77,64 @@ public class MainActivity extends AppCompatActivity {
     private static final String KEY_FPS = "fps_limit";
     private static final String KEY_CHAT_LINES = "chat_lines";
     private static final String KEY_CUSTOM_ZIP_URL = "custom_zip_url";
+    private static final String KEY_CUSTOM_SERVERS = "custom_servers_json";
+    private static final String KEY_SELECTED_SERVER = "selected_server_key";
+    private static final String KEY_MONETLOADER_ENABLED = "monetloader_enabled";
     private static final String DEFAULT_NICK = "Warga_Lombok";
-    private static final int LOCKED_PORT = 7777;
+    private static final String DEFAULT_SERVER_HOST = "play.lombokholiday.my.id";
+    private static final int DEFAULT_SERVER_PORT = 7777;
     private static final String EXPECTED_CERT_SHA256 = "93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c";
     private static final String REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/xykal/XySAMP-Mobile/main/data-config.json";
+    private static final String APP_VERSION = "2.1.0";
+    private static final String MONETLOADER_PROFILE = "{\"gtasa_name\":\"libGTASA.so\",\"compat_scripts\":[],\"profile_name\":\"Lombok Holiday GTA hooks only\",\"samp_name\":\"\",\"receiveignorerpc_pattern\":\"\",\"cnetgame_ctor_pattern\":\"\",\"rakclientinterface_netgame_offset\":0,\"use_samp_touch_workaround\":false,\"nveventinsertnewest_offset\":0}";
 
-    private String liteDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip";
-    private String fullDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip";
+    private String liteDataUrl = "";
+    private String fullDataUrl = "";
+    private JSONArray remoteBanners = new JSONArray();
+    private JSONArray remoteNews = new JSONArray();
+    private final List<ServerEntry> servers = new ArrayList<>();
+    private ServerEntry officialServer;
+    private String selectedServerKey = "";
+    private String pendingImportTarget = "";
+    private boolean loadingSavedSettings = false;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isDownloading = false;
 
+    private final Runnable bannerTicker = new Runnable() {
+        @Override public void run() {
+            if (bannerFlipper == null || bannerFlipper.getChildCount() < 2) return;
+            bannerFlipper.showNext();
+            updateBannerIndicator();
+            handler.postDelayed(this, 6000L);
+        }
+    };
+
     // UI Elements
-    private Button tabBtnHome, tabBtnSettings, tabBtnControls;
-    private ScrollView panelHome, panelSettings, panelControls;
+    private Button tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls;
+    private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls;
     private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl;
     private Button btnFps30, btnFps60, btnFps90, btnFps120;
     private Button btnChat5, btnChat7, btnChat9, btnChat12;
     private Button btnSaveSettings, btnResetSettings, btnRefreshDevices;
+    private Button btnAddServer, btnOpenServers, btnOpenNews, btnImportLua, btnImportCleo, btnClearTemp;
+    private Button btnProfileBattery, btnProfileBalanced, btnProfilePerformance;
     private EditText nicknameInput, passwordInput;
     private TextView abiBadgeText, dataBadgeStatus, bugText, downloadStatusText, peripheralStatusText;
+    private TextView homeServerText, bannerIndicator, modRuntimeStatus, modStoragePath;
+    private ViewFlipper bannerFlipper;
+    private LinearLayout serverListContainer, newsContainer, homeNewsContainer;
     private ProgressBar downloadProgressBar;
 
     private CheckBox cbVoiceChat, cbFpsCounter, cbFirstPerson, cbCutout, cbAndroidKeyboard;
     private CheckBox cbHpArmourText, cbOutfitGuns, cbRadarRect, cbPcMoney, cbSkyBox, cbSnow;
-    private CheckBox cbEnableKeyboardMouse, cbEnableGamepad;
+    private CheckBox cbEnableKeyboardMouse, cbEnableGamepad, cbMonetLoaderEnabled;
+
+    private final ActivityResultLauncher<String[]> importFileLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) importSelectedFile(uri);
+            });
 
     private int selectedFps = 60;
     private int selectedChatLines = 7;
@@ -137,6 +180,11 @@ public class MainActivity extends AppCompatActivity {
                 markTampered(false);
             }
             setupTabsAndListeners();
+            loadServerList();
+            refreshServerList();
+            renderBanners(null);
+            renderNews(null);
+            refreshModInfo();
             checkAndRequestStoragePermission();
             onPermissionReady();
             fetchRemoteDataConfig();
@@ -148,12 +196,37 @@ public class MainActivity extends AppCompatActivity {
 
     private void initViews() {
         tabBtnHome = findViewById(R.id.tabBtnHome);
+        tabBtnServers = findViewById(R.id.tabBtnServers);
+        tabBtnNews = findViewById(R.id.tabBtnNews);
+        tabBtnMods = findViewById(R.id.tabBtnMods);
         tabBtnSettings = findViewById(R.id.tabBtnSettings);
         tabBtnControls = findViewById(R.id.tabBtnControls);
 
         panelHome = findViewById(R.id.panelHome);
+        panelServers = findViewById(R.id.panelServers);
+        panelNews = findViewById(R.id.panelNews);
+        panelMods = findViewById(R.id.panelMods);
         panelSettings = findViewById(R.id.panelSettings);
         panelControls = findViewById(R.id.panelControls);
+
+        bannerFlipper = findViewById(R.id.bannerFlipper);
+        bannerIndicator = findViewById(R.id.bannerIndicator);
+        homeServerText = findViewById(R.id.homeServerText);
+        serverListContainer = findViewById(R.id.serverListContainer);
+        newsContainer = findViewById(R.id.newsContainer);
+        homeNewsContainer = findViewById(R.id.homeNewsContainer);
+        btnAddServer = findViewById(R.id.btnAddServer);
+        btnOpenServers = findViewById(R.id.btnOpenServers);
+        btnOpenNews = findViewById(R.id.btnOpenNews);
+        cbMonetLoaderEnabled = findViewById(R.id.cbMonetLoaderEnabled);
+        btnImportLua = findViewById(R.id.btnImportLua);
+        btnImportCleo = findViewById(R.id.btnImportCleo);
+        btnClearTemp = findViewById(R.id.btnClearTemp);
+        btnProfileBattery = findViewById(R.id.btnProfileBattery);
+        btnProfileBalanced = findViewById(R.id.btnProfileBalanced);
+        btnProfilePerformance = findViewById(R.id.btnProfilePerformance);
+        modRuntimeStatus = findViewById(R.id.modRuntimeStatus);
+        modStoragePath = findViewById(R.id.modStoragePath);
 
         abiBadgeText = findViewById(R.id.abiBadgeText);
         if (abiBadgeText != null) {
@@ -206,38 +279,82 @@ public class MainActivity extends AppCompatActivity {
 
     private void switchTab(int tabIndex) {
         panelHome.setVisibility(tabIndex == 0 ? View.VISIBLE : View.GONE);
-        panelSettings.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
-        panelControls.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
+        panelServers.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
+        panelNews.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
+        panelMods.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
+        panelSettings.setVisibility(tabIndex == 4 ? View.VISIBLE : View.GONE);
+        panelControls.setVisibility(tabIndex == 5 ? View.VISIBLE : View.GONE);
 
-        tabBtnHome.setBackgroundColor(tabIndex == 0 ? 0xCC1D4ED8 : 0x661E293B);
-        tabBtnSettings.setBackgroundColor(tabIndex == 1 ? 0xCC1D4ED8 : 0x661E293B);
-        tabBtnControls.setBackgroundColor(tabIndex == 2 ? 0xCC1D4ED8 : 0x661E293B);
-
-        if (tabIndex == 2) {
-            refreshPeripheralsStatus();
+        Button[] nav = new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls};
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] != null) nav[i].setBackgroundResource(i == tabIndex ? R.drawable.nav_item_selected : R.drawable.nav_item);
         }
+        if (tabIndex == 1) refreshServerList();
+        if (tabIndex == 2) renderNews(remoteNews);
+        if (tabIndex == 3) refreshModInfo();
+        if (tabIndex == 5) refreshPeripheralsStatus();
     }
 
     private void updateFpsButtons(int fps) {
         selectedFps = fps;
-        btnFps30.setBackgroundColor(fps == 30 ? 0xCC0284C7 : 0x661E293B);
-        btnFps60.setBackgroundColor(fps == 60 ? 0xCC0284C7 : 0x661E293B);
-        btnFps90.setBackgroundColor(fps == 90 ? 0xCC0284C7 : 0x661E293B);
-        btnFps120.setBackgroundColor(fps == 120 ? 0xCC0284C7 : 0x661E293B);
+        btnFps30.setBackgroundResource(fps == 30 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps60.setBackgroundResource(fps == 60 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps90.setBackgroundResource(fps == 90 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps120.setBackgroundResource(fps == 120 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
     }
 
     private void updateChatLineButtons(int lines) {
         selectedChatLines = lines;
-        btnChat5.setBackgroundColor(lines == 5 ? 0xCC0284C7 : 0x661E293B);
-        btnChat7.setBackgroundColor(lines == 7 ? 0xCC0284C7 : 0x661E293B);
-        btnChat9.setBackgroundColor(lines == 9 ? 0xCC0284C7 : 0x661E293B);
-        btnChat12.setBackgroundColor(lines == 12 ? 0xCC0284C7 : 0x661E293B);
+        btnChat5.setBackgroundResource(lines == 5 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat7.setBackgroundResource(lines == 7 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat9.setBackgroundResource(lines == 9 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat12.setBackgroundResource(lines == 12 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
     }
 
     private void setupTabsAndListeners() {
         tabBtnHome.setOnClickListener(v -> switchTab(0));
-        tabBtnSettings.setOnClickListener(v -> switchTab(1));
-        tabBtnControls.setOnClickListener(v -> switchTab(2));
+        tabBtnServers.setOnClickListener(v -> switchTab(1));
+        tabBtnNews.setOnClickListener(v -> switchTab(2));
+        tabBtnMods.setOnClickListener(v -> switchTab(3));
+        tabBtnSettings.setOnClickListener(v -> switchTab(4));
+        tabBtnControls.setOnClickListener(v -> switchTab(5));
+        btnOpenServers.setOnClickListener(v -> switchTab(1));
+        btnOpenNews.setOnClickListener(v -> switchTab(2));
+        btnAddServer.setOnClickListener(v -> showAddServerDialog());
+        btnImportLua.setOnClickListener(v -> openImportPicker("lua"));
+        btnImportCleo.setOnClickListener(v -> openImportPicker("cleo"));
+        btnClearTemp.setOnClickListener(v -> clearTemporaryFiles());
+        btnProfileBattery.setOnClickListener(v -> applyPerformancePreset(0));
+        btnProfileBalanced.setOnClickListener(v -> applyPerformancePreset(1));
+        btnProfilePerformance.setOnClickListener(v -> applyPerformancePreset(2));
+
+        cbMonetLoaderEnabled.setOnCheckedChangeListener((button, checked) -> {
+            if (loadingSavedSettings) return;
+            if (!checked) {
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_MONETLOADER_ENABLED, false).apply();
+                Toast.makeText(this, "MonetLoader akan dinonaktifkan pada sesi game berikutnya.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            cbMonetLoaderEnabled.setEnabled(false);
+            startButton.setEnabled(false);
+            executor.execute(() -> {
+                boolean prepared = ensureMonetLoaderFiles();
+                handler.post(() -> {
+                    cbMonetLoaderEnabled.setEnabled(true);
+                    startButton.setEnabled(true);
+                    if (!prepared) {
+                        loadingSavedSettings = true;
+                        cbMonetLoaderEnabled.setChecked(false);
+                        loadingSavedSettings = false;
+                        Toast.makeText(MainActivity.this, "Gagal menyiapkan MonetLoader. Coba lagi atau main tanpa mod.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_MONETLOADER_ENABLED, true).apply();
+                    refreshModInfo();
+                    Toast.makeText(MainActivity.this, "MonetLoader siap. Script Lua akan aktif saat game berikutnya dimulai.", Toast.LENGTH_LONG).show();
+                });
+            });
+        });
 
         btnFps30.setOnClickListener(v -> updateFpsButtons(30));
         btnFps60.setOnClickListener(v -> updateFpsButtons(60));
@@ -280,16 +397,562 @@ public class MainActivity extends AppCompatActivity {
         cbEnableGamepad.setOnCheckedChangeListener((b, checked) -> WarGamepad.sEnableGamepad = checked);
         btnRefreshDevices.setOnClickListener(v -> refreshPeripheralsStatus());
 
-        btnDownloadLite.setOnClickListener(v -> startInAppDataDownload(liteDataUrl, "Data Lite"));
-        btnDownloadFull.setOnClickListener(v -> startInAppDataDownload(fullDataUrl, "Data Full"));
+        btnDownloadLite.setOnClickListener(v -> beginConfiguredDownload(liteDataUrl, "Data Lite"));
+        btnDownloadFull.setOnClickListener(v -> beginConfiguredDownload(fullDataUrl, "Data Full"));
         btnCustomUrl.setOnClickListener(v -> showCustomUrlDialog());
 
+        switchTab(0);
         startButton.setOnClickListener(v -> {
             v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80)
                     .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(80).start())
                     .start();
             startGame();
         });
+    }
+
+    private static final class ServerEntry {
+        final String name;
+        final String host;
+        final int port;
+        final boolean official;
+        ServerEntry(String name, String host, int port, boolean official) {
+            this.name = name;
+            this.host = host;
+            this.port = port;
+            this.official = official;
+        }
+        String key() { return host.toLowerCase(Locale.ROOT) + ":" + port; }
+    }
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private boolean isValidServerHost(String host) {
+        if (host == null) return false;
+        String value = host.trim();
+        if (value.isEmpty() || value.length() > 127 || value.contains("..") || value.startsWith(".") || value.endsWith(".")) return false;
+        if (value.startsWith("-") || value.endsWith("-")) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (!(Character.isLetterOrDigit(c) || c == '.' || c == '-')) return false;
+        }
+        return true;
+    }
+
+    private void loadServerList() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        officialServer = new ServerEntry("Lombok Holiday Roleplay [OFFICIAL]", DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, true);
+        servers.clear();
+        servers.add(officialServer);
+        try {
+            JSONArray saved = new JSONArray(prefs.getString(KEY_CUSTOM_SERVERS, "[]"));
+            for (int i = 0; i < saved.length(); i++) {
+                JSONObject obj = saved.optJSONObject(i);
+                if (obj == null) continue;
+                String name = obj.optString("name", "Server").trim();
+                String host = obj.optString("host", "").trim();
+                int port = obj.optInt("port", 0);
+                if (!isValidServerHost(host) || port < 1 || port > 65535) continue;
+                ServerEntry entry = new ServerEntry(name.isEmpty() ? host : name, host, port, false);
+                if (!containsServer(entry.key())) servers.add(entry);
+            }
+        } catch (Exception ignored) {}
+        selectedServerKey = prefs.getString(KEY_SELECTED_SERVER, officialServer.key());
+        if (!containsServer(selectedServerKey)) selectedServerKey = officialServer.key();
+    }
+
+    private boolean containsServer(String key) {
+        for (ServerEntry entry : servers) if (entry.key().equalsIgnoreCase(key)) return true;
+        return false;
+    }
+
+    private ServerEntry getSelectedServer() {
+        for (ServerEntry entry : servers) {
+            if (entry.key().equalsIgnoreCase(selectedServerKey)) return entry;
+        }
+        return officialServer != null ? officialServer : new ServerEntry("Lombok Holiday Roleplay [OFFICIAL]", DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, true);
+    }
+
+    private void saveServerList() {
+        JSONArray array = new JSONArray();
+        for (ServerEntry entry : servers) {
+            if (entry.official) continue;
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("name", entry.name);
+                obj.put("host", entry.host);
+                obj.put("port", entry.port);
+                array.put(obj);
+            } catch (Exception ignored) {}
+        }
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putString(KEY_CUSTOM_SERVERS, array.toString())
+                .putString(KEY_SELECTED_SERVER, selectedServerKey)
+                .apply();
+    }
+
+    private void updateOfficialServer(String name, String host, int port) {
+        if (!isValidServerHost(host) || port < 1 || port > 65535) return;
+        String oldKey = officialServer == null ? "" : officialServer.key();
+        String title = (name == null || name.trim().isEmpty()) ? "Lombok Holiday Roleplay [OFFICIAL]" : name.trim();
+        officialServer = new ServerEntry(title, host.trim(), port, true);
+        if (!servers.isEmpty() && servers.get(0).official) servers.set(0, officialServer);
+        else servers.add(0, officialServer);
+        if (selectedServerKey == null || selectedServerKey.isEmpty() || selectedServerKey.equalsIgnoreCase(oldKey)) {
+            selectedServerKey = officialServer.key();
+        }
+        if (homeServerText != null && selectedServerKey.equalsIgnoreCase(officialServer.key())) {
+            homeServerText.setText(officialServer.name + "  •  " + officialServer.host + ":" + officialServer.port);
+        }
+        refreshServerList();
+    }
+
+    private void refreshServerList() {
+        if (serverListContainer == null) return;
+        serverListContainer.removeAllViews();
+        ServerEntry selected = getSelectedServer();
+        if (homeServerText != null && selected != null) {
+            homeServerText.setText(selected.name + "  •  " + selected.host + ":" + selected.port);
+        }
+        for (ServerEntry entry : servers) {
+            boolean active = selected != null && entry.key().equalsIgnoreCase(selected.key());
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(12), dp(8), dp(8), dp(8));
+            card.setBackgroundResource(R.drawable.bg_card);
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, -2);
+            cardParams.bottomMargin = dp(8);
+            serverListContainer.addView(card, cardParams);
+
+            LinearLayout detail = new LinearLayout(this);
+            detail.setOrientation(LinearLayout.VERTICAL);
+            detail.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
+            TextView title = new TextView(this);
+            title.setText(entry.name);
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(13f);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            TextView address = new TextView(this);
+            address.setText(entry.host + ":" + entry.port + (entry.official ? "  •  RESMI" : "  •  KUSTOM"));
+            address.setTextColor(entry.official ? 0xFF38BDF8 : 0xFF94A3B8);
+            address.setTextSize(10f);
+            detail.addView(title);
+            detail.addView(address);
+            card.addView(detail);
+
+            Button select = new Button(this);
+            select.setAllCaps(false);
+            select.setText(active ? "DIPILIH" : "PILIH");
+            select.setTextSize(10f);
+            select.setTextColor(Color.WHITE);
+            select.setBackgroundResource(active ? R.drawable.bg_button_primary : R.drawable.bg_button_blue);
+            LinearLayout.LayoutParams selectParams = new LinearLayout.LayoutParams(dp(82), dp(36));
+            card.addView(select, selectParams);
+            select.setOnClickListener(v -> {
+                selectedServerKey = entry.key();
+                saveServerList();
+                refreshServerList();
+                Toast.makeText(this, "Server dipilih: " + entry.name, Toast.LENGTH_SHORT).show();
+            });
+
+            if (!entry.official) {
+                Button remove = new Button(this);
+                remove.setAllCaps(false);
+                remove.setText("×");
+                remove.setTextSize(18f);
+                remove.setTextColor(0xFFFCA5A5);
+                remove.setBackgroundResource(R.drawable.bg_button_muted);
+                LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(dp(38), dp(36));
+                removeParams.leftMargin = dp(6);
+                card.addView(remove, removeParams);
+                remove.setContentDescription("Hapus " + entry.name);
+                remove.setOnClickListener(v -> removeServer(entry));
+            }
+        }
+    }
+
+    private void removeServer(ServerEntry entry) {
+        if (entry == null || entry.official) return;
+        servers.remove(entry);
+        if (selectedServerKey.equalsIgnoreCase(entry.key())) selectedServerKey = officialServer.key();
+        saveServerList();
+        refreshServerList();
+    }
+
+    private void showAddServerDialog() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(8), dp(20), 0);
+        EditText name = new EditText(this);
+        name.setSingleLine(true);
+        name.setHint("Nama server (opsional)");
+        name.setTextColor(Color.WHITE);
+        name.setHintTextColor(0xFF94A3B8);
+        name.setBackgroundResource(R.drawable.bg_input);
+        name.setPadding(dp(12), dp(8), dp(12), dp(8));
+        EditText host = new EditText(this);
+        host.setSingleLine(true);
+        host.setHint("Domain / IPv4, contoh: samp.example.net");
+        host.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        host.setTextColor(Color.WHITE);
+        host.setHintTextColor(0xFF94A3B8);
+        host.setBackgroundResource(R.drawable.bg_input);
+        host.setPadding(dp(12), dp(8), dp(12), dp(8));
+        EditText port = new EditText(this);
+        port.setSingleLine(true);
+        port.setHint("Port UDP (contoh: 7777)");
+        port.setInputType(InputType.TYPE_CLASS_NUMBER);
+        port.setText("7777");
+        port.setTextColor(Color.WHITE);
+        port.setHintTextColor(0xFF94A3B8);
+        port.setBackgroundResource(R.drawable.bg_input);
+        port.setPadding(dp(12), dp(8), dp(12), dp(8));
+        LinearLayout.LayoutParams fieldParams = new LinearLayout.LayoutParams(-1, dp(44));
+        fieldParams.bottomMargin = dp(8);
+        form.addView(name, fieldParams);
+        form.addView(host, fieldParams);
+        form.addView(port, fieldParams);
+        new AlertDialog.Builder(this)
+                .setTitle("Tambah server SA-MP")
+                .setMessage("Masukkan host dan port UDP. IPv6 belum didukung.")
+                .setView(form)
+                .setPositiveButton("SIMPAN", (dialog, which) -> {
+                    String hostValue = host.getText().toString().trim();
+                    int portValue;
+                    try { portValue = Integer.parseInt(port.getText().toString().trim()); }
+                    catch (Exception e) { portValue = 0; }
+                    if (!isValidServerHost(hostValue) || portValue < 1 || portValue > 65535) {
+                        Toast.makeText(this, "Host atau port tidak valid. Gunakan domain/IPv4 dan port 1–65535.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    String serverName = name.getText().toString().trim();
+                    if (serverName.isEmpty()) serverName = hostValue;
+                    ServerEntry created = new ServerEntry(serverName, hostValue, portValue, false);
+                    if (containsServer(created.key())) {
+                        Toast.makeText(this, "Server tersebut sudah ada di daftar.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    servers.add(created);
+                    selectedServerKey = created.key();
+                    saveServerList();
+                    refreshServerList();
+                    Toast.makeText(this, "Server disimpan dan dipilih.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("BATAL", null)
+                .show();
+    }
+
+    private void renderBanners(JSONArray items) {
+        if (bannerFlipper == null) return;
+        JSONArray source = items;
+        if (source == null || source.length() == 0) {
+            source = new JSONArray();
+            try {
+                source.put(new JSONObject().put("badge", "LOMBOK HOLIDAY").put("title", "Selamat datang di Lombok Holiday").put("subtitle", "Pilih server, atur kontrol, lalu masuk ke dunia SA-MP."));
+                source.put(new JSONObject().put("badge", "SERVER FAVORIT").put("title", "Simpan server pilihanmu").put("subtitle", "Tambahkan domain atau alamat IPv4 dan pilih server langsung dari launcher."));
+                source.put(new JSONObject().put("badge", "KONTROL LEBIH LUWES").put("title", "Main dengan layar sentuh atau perangkat eksternal").put("subtitle", "Atur FPS, keyboard, mouse, gamepad, dan kontrol multi-sentuh dari menu launcher."));
+            } catch (Exception ignored) {}
+        }
+        bannerFlipper.removeAllViews();
+        for (int i = 0; i < source.length(); i++) {
+            JSONObject item = source.optJSONObject(i);
+            if (item == null) continue;
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(18), dp(12), dp(18), dp(12));
+            int[][] colors = new int[][]{
+                    {0xFF0E7490, 0xFF1D4ED8, 0xFF6D28D9},
+                    {0xFF1D4ED8, 0xFF4338CA, 0xFF7C3AED},
+                    {0xFF155E75, 0xFF2563EB, 0xFF5B21B6}
+            };
+            GradientDrawable background = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors[i % colors.length]);
+            background.setCornerRadius(dp(22));
+            background.setStroke(dp(1), 0x6687DFFF);
+            card.setBackground(background);
+            TextView badge = new TextView(this);
+            badge.setText(item.optString("badge", "LOMBOK HOLIDAY"));
+            badge.setTextColor(0xFFD8B4FE);
+            badge.setTextSize(9f);
+            badge.setTypeface(null, android.graphics.Typeface.BOLD);
+            TextView title = new TextView(this);
+            title.setText(item.optString("title", "Lombok Holiday"));
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(17f);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            title.setMaxLines(2);
+            TextView subtitle = new TextView(this);
+            subtitle.setText(item.optString("subtitle", "Launcher SA-MP Mobile"));
+            subtitle.setTextColor(0xFFE2E8F0);
+            subtitle.setTextSize(10f);
+            subtitle.setMaxLines(2);
+            card.addView(badge);
+            card.addView(title, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(-1, -2);
+            subtitleParams.topMargin = dp(3);
+            card.addView(subtitle, subtitleParams);
+            bannerFlipper.addView(card, new FrameLayout.LayoutParams(-1, -1));
+        }
+        if (bannerFlipper.getChildCount() == 0) {
+            TextView fallback = new TextView(this);
+            fallback.setText("Lombok Holiday");
+            fallback.setTextColor(Color.WHITE);
+            fallback.setGravity(Gravity.CENTER);
+            bannerFlipper.addView(fallback);
+        }
+        bannerFlipper.setDisplayedChild(0);
+        bannerFlipper.setFlipInterval(6000);
+        bannerFlipper.setInAnimation(this, android.R.anim.fade_in);
+        bannerFlipper.setOutAnimation(this, android.R.anim.fade_out);
+        updateBannerIndicator();
+    }
+
+    private void updateBannerIndicator() {
+        if (bannerIndicator == null || bannerFlipper == null) return;
+        int count = bannerFlipper.getChildCount();
+        StringBuilder dots = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) dots.append("   ");
+            dots.append(i == bannerFlipper.getDisplayedChild() ? "●" : "○");
+        }
+        bannerIndicator.setText(dots.toString());
+    }
+
+    private void renderNews(JSONArray items) {
+        if (newsContainer == null || homeNewsContainer == null) return;
+        newsContainer.removeAllViews();
+        homeNewsContainer.removeAllViews();
+        if (items == null || items.length() == 0) {
+            TextView empty = new TextView(this);
+            empty.setText("Belum ada berita baru. Konten akan muncul di sini saat data news ditambahkan ke data-config.json.");
+            empty.setTextColor(0xFF94A3B8);
+            empty.setTextSize(11f);
+            empty.setPadding(0, dp(12), 0, dp(12));
+            newsContainer.addView(empty);
+            homeNewsContainer.addView(emptyCopy("Belum ada berita terbaru."));
+            return;
+        }
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            addNewsCard(newsContainer, item);
+            if (i < 2) addNewsCard(homeNewsContainer, item);
+        }
+    }
+
+    private TextView emptyCopy(String value) {
+        TextView text = new TextView(this);
+        text.setText(value);
+        text.setTextColor(0xFF94A3B8);
+        text.setTextSize(10f);
+        text.setPadding(0, dp(6), 0, dp(4));
+        return text;
+    }
+
+    private void addNewsCard(LinearLayout container, JSONObject item) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        card.setBackgroundResource(R.drawable.bg_info);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.bottomMargin = dp(8);
+        container.addView(card, params);
+        TextView date = new TextView(this);
+        date.setText(item.optString("date", "INFO"));
+        date.setTextColor(0xFFA78BFA);
+        date.setTextSize(9f);
+        date.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView title = new TextView(this);
+        title.setText(item.optString("title", "Info Lombok Holiday"));
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(13f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView body = new TextView(this);
+        body.setText(item.optString("body", ""));
+        body.setTextColor(0xFFCBD5E1);
+        body.setTextSize(10f);
+        card.addView(date);
+        card.addView(title);
+        card.addView(body);
+    }
+
+    private void applyPerformancePreset(int preset) {
+        if (preset == 0) {
+            updateFpsButtons(30);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        } else if (preset == 1) {
+            updateFpsButtons(60);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        } else {
+            updateFpsButtons(120);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        }
+        String nick = sanitizeNick(nicknameInput.getText().toString());
+        if (nick.isEmpty()) nick = DEFAULT_NICK;
+        saveAllSettingsToIni(nick);
+        String label = preset == 0 ? "Hemat" : (preset == 1 ? "Seimbang" : "FPS Maksimum");
+        Toast.makeText(this, "Preset " + label + " disimpan. FPS aktual bergantung pada perangkat.", Toast.LENGTH_LONG).show();
+    }
+
+    private File getAppMediaRoot() {
+        try {
+            File[] dirs = getExternalMediaDirs();
+            if (dirs != null && dirs.length > 0 && dirs[0] != null) {
+                if (!dirs[0].exists()) dirs[0].mkdirs();
+                return dirs[0];
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private boolean ensureMonetLoaderFiles() {
+        File mediaRoot = getAppMediaRoot();
+        if (mediaRoot == null) return false;
+        File loaderRoot = new File(mediaRoot, "monetloader");
+        File installMarker = new File(loaderRoot, ".lombok_monetloader_3.8.0_installed");
+        if (!loaderRoot.exists() && !loaderRoot.mkdirs()) return false;
+        if (!installMarker.exists()) {
+            try (InputStream input = getAssets().open("monetloader-dist.zip");
+                 ZipInputStream zip = new ZipInputStream(new BufferedInputStream(input))) {
+                ZipEntry entry;
+                byte[] buffer = new byte[16384];
+                String rootPath = loaderRoot.getCanonicalPath() + File.separator;
+                while ((entry = zip.getNextEntry()) != null) {
+                    String name = entry.getName().replace('\\', '/');
+                    if (name.startsWith("dist/")) name = name.substring(5);
+                    while (name.startsWith("/")) name = name.substring(1);
+                    if (name.isEmpty() || name.contains("..")) { zip.closeEntry(); continue; }
+                    if (android.os.Process.is64Bit() && name.endsWith("libmoonmonet_rs.so")) { zip.closeEntry(); continue; }
+                    File out = new File(loaderRoot, name);
+                    if (!out.getCanonicalPath().startsWith(rootPath)) { zip.closeEntry(); continue; }
+                    if (entry.isDirectory()) {
+                        out.mkdirs();
+                    } else {
+                        File parent = out.getParentFile();
+                        if (parent != null && !parent.exists()) parent.mkdirs();
+                        try (BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(out), 16384)) {
+                            int count;
+                            while ((count = zip.read(buffer)) != -1) stream.write(buffer, 0, count);
+                            stream.flush();
+                        }
+                    }
+                    zip.closeEntry();
+                }
+            } catch (Exception e) {
+                return false;
+            }
+            try (FileOutputStream marker = new FileOutputStream(installMarker)) {
+                marker.write("MonetLoader 3.8.0".getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        File compat = new File(loaderRoot, "compat/profile.json");
+        if (!compat.exists()) {
+            try {
+                File parent = compat.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                try (FileOutputStream out = new FileOutputStream(compat)) {
+                    out.write(MONETLOADER_PROFILE.getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void refreshModInfo() {
+        File mediaRoot = getAppMediaRoot();
+        if (mediaRoot != null && modStoragePath != null) {
+            String monet = new File(mediaRoot, "monetloader").getAbsolutePath();
+            String cleo = new File(mediaRoot, "cleo/sa").getAbsolutePath();
+            modStoragePath.setText("MonetLoader: " + monet + "\nCLEO script folder: " + cleo);
+        }
+        if (modRuntimeStatus != null) {
+            boolean enabled = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_MONETLOADER_ENABLED, false);
+            modRuntimeStatus.setText(enabled
+                    ? "MonetLoader diaktifkan untuk sesi berikutnya. API khusus SA-MP belum diverifikasi pada semua ABI."
+                    : "MonetLoader tersedia sebagai opsi eksperimental. CLEO hanya menerima file; runtime CLEO belum terpasang.");
+        }
+    }
+
+    private void openImportPicker(String target) {
+        pendingImportTarget = target;
+        importFileLauncher.launch(new String[]{"*/*"});
+    }
+
+    private String getDisplayName(Uri uri) {
+        String result = null;
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (column >= 0) result = cursor.getString(column);
+            }
+        } catch (Exception ignored) {}
+        if (result == null || result.trim().isEmpty()) result = uri.getLastPathSegment();
+        return result == null ? "mod" : result;
+    }
+
+    private void importSelectedFile(Uri uri) {
+        final String target = pendingImportTarget;
+        executor.execute(() -> {
+            String displayName = getDisplayName(uri);
+            String safeName = displayName.replaceAll("[^A-Za-z0-9._-]", "_");
+            String lower = safeName.toLowerCase(Locale.ROOT);
+            boolean lua = lower.endsWith(".lua") || lower.endsWith(".luac");
+            boolean cleo = lower.endsWith(".csa") || lower.endsWith(".csi");
+            if (("lua".equals(target) && !lua) || ("cleo".equals(target) && !cleo) || (!lua && !cleo)) {
+                handler.post(() -> Toast.makeText(MainActivity.this, "Format tidak didukung. MonetLoader menerima .lua/.luac; CLEO menerima .csa/.csi.", Toast.LENGTH_LONG).show());
+                return;
+            }
+            try {
+                File mediaRoot = getAppMediaRoot();
+                if (mediaRoot == null) throw new IllegalStateException("Folder Android/media tidak tersedia");
+                File destinationRoot;
+                if (lua) {
+                    if (!ensureMonetLoaderFiles()) throw new IllegalStateException("MonetLoader belum siap");
+                    destinationRoot = new File(mediaRoot, "monetloader");
+                } else {
+                    destinationRoot = new File(mediaRoot, "cleo/sa");
+                    if (!destinationRoot.exists()) destinationRoot.mkdirs();
+                }
+                File destination = new File(destinationRoot, safeName);
+                try (InputStream in = getContentResolver().openInputStream(uri);
+                     BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(destination))) {
+                    if (in == null) throw new IllegalStateException("File tidak bisa dibaca");
+                    byte[] buffer = new byte[16384];
+                    int n;
+                    while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+                    out.flush();
+                }
+                handler.post(() -> {
+                    refreshModInfo();
+                    String message = lua
+                            ? "Script Lua disalin. Aktifkan MonetLoader dan mulai ulang game untuk memuatnya."
+                            : "Script CLEO disalin ke folder Android/media. Runtime CLEO belum tersedia di build ini.";
+                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+                });
+            } catch (Exception e) {
+                String message = e.getMessage() == null ? "Gagal menyalin file mod" : e.getMessage();
+                handler.post(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void clearTemporaryFiles() {
+        if (isDownloading) {
+            Toast.makeText(this, "Unduhan sedang berjalan. File sementara tidak dihapus.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File temp = new File(getPreferredWritableDataDir(), "lombok_data_download.zip.part");
+        boolean removed = !temp.exists() || temp.delete();
+        Toast.makeText(this, removed ? "File unduhan sementara dibersihkan. Data game dan mod tidak diubah." : "File sementara tidak dapat dihapus.", Toast.LENGTH_LONG).show();
     }
 
     private void refreshPeripheralsStatus() {
@@ -324,35 +987,73 @@ public class MainActivity extends AppCompatActivity {
 
     private void fetchRemoteDataConfig() {
         executor.execute(() -> {
+            HttpURLConnection conn = null;
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(REMOTE_CONFIG_URL).openConnection();
+                conn = (HttpURLConnection) new URL(REMOTE_CONFIG_URL).openConnection();
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
-                if (conn.getResponseCode() == 200) {
+                conn.setUseCaches(false);
+                if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
                     StringBuilder sb = new StringBuilder();
                     try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
                         String line;
                         while ((line = br.readLine()) != null) sb.append(line);
                     }
                     JSONObject obj = new JSONObject(sb.toString());
-                    if (obj.has("data_lite")) {
-                        JSONObject lite = obj.getJSONObject("data_lite");
-                        liteDataUrl = lite.optString("url", liteDataUrl);
-                    }
-                    if (obj.has("data_full")) {
-                        JSONObject full = obj.getJSONObject("data_full");
-                        fullDataUrl = full.optString("url", fullDataUrl);
-                    }
+                    JSONObject official = obj.optJSONObject("official_server");
+                    String serverName = official == null ? "" : official.optString("name", "");
+                    String serverHost = official == null ? "" : official.optString("host", "");
+                    int serverPort = official == null ? 0 : official.optInt("port", 0);
+                    JSONObject lite = obj.optJSONObject("data_lite");
+                    JSONObject full = obj.optJSONObject("data_full");
+                    String liteUrl = lite == null ? "" : lite.optString("url", "").trim();
+                    String fullUrl = full == null ? "" : full.optString("url", "").trim();
+                    JSONArray banners = obj.optJSONArray("banners");
+                    JSONArray news = obj.optJSONArray("news");
+                    if (isHttpUrl(liteUrl)) liteDataUrl = liteUrl;
+                    else liteDataUrl = "";
+                    if (isHttpUrl(fullUrl)) fullDataUrl = fullUrl;
+                    else fullDataUrl = "";
+                    remoteBanners = banners == null ? new JSONArray() : banners;
+                    remoteNews = news == null ? new JSONArray() : news;
+                    handler.post(() -> {
+                        if (isValidServerHost(serverHost) && serverPort > 0 && serverPort <= 65535) {
+                            boolean matchesBuildPin = serverHost.equalsIgnoreCase(DEFAULT_SERVER_HOST) && serverPort == DEFAULT_SERVER_PORT;
+                            updateOfficialServer(serverName, matchesBuildPin ? serverHost : DEFAULT_SERVER_HOST,
+                                    matchesBuildPin ? serverPort : DEFAULT_SERVER_PORT);
+                        }
+                        renderBanners(remoteBanners);
+                        renderNews(remoteNews);
+                    });
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                // Offline mode: use local banner/news fallbacks and keep launcher usable.
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
         });
+    }
+
+    private boolean isHttpUrl(String value) {
+        if (value == null) return false;
+        String lower = value.trim().toLowerCase(Locale.ROOT);
+        return lower.startsWith("https://") || lower.startsWith("http://");
+    }
+
+    private void beginConfiguredDownload(String url, String label) {
+        if (isHttpUrl(url)) {
+            startInAppDataDownload(url, label);
+        } else {
+            Toast.makeText(this, label + " belum memiliki URL publik. Masukkan URL ZIP yang sudah diunggah.", Toast.LENGTH_LONG).show();
+            showCustomUrlDialog();
+        }
     }
 
     private void showCustomUrlDialog() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         final EditText input = new EditText(this);
         input.setHint("https://example.com/Data-GTA-Lite.zip");
-        input.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, liteDataUrl));
+        input.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, liteDataUrl == null ? "" : liteDataUrl));
         input.setSingleLine(true);
 
         new AlertDialog.Builder(this)
@@ -361,7 +1062,7 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("Download & Ekstrak", (d, w) -> {
                     String url = input.getText().toString().trim();
-                    if (!url.startsWith("http")) {
+                    if (!isHttpUrl(url)) {
                         Toast.makeText(this, "URL harus diawali http:// atau https://", Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -386,6 +1087,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startInAppDataDownload(final String zipUrl, final String label) {
+        if (!isHttpUrl(zipUrl)) {
+            Toast.makeText(this, "URL unduhan belum diatur. Masukkan URL ZIP publik terlebih dahulu.", Toast.LENGTH_LONG).show();
+            showCustomUrlDialog();
+            return;
+        }
         if (isDownloading) {
             Toast.makeText(this, "Unduhan sedang berjalan, harap tunggu...", Toast.LENGTH_SHORT).show();
             return;
@@ -540,6 +1246,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onPermissionReady() {
+        if (officialServer == null) loadServerList();
         String dir = resolveGameDataDir(this);
         provisionSampDirectory(new File(dir));
         loadSavedSettings();
@@ -552,12 +1259,12 @@ public class MainActivity extends AppCompatActivity {
         if (hasGtaCache(d)) {
             dataBadgeStatus.setText("DATA SIAP (TANPA OBB)");
             dataBadgeStatus.setTextColor(0xFF34D399);
-            dataBadgeStatus.setBackgroundColor(0x3310B981);
+            dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_success);
             bugText.setText("Lokasi Data Aktif: " + dir);
         } else {
             dataBadgeStatus.setText("DATA BELUM ADA");
             dataBadgeStatus.setTextColor(0xFFFBBF24);
-            dataBadgeStatus.setBackgroundColor(0x33F59E0B);
+            dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_warning);
             bugText.setText("Data GTA belum ditemukan. Klik tombol 'DOWNLOAD DATA LITE / FULL' di bawah atau taruh folder data GTA di /sdcard/GTA/");
         }
     }
@@ -709,6 +1416,21 @@ public class MainActivity extends AppCompatActivity {
         String savedPass = prefs.getString(KEY_PASSWORD, "");
         int fps = prefs.getInt(KEY_FPS, 60);
         int lines = prefs.getInt(KEY_CHAT_LINES, 7);
+        loadingSavedSettings = true;
+        if (cbVoiceChat != null) cbVoiceChat.setChecked(prefs.getBoolean("setting_voice", true));
+        if (cbFpsCounter != null) cbFpsCounter.setChecked(prefs.getBoolean("setting_fps_counter", true));
+        if (cbFirstPerson != null) cbFirstPerson.setChecked(prefs.getBoolean("setting_first_person", true));
+        if (cbCutout != null) cbCutout.setChecked(prefs.getBoolean("setting_cutout", true));
+        if (cbAndroidKeyboard != null) cbAndroidKeyboard.setChecked(prefs.getBoolean("setting_android_keyboard", false));
+        if (cbHpArmourText != null) cbHpArmourText.setChecked(prefs.getBoolean("setting_hp_armour", true));
+        if (cbOutfitGuns != null) cbOutfitGuns.setChecked(prefs.getBoolean("setting_outfit_guns", true));
+        if (cbRadarRect != null) cbRadarRect.setChecked(prefs.getBoolean("setting_radar_rect", false));
+        if (cbPcMoney != null) cbPcMoney.setChecked(prefs.getBoolean("setting_pc_money", false));
+        if (cbSkyBox != null) cbSkyBox.setChecked(prefs.getBoolean("setting_skybox", false));
+        if (cbSnow != null) cbSnow.setChecked(prefs.getBoolean("setting_snow", false));
+        if (cbEnableKeyboardMouse != null) cbEnableKeyboardMouse.setChecked(prefs.getBoolean("setting_keyboard_mouse", true));
+        if (cbEnableGamepad != null) cbEnableGamepad.setChecked(prefs.getBoolean("setting_gamepad", true));
+        if (cbMonetLoaderEnabled != null) cbMonetLoaderEnabled.setChecked(prefs.getBoolean(KEY_MONETLOADER_ENABLED, false));
 
         if (savedNick.isEmpty()) {
             File ini = new File(resolveGameDataDir(this), "SAMP/settings.ini");
@@ -738,11 +1460,13 @@ public class MainActivity extends AppCompatActivity {
         }
         updateFpsButtons(fps);
         updateChatLineButtons(lines);
+        loadingSavedSettings = false;
     }
 
     private boolean saveAllSettingsToIni(String nick) {
         String activeDir = resolveGameDataDir(this);
         String pass = (passwordInput != null) ? passwordInput.getText().toString().trim() : "";
+        ServerEntry server = getSelectedServer();
 
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit()
@@ -750,6 +1474,21 @@ public class MainActivity extends AppCompatActivity {
                 .putString(KEY_PASSWORD, pass)
                 .putInt(KEY_FPS, selectedFps)
                 .putInt(KEY_CHAT_LINES, selectedChatLines)
+                .putBoolean("setting_voice", cbVoiceChat != null && cbVoiceChat.isChecked())
+                .putBoolean("setting_fps_counter", cbFpsCounter != null && cbFpsCounter.isChecked())
+                .putBoolean("setting_first_person", cbFirstPerson != null && cbFirstPerson.isChecked())
+                .putBoolean("setting_cutout", cbCutout != null && cbCutout.isChecked())
+                .putBoolean("setting_android_keyboard", cbAndroidKeyboard != null && cbAndroidKeyboard.isChecked())
+                .putBoolean("setting_hp_armour", cbHpArmourText != null && cbHpArmourText.isChecked())
+                .putBoolean("setting_outfit_guns", cbOutfitGuns != null && cbOutfitGuns.isChecked())
+                .putBoolean("setting_radar_rect", cbRadarRect != null && cbRadarRect.isChecked())
+                .putBoolean("setting_pc_money", cbPcMoney != null && cbPcMoney.isChecked())
+                .putBoolean("setting_skybox", cbSkyBox != null && cbSkyBox.isChecked())
+                .putBoolean("setting_snow", cbSnow != null && cbSnow.isChecked())
+                .putBoolean("setting_keyboard_mouse", cbEnableKeyboardMouse != null && cbEnableKeyboardMouse.isChecked())
+                .putBoolean("setting_gamepad", cbEnableGamepad != null && cbEnableGamepad.isChecked())
+                .putBoolean(KEY_MONETLOADER_ENABLED, cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked())
+                .putString(KEY_SELECTED_SERVER, server.key())
                 .apply();
 
         List<String> targetDirs = new ArrayList<>();
@@ -767,8 +1506,8 @@ public class MainActivity extends AppCompatActivity {
 
         String iniContent = "[client]\n"
                 + "name=" + nick + "\n"
-                + "host=127.0.0.1\n"
-                + "port=" + LOCKED_PORT + "\n"
+                + "host=" + server.host + "\n"
+                + "port=" + server.port + "\n"
                 + "password=" + pass + "\n"
                 + "version=0.3.7\n"
                 + "autoaim=false\n\n"
@@ -922,11 +1661,19 @@ public class MainActivity extends AppCompatActivity {
             nicknameInput.setText(nick);
         }
         hideKeyboard(this);
+        ServerEntry server = getSelectedServer();
+        if (server == null) {
+            Toast.makeText(this, "Pilih server terlebih dahulu.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         saveAllSettingsToIni(nick);
 
         Intent gameIntent = new Intent(MainActivity.this, SAMP.class);
         gameIntent.putExtra("player_name", nick);
         gameIntent.putExtra("game_data_dir", dataDir);
+        gameIntent.putExtra("server_host", server.host);
+        gameIntent.putExtra("server_port", server.port);
+        gameIntent.putExtra("enable_monetloader", cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked());
         startActivity(gameIntent);
     }
 
@@ -939,6 +1686,19 @@ public class MainActivity extends AppCompatActivity {
                 inputManager.hideSoftInputFromWindow(currentFocusedView.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
             }
         } catch (Exception ignored) { }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        handler.removeCallbacks(bannerTicker);
+        handler.postDelayed(bannerTicker, 6000L);
+    }
+
+    @Override
+    protected void onPause() {
+        handler.removeCallbacks(bannerTicker);
+        super.onPause();
     }
 
     @Override

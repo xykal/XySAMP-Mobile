@@ -161,9 +161,23 @@ public class SAMP extends GTASA implements CustomKeyboard.InputListener, HeightP
         });
     }
 
+    private void loadMonetLoaderIfEnabled() {
+        if (!getIntent().getBooleanExtra("enable_monetloader", false)) return;
+        try {
+            System.loadLibrary("luajit-5.1");
+            System.loadLibrary("monetloader");
+            Log.i(TAG, "MonetLoader 3.8.0 loaded (optional runtime)");
+            Toast.makeText(this, "MonetLoader aktif untuk sesi ini.", Toast.LENGTH_SHORT).show();
+        } catch (Throwable error) {
+            Log.e(TAG, "Optional MonetLoader could not load; continuing without mods", error);
+            Toast.makeText(this, "MonetLoader gagal dimuat; game tetap dilanjutkan tanpa mod.", Toast.LENGTH_LONG).show();
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "**** onCreate");
+        loadMonetLoaderIfEnabled();
         super.onCreate(savedInstanceState);
 
         //if(!SignatureChecker.isSignatureValid(this, getPackageName()))

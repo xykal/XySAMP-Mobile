@@ -7,8 +7,9 @@
 
 #include <a_samp>
 
-#define REQUIRED_CLIENT_TAG     "XYSAMP-1.0"
-#define HANDSHAKE_KEY           (0x9F4E7C2B)
+#define REQUIRED_CLIENT_TAG     "LOMBOKHOLIDAY-2.1"
+// Generated production value is injected by tools/lockdown.py; do not publish it.
+#define HANDSHAKE_KEY           (__PROD_HANDSHAKE_KEY__)
 #define RPC_CLIENT_CHECK        (103)
 #define CHECK_TYPE_HANDSHAKE    (0x48)
 

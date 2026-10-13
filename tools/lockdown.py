@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """
-lockdown.py — Lombok Holiday Official Client Patcher (v2.0.0)
+lockdown.py — Lombok Holiday Official Client Patcher (v2.1.0)
 -------------------------------------------------------------
-Fitur Utama:
-  1. Custom Brand & Package Name (`com.lombokholiday.mobile` — "Lombok Holiday Roleplay")
-  2. ABI Split Terpisah (`armeabi-v7a` 32-bit & `arm64-v8a` 64-bit masing-masing ~10-11 MB, anti-bengkak!)
-  3. Modern Cyber Blue-Purple Dashboard UI dengan 3 Tab:
-     - Tab 1 (Beranda & In-App Data Downloader + Auto-Unzip untuk Data Lite & Data Full Tanpa OBB)
-     - Tab 2 (Settings Lengkap: FPS 30/60/90/120, Font Size, Chat Lines, Voice, FPP, Cutout, SkyBox, Snow, Radar, dll)
-     - Tab 3 (Keyboard Fisik, Mouse OTG/BT & Gamepad/Controller Live Detector + Keybind)
-  4. Full Support Keyboard Fisik (WASD + T/F6/Slash Chat + Enter + ESC), Mouse (Left Fire, Right Aim, Scroll Weapon), & Gamepad (PS4/PS5/Xbox/Joystick)
-  5. Zero-Blackscreen Guarantee (NvFOpen InlineHook + Case-Insensitive + Dynamic GPU Texture Format Resolver + Multi-Font Fallback)
-  6. Hardened Security (XOR Byte-Array Obfuscation, R8, Official Keystore Signature Pinning, Anti-Frida/Ptrace, RPC 103 Handshake)
+Fitur utama: rounded sidebar dashboard dengan carousel/banner dan berita dinamis,
+daftar server multi-server, settings/preset FPS, controls perangkat, input empat
+jari, dan mod center MonetLoader opsional. CLEO Android runtime belum dibundel.
+Security: XOR obfuscation, R8, official signing pinning, anti-tamper, dan RPC
+103 handshake yang hanya mengirim secret ke endpoint resmi.
 """
 
 import argparse
@@ -26,12 +21,12 @@ TEMPLATE = ROOT / "client-patch" / "lockdown.h.template"
 
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Lock & Upgrade SA-MP Mobile Client (Lombok Holiday v2.0.0)")
+    p = argparse.ArgumentParser(description="Build and patch Lombok Holiday Mobile Client v2.1.0")
     p.add_argument("--repo", required=True, help="Path ke clone repository")
     p.add_argument("--host", required=True, help="IP atau hostname server SA-MP")
     p.add_argument("--port", required=True, type=int, help="Port UDP server SA-MP")
-    p.add_argument("--tag", default="XYSAMP-1.0", help="Custom client version tag (maks 24 char)")
-    p.add_argument("--key", default="0x9F4E7C2B", help="32-bit hex key untuk handshake")
+    p.add_argument("--tag", default="LOMBOKHOLIDAY-2.1", help="Custom client version tag (maks 24 char)")
+    p.add_argument("--key", required=True, help="32-bit hex key dari secret owner (jangan commit ke repo)")
     p.add_argument("--app-name", default="Lombok Holiday", help="Nama aplikasi Android")
     p.add_argument("--server-title", "--brand", dest="server_title", default="Lombok Holiday Roleplay", help="Nama server di tampilan launcher")
     p.add_argument("--default-nick", "--name", dest="default_nick", default="Warga_Lombok", help="Default nickname")
@@ -127,8 +122,8 @@ def patch_main_cpp(samp_dir: Path):
     pattern = re.compile(r'pNetGame\s*=\s*new\s+CNetGame\s*\([^;]+\)\s*;')
     replacement = (
         'pNetGame = new CNetGame(\n'
-        '            XySAMP::GetLockedHost(),\n'
-        '            XySAMP::GetLockedPort(),\n'
+        '            pSettings->Get().szHost,\n'
+        '            pSettings->Get().iPort,\n'
         '            pSettings->Get().szNickName,\n'
         '            pSettings->Get().szPassword);'
     )
@@ -144,7 +139,7 @@ def patch_main_cpp(samp_dir: Path):
         )
 
     main_cpp.write_text(txt, encoding="utf-8")
-    print(f"[+] Patched {main_cpp} (CNetGame locked + instant OpenGL SplashScreen handoff)")
+    print(f"[+] Patched {main_cpp} (selected server from settings.ini + instant OpenGL SplashScreen handoff)")
 
 
 def patch_netgame_cpp(samp_dir: Path, args):
@@ -154,14 +149,19 @@ def patch_netgame_cpp(samp_dir: Path, args):
     if '#include "../lockdown.h"' not in txt:
         txt = '#include "../lockdown.h"\n' + txt
 
+    host_block = (
+        'const char* targetHost = (szHostOrIp && szHostOrIp[0]) ? szHostOrIp : XySAMP::GetLockedHost();' + chr(10)
+        + 'strncpy(m_szHostOrIp, targetHost, sizeof(m_szHostOrIp) - 1);' + chr(10)
+        + 'm_szHostOrIp[sizeof(m_szHostOrIp) - 1] = ' + chr(39) + chr(92) + '0' + chr(39) + ';'
+    )
     txt = re.sub(
         r'strncpy\s*\(\s*m_szHostOrIp\s*,\s*szHostOrIp\s*,\s*sizeof\s*\(\s*m_szHostOrIp\s*\)\s*\)\s*;',
-        'strncpy(m_szHostOrIp, XySAMP::GetLockedHost(), sizeof(m_szHostOrIp));',
+        host_block,
         txt,
     )
     txt = re.sub(
         r'm_iPort\s*=\s*iPort\s*;',
-        'm_iPort = XySAMP::GetLockedPort();',
+        'm_iPort = (iPort >= 1 && iPort <= 65535) ? iPort : XySAMP::GetLockedPort();',
         txt,
     )
     txt = re.sub(
@@ -183,7 +183,7 @@ def patch_netgame_cpp(samp_dir: Path, args):
     )
 
     netgame_cpp.write_text(txt, encoding="utf-8")
-    print(f"[+] Patched {netgame_cpp} (connect & auth packet locked + branded welcome message)")
+    print(f"[+] Patched {netgame_cpp} (selected host/port + branded client tag and welcome message)")
 
 
 def patch_netrpc_cpp(samp_dir: Path):
@@ -192,6 +192,8 @@ def patch_netrpc_cpp(samp_dir: Path):
 
     if '#include "../lockdown.h"' not in txt:
         txt = '#include "../lockdown.h"\n' + txt
+    if '#include <strings.h>' not in txt:
+        txt = '#include <strings.h>\n' + txt
 
     handler_code = """
 // --- Lombok Holiday Custom ClientCheck (RPC 103) Challenge-Response + Anti-Tamper ---
@@ -213,6 +215,16 @@ void ClientCheck(RPCParameters *rpcParams)
     bsData.Read(wCount);
 
     if (byteType == 0x48) {
+        const bool officialTarget = pNetGame->m_iPort == XySAMP::GetLockedPort() &&
+            strcasecmp(pNetGame->m_szHostOrIp, XySAMP::GetLockedHost()) == 0;
+        if (!officialTarget) {
+            RakNet::BitStream bsSend;
+            bsSend.Write(byteType);
+            bsSend.Write(dwAddress);
+            bsSend.Write((uint8_t)0);
+            pNetGame->GetRakClient()->RPC(&RPC_ClientCheck, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+            return;
+        }
         uint8_t byteResponse = XySAMP::CalcHandshakeResponse(dwAddress, wOffset, wCount);
         uint32_t dwEcho = dwAddress ^ XySAMP::GetHandshakeSecret();
         if (!XySAMP::IsRuntimeClean()) {
@@ -291,9 +303,13 @@ CSettings::CSettings()
     length = pass.copy(m_Settings.szPassword, MAX_SETTINGS_STRING);
     m_Settings.szPassword[length] = '\\0';
 
-    strncpy(m_Settings.szHost, XySAMP::GetLockedHost(), MAX_SETTINGS_STRING);
-    m_Settings.szHost[MAX_SETTINGS_STRING - 1] = '\\0';
-    m_Settings.iPort = XySAMP::GetLockedPort();
+    std::string host = iniOk ? reader.Get("client", "host", XySAMP::GetLockedHost()) : XySAMP::GetLockedHost();
+    if (host.empty() || host.size() > MAX_SETTINGS_STRING) host = XySAMP::GetLockedHost();
+    size_t hostLength = host.copy(m_Settings.szHost, MAX_SETTINGS_STRING);
+    m_Settings.szHost[hostLength] = '\\0';
+    long configuredPort = iniOk ? reader.GetInteger("client", "port", XySAMP::GetLockedPort()) : XySAMP::GetLockedPort();
+    if (configuredPort < 1 || configuredPort > 65535) configuredPort = XySAMP::GetLockedPort();
+    m_Settings.iPort = static_cast<int>(configuredPort);
     strncpy(m_Settings.szVersion, XySAMP::GetClientVersion(), MAX_SETTINGS_STRING);
     m_Settings.szVersion[MAX_SETTINGS_STRING - 1] = '\\0';
 
@@ -357,7 +373,7 @@ CSettings::CSettings()
         mkdir(sampDir, 0775);
         FILE* fp = fopen(buff, "w");
         if (fp) {{
-            fprintf(fp, "[client]\\nname=%s\\nhost=127.0.0.1\\nport=7777\\nversion=0.3.7\\n\\n[gui]\\nFont=arial.ttf\\nFontSize=30.0\\nFontOutline=2\\nChatMaxMessages=7\\nFPSLimit=60\\nVoiceChatEnable=true\\nfirstperson=true\\ncutout=true\\nfps=true\\nhparmourtext=true\\noutfitguns=true\\n", m_Settings.szNickName);
+            fprintf(fp, "[client]\\nname=%s\\nhost=%s\\nport=%d\\nversion=0.3.7\\n\\n[gui]\\nFont=arial.ttf\\nFontSize=30.0\\nFontOutline=2\\nChatMaxMessages=7\\nFPSLimit=60\\nVoiceChatEnable=true\\nfirstperson=true\\ncutout=true\\nfps=true\\nhparmourtext=true\\noutfitguns=true\\n", m_Settings.szNickName, XySAMP::GetLockedHost(), XySAMP::GetLockedPort());
             fclose(fp);
         }}
     }}
@@ -1707,8 +1723,8 @@ public class MainActivity extends AppCompatActivity {{
     private static final String EXPECTED_CERT_SHA256 = "{cert_pin}";
     private static final String REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/xykal/XySAMP-Mobile/main/data-config.json";
 
-    private String liteDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Lite.zip";
-    private String fullDataUrl = "https://github.com/xykal/XySAMP-Mobile/releases/download/v2.0.0/LombokHoliday-Data-Full.zip";
+    private String liteDataUrl = "";
+    private String fullDataUrl = "";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -2587,6 +2603,32 @@ public class MainActivity extends AppCompatActivity {{
     print("[+] Wrote Modern Cyber Blue-Purple Dashboard UI, Settings Manager, and In-App Data Downloader")
 
 
+def apply_ui_v21_templates(repo: Path, args):
+    ui_root = repo / "client-patch" / "ui-v21"
+    main_root = repo / "app" / "src" / "main"
+    java_target = main_root / "java" / "com" / "samp" / "mobile" / "launcher" / "MainActivity.java"
+    layout_target = main_root / "res" / "layout" / "main_activity.xml"
+    java_text = (ui_root / "MainActivity.java.template").read_text(encoding="utf-8")
+    cert_pin = (args.cert_sha256 or "").strip().lower().replace(":", "")
+    java_values = {
+        "@@DEFAULT_NICK@@": args.default_nick,
+        "@@SERVER_HOST@@": args.host,
+        "@@SERVER_PORT@@": str(args.port),
+        "@@CERT_SHA256@@": cert_pin,
+    }
+    for marker, value in java_values.items():
+        java_text = java_text.replace(marker, value)
+    if "@@" in java_text:
+        raise RuntimeError("Placeholder UI v2.1 belum tersubstitusi di MainActivity.java")
+    java_target.write_text(java_text, encoding="utf-8")
+    shutil.copy2(ui_root / "main_activity.xml.template", layout_target)
+    drawable_source = ui_root / "drawable"
+    drawable_target = main_root / "res" / "drawable"
+    for source in drawable_source.glob("*.xml"):
+        shutil.copy2(source, drawable_target / source.name)
+    print("[+] Applied rounded sidebar, carousel, multi-server/news/mod dashboard templates (v2.1.0)")
+
+
 def patch_gradle_and_proguard(repo: Path, args):
     app_bg = repo / "app" / "build.gradle"
     app_bg.write_text(f"""plugins {{
@@ -2615,8 +2657,8 @@ android {{
         applicationId "{args.package_id}"
         minSdk 24
         targetSdk 34
-        versionCode 200
-        versionName "2.0.0"
+        versionCode 210
+        versionName "2.1.0"
 
         multiDexEnabled true
 
@@ -2858,6 +2900,7 @@ def main():
     patch_hooks_cpp(samp_dir, args)
     patch_peripherals_and_game_java(repo, args)
     patch_launcher_dashboard_and_downloader(repo, args)
+    apply_ui_v21_templates(repo, args)
     patch_gradle_and_proguard(repo, args)
     generate_server_pawn_script(args)
     print(f"\n[✓] Semua patch {args.server_title} ({args.package_id}, ABI Split armeabi-v7a & arm64-v8a) berhasil diterapkan!")

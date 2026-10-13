@@ -4,15 +4,17 @@
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:background="@drawable/background"
+    android:padding="8dp"
     android:baselineAligned="false">
 
     <!-- SIDEBAR NAVIGASI KIRI -->
     <LinearLayout
-        android:layout_width="215dp"
+        android:layout_width="205dp"
         android:layout_height="match_parent"
+        android:layout_margin="4dp"
         android:orientation="vertical"
-        android:background="#B30B1021"
-        android:padding="14dp">
+        android:background="@drawable/bg_sidebar"
+        android:padding="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -58,7 +60,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:background="#331E293B"
+            android:background="@drawable/bg_chip"
             android:padding="5dp"
             android:gravity="center"
             android:text="ABI: ARM64 / ARMv7"
@@ -76,34 +78,79 @@
         <Button
             android:id="@+id/tabBtnHome"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:text="BERANDA &amp; DATA"
+            android:layout_height="42dp"
+            android:text="⌂  Beranda"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
-            android:textStyle="bold"
-            android:background="#CC1D4ED8" />
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item_selected" />
+
+        <Button
+            android:id="@+id/tabBtnServers"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◎  Daftar Server"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnNews"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◷  Berita &amp; Update"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
+
+        <Button
+            android:id="@+id/tabBtnMods"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="◈  Mod Center"
+            android:textColor="#CBD5E1"
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
 
         <Button
             android:id="@+id/tabBtnSettings"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="8dp"
-            android:text="PENGATURAN (SETTINGS)"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="⚙  Pengaturan"
             android:textColor="#CBD5E1"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:background="#661E293B" />
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
 
         <Button
             android:id="@+id/tabBtnControls"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:layout_marginTop="8dp"
-            android:text="KEYBOARD / MOUSE / PAD"
+            android:layout_height="42dp"
+            android:layout_marginTop="6dp"
+            android:text="⌗  Kontrol"
             android:textColor="#CBD5E1"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:background="#661E293B" />
+            android:textSize="12sp"
+            android:textAllCaps="false"
+            android:gravity="center_vertical"
+            android:paddingStart="12dp"
+            android:background="@drawable/nav_item" />
 
         <View
             android:layout_width="match_parent"
@@ -115,7 +162,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Lombok Holiday Roleplay v2.0"
+            android:text="Lombok Holiday  •  v2.1.0"
             android:textColor="#64748B"
             android:textSize="10sp" />
     </LinearLayout>
@@ -139,12 +186,85 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="9dp"
+                    android:text="Selamat datang kembali"
+                    android:textColor="#F8FAFC"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <ViewFlipper
+                    android:id="@+id/bannerFlipper"
+                    android:layout_width="match_parent"
+                    android:layout_height="136dp"
+                    android:background="@drawable/bg_banner"
+                    android:flipInterval="6000"
+                    android:inAnimation="@android:anim/fade_in"
+                    android:outAnimation="@android:anim/fade_out"
+                    android:autoStart="false" />
+
+                <TextView
+                    android:id="@+id/bannerIndicator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:gravity="center"
+                    android:text="● ○ ○"
+                    android:textColor="#A78BFA"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="11dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="SERVER TERPILIH"
+                            android:textColor="#94A3B8"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/homeServerText"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="Lombok Holiday Roleplay"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnOpenServers"
+                        android:layout_width="132dp"
+                        android:layout_height="38dp"
+                        android:layout_marginStart="9dp"
+                        android:background="@drawable/bg_button_muted"
+                        android:text="KELOLA SERVER"
+                        android:textColor="#E2E8F0"
+                        android:textSize="10sp"
+                        android:textAllCaps="false" />
+                </LinearLayout>
+
                 <!-- Kartu Input Akun & Tombol Play -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:background="#99111827"
+                    android:background="@drawable/bg_card"
                     android:padding="14dp">
 
                     <TextView
@@ -167,7 +287,7 @@
                             android:layout_width="0dp"
                             android:layout_height="44dp"
                             android:layout_weight="1.2"
-                            android:background="#CC1E293B"
+                            android:background="@drawable/bg_input"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:hint="Nickname (Nama_Roleplay)"
@@ -185,7 +305,7 @@
                             android:layout_height="44dp"
                             android:layout_weight="0.8"
                             android:layout_marginStart="8dp"
-                            android:background="#CC1E293B"
+                            android:background="@drawable/bg_input"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
                             android:hint="Password Server (Opsional)"
@@ -201,8 +321,8 @@
                             android:layout_width="165dp"
                             android:layout_height="44dp"
                             android:layout_marginStart="10dp"
-                            android:background="@drawable/button"
-                            android:text="MASUK SERVER"
+                            android:background="@drawable/bg_button_primary"
+                            android:text="MASUK GAME"
                             android:textColor="#FFFFFF"
                             android:textSize="13sp"
                             android:textStyle="bold" />
@@ -215,7 +335,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:orientation="vertical"
-                    android:background="#99111827"
+                    android:background="@drawable/bg_card"
                     android:padding="14dp">
 
                     <LinearLayout
@@ -241,7 +361,7 @@
                             android:paddingEnd="8dp"
                             android:paddingTop="3dp"
                             android:paddingBottom="3dp"
-                            android:background="#3310B981"
+                            android:background="@drawable/bg_chip_success"
                             android:text="MENGECEK DATA..."
                             android:textColor="#34D399"
                             android:textSize="10sp"
@@ -287,7 +407,7 @@
                             android:layout_width="0dp"
                             android:layout_height="38dp"
                             android:layout_weight="1"
-                            android:background="#CC0284C7"
+                            android:background="@drawable/bg_button_blue"
                             android:text="DOWNLOAD DATA LITE"
                             android:textColor="#FFFFFF"
                             android:textSize="11sp"
@@ -299,7 +419,7 @@
                             android:layout_height="38dp"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
-                            android:background="#CC7C3AED"
+                            android:background="@drawable/bg_button_purple"
                             android:text="DOWNLOAD DATA FULL"
                             android:textColor="#FFFFFF"
                             android:textSize="11sp"
@@ -311,13 +431,51 @@
                             android:layout_height="38dp"
                             android:layout_weight="0.9"
                             android:layout_marginStart="8dp"
-                            android:background="#CC334155"
+                            android:background="@drawable/bg_button_muted"
                             android:text="URL ZIP CUSTOM"
                             android:textColor="#E2E8F0"
                             android:textSize="11sp"
                             android:textStyle="bold" />
                     </LinearLayout>
                 </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="13dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="BERITA TERBARU"
+                            android:textColor="#A78BFA"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                        <Button
+                            android:id="@+id/btnOpenNews"
+                            android:layout_width="92dp"
+                            android:layout_height="32dp"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="LIHAT SEMUA"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:id="@+id/homeNewsContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="vertical" />
+                </LinearLayout>
+
             </LinearLayout>
         </ScrollView>
 
@@ -333,7 +491,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="#99111827"
+                android:background="@drawable/bg_card"
                 android:padding="14dp">
 
                 <TextView
@@ -363,7 +521,7 @@
                         android:id="@+id/btnFps30"
                         android:layout_width="64dp"
                         android:layout_height="34dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="30 FPS"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -373,7 +531,7 @@
                         android:layout_width="64dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#CC0284C7"
+                        android:background="@drawable/bg_button_blue"
                         android:text="60 FPS"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -383,7 +541,7 @@
                         android:layout_width="64dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="90 FPS"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -393,10 +551,71 @@
                         android:layout_width="70dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="120 FPS"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="11dp"
+                    android:background="@drawable/bg_card"
+                    android:orientation="vertical"
+                    android:padding="11dp">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OPTIMASI CEPAT"
+                        android:textColor="#A78BFA"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:orientation="horizontal">
+                        <Button
+                            android:id="@+id/btnProfileBattery"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="HEMAT"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                        <Button
+                            android:id="@+id/btnProfileBalanced"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="7dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_blue"
+                            android:text="SEIMBANG"
+                            android:textAllCaps="false"
+                            android:textColor="#FFFFFF"
+                            android:textSize="10sp" />
+                        <Button
+                            android:id="@+id/btnProfilePerformance"
+                            android:layout_width="0dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="7dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_button_idle"
+                            android:text="FPS MAKS"
+                            android:textAllCaps="false"
+                            android:textColor="#CBD5E1"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="5dp"
+                        android:text="Preset hanya mengubah opsi FPS dan efek SkyBox/Salju yang tersedia. Hasil bergantung pada perangkat."
+                        android:textColor="#94A3B8"
+                        android:textSize="10sp" />
                 </LinearLayout>
 
                 <!-- Pilihan Baris Chat & Ukuran Font -->
@@ -418,7 +637,7 @@
                         android:id="@+id/btnChat5"
                         android:layout_width="64dp"
                         android:layout_height="34dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="5 Baris"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -428,7 +647,7 @@
                         android:layout_width="64dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#CC0284C7"
+                        android:background="@drawable/bg_button_blue"
                         android:text="7 Baris"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -438,7 +657,7 @@
                         android:layout_width="64dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="9 Baris"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -448,7 +667,7 @@
                         android:layout_width="70dp"
                         android:layout_height="34dp"
                         android:layout_marginStart="6dp"
-                        android:background="#661E293B"
+                        android:background="@drawable/bg_button_idle"
                         android:text="12 Baris"
                         android:textColor="#FFFFFF"
                         android:textSize="11sp" />
@@ -586,7 +805,7 @@
                         android:layout_width="0dp"
                         android:layout_height="38dp"
                         android:layout_weight="1"
-                        android:background="@drawable/button"
+                        android:background="@drawable/bg_button_primary"
                         android:text="SIMPAN PENGATURAN"
                         android:textColor="#FFFFFF"
                         android:textSize="12sp"
@@ -597,7 +816,7 @@
                         android:layout_width="160dp"
                         android:layout_height="38dp"
                         android:layout_marginStart="10dp"
-                        android:background="#CC334155"
+                        android:background="@drawable/bg_button_muted"
                         android:text="RESET DEFAULT"
                         android:textColor="#E2E8F0"
                         android:textSize="11sp"
@@ -606,7 +825,173 @@
             </LinearLayout>
         </ScrollView>
 
-        <!-- ================= PANEL 3: KEYBOARD FISIK, MOUSE & GAMEPAD ================= -->
+        <ScrollView
+            android:id="@+id/panelServers"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DAFTAR SERVER"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Pilih server untuk bermain, atau tambahkan domain/IP dan port milikmu. Server tersimpan di perangkat ini."
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+                <Button
+                    android:id="@+id/btnAddServer"
+                    android:layout_width="160dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/bg_button_primary"
+                    android:text="＋ TAMBAH SERVER"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp" />
+                <LinearLayout
+                    android:id="@+id/serverListContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="9dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/panelNews"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="BERITA &amp; UPDATE"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Info dimuat dari konfigurasi online. Koneksi gagal tidak menghalangi launcher untuk dibuka."
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp" />
+                <LinearLayout
+                    android:id="@+id/newsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
+            android:id="@+id/panelMods"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/bg_card"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MOD CENTER"
+                    android:textColor="#38BDF8"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/modRuntimeStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="MonetLoader opsional untuk script Lua. CLEO hanya menerima file; runtime CLEO belum terpasang."
+                    android:textColor="#CBD5E1"
+                    android:textSize="11sp" />
+                <CheckBox
+                    android:id="@+id/cbMonetLoaderEnabled"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:checked="false"
+                    android:text="Aktifkan MonetLoader saat memulai game (eksperimental)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+                <Button
+                    android:id="@+id/btnImportLua"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_button_blue"
+                    android:text="IMPORT SCRIPT MONETLOADER (.lua / .luac)"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp" />
+                <Button
+                    android:id="@+id/btnImportCleo"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="7dp"
+                    android:background="@drawable/bg_button_muted"
+                    android:text="SALIN SCRIPT CLEO ANDROID (.csa / .csi)"
+                    android:textAllCaps="false"
+                    android:textColor="#E2E8F0"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/modStoragePath"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_info"
+                    android:padding="10dp"
+                    android:text="Folder mod akan disiapkan saat fitur dipakai."
+                    android:textColor="#94A3B8"
+                    android:textSize="10sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Catatan: script Lua/mod dapat menjalankan kode dan mengubah perilaku game; instal hanya dari sumber tepercaya. CLEO .csa/.csi hanya disalin ke folder Android/media; runtime CLEO untuk build ini belum diverifikasi. File Windows .dll tidak kompatibel dengan Android (gunakan .so yang memang dibuat untuk Android/ABI yang sesuai)."
+                    android:textColor="#FBBF24"
+                    android:textSize="10sp" />
+                <Button
+                    android:id="@+id/btnClearTemp"
+                    android:layout_width="match_parent"
+                    android:layout_height="38dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_button_idle"
+                    android:text="BERSIHKAN FILE SEMENTARA"
+                    android:textAllCaps="false"
+                    android:textColor="#CBD5E1"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <!-- ================= PANEL 6: KEYBOARD FISIK, MOUSE &amp; GAMEPAD ================= -->
         <ScrollView
             android:id="@+id/panelControls"
             android:layout_width="match_parent"
@@ -618,23 +1003,33 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="#99111827"
+                android:background="@drawable/bg_card"
                 android:padding="14dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="DUKUNGAN KEYBOARD FISIK, MOUSE (OTG/BT) &amp; GAMEPAD CONTROLLER"
+                    android:text="KONTROL PERANGKAT"
                     android:textColor="#38BDF8"
                     android:textSize="13sp"
                     android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_info"
+                    android:padding="10dp"
+                    android:text="Multi-sentuh 4 jari aktif: gerakan, kamera, dan aksi dapat digunakan bersamaan (tergantung dukungan layar/perangkat)."
+                    android:textColor="#C4B5FD"
+                    android:textSize="11sp" />
 
                 <TextView
                     android:id="@+id/peripheralStatusText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:background="#661E293B"
+                    android:background="@drawable/bg_button_idle"
                     android:padding="10dp"
                     android:text="Memindai perangkat USB OTG / Bluetooth..."
                     android:textColor="#34D399"
@@ -675,7 +1070,7 @@
                     android:layout_width="200dp"
                     android:layout_height="36dp"
                     android:layout_marginTop="10dp"
-                    android:background="#CC0284C7"
+                    android:background="@drawable/bg_button_blue"
                     android:text="SCAN ULANG PERANGKAT"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
