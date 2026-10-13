@@ -1,55 +1,58 @@
 {
   "server_name": "Lombok Holiday Roleplay",
-  "version": "2.1.0",
-  "official_server": {
-    "name": "Lombok Holiday Roleplay [OFFICIAL]",
-    "host": "play.lombokholiday.my.id",
-    "port": 7777
-  },
+  "version": "3.0.0",
   "banners": [
     {
-      "badge": "LOMBOK HOLIDAY",
-      "title": "Selamat datang di Lombok Holiday",
-      "subtitle": "Pilih server, siapkan nickname, dan mulai bermain dari dashboard baru."
+      "badge": "OFFICIAL SEASON",
+      "title": "Selamat Datang di Lombok Holiday Roleplay!",
+      "subtitle": "Nikmati pengalaman Roleplay terbaik dengan performa 120 FPS, Voice Chat jernih, dan fitur modern.",
+      "accent": "#38BDF8"
     },
     {
-      "badge": "SERVER FAVORIT",
-      "title": "Simpan server pilihanmu",
-      "subtitle": "Tambahkan domain atau alamat IPv4 dan port SA-MP dari menu Daftar Server."
+      "badge": "UPDATE v3.0",
+      "title": "Support 4 Jari, MonetLoader (Lua) & CLEO!",
+      "subtitle": "Kini mendukung penuh Multi-Touch 4 Jari (Claw HUD), MonetLoader LuaJIT 5.1, CLEO, Keyboard, Mouse & Gamepad.",
+      "accent": "#A78BFA"
     },
     {
-      "badge": "KONTROL LEBIH LUWES",
-      "title": "Sentuhan, keyboard, mouse, dan gamepad",
-      "subtitle": "Atur pilihan kontrol dan pengaturan kinerja dari launcher."
+      "badge": "EVENT WARGA BARU",
+      "title": "Klaim Starterpack & Kendaraan Gratis di Kota!",
+      "subtitle": "Login sekarang menggunakan Launcher Resmi Lombok Holiday dan klaim bonus warga baru di Balai Kota.",
+      "accent": "#34D399"
     }
   ],
   "news": [
     {
-      "date": "Launcher 2.1.0",
-      "title": "Dashboard rounded dan navigasi sidebar",
-      "body": "Beranda, daftar server, berita, mod center, pengaturan, dan kontrol kini tersedia lewat sidebar. Banner dan berita dapat diperbarui dari file konfigurasi ini."
+      "tag": "UPDATE v3.0",
+      "date": "Hari Ini",
+      "title": "Rilis Launcher v3.0: UI Baru, Support 4 Jari, MonetLoader & CLEO",
+      "body": "Pembaruan besar menghadirkan UI Rounded Sidebar modern, dukungan penuh kontrol 4 Jari (Claw), MonetLoader (.lua), CLEO (.csa/.csi), Server List & Add Server, serta Optimasi Booster FPS."
     },
     {
-      "date": "Server",
-      "title": "Daftar server multi-server",
-      "body": "Simpan beberapa domain/IP dan port pada perangkat ini, lalu pilih tujuan sebelum masuk game."
+      "tag": "FITUR BARU",
+      "date": "Terbaru",
+      "title": "Dukungan Penuh Keyboard Fisik, Mouse OTG/BT & Gamepad",
+      "body": "Mainkan SA-MP rasa PC di HP menggunakan Keyboard Fisik (WASD + T/F6 Chat), Mouse OTG/Bluetooth (Klik Kanan Aim, Klik Kiri Tembak), maupun Controller PS4/PS5/Xbox."
     },
     {
-      "date": "Mod Center",
-      "title": "MonetLoader opsional dan impor file",
-      "body": "Script Lua dapat disalin ke folder MonetLoader. File CLEO Android .csa/.csi hanya disalin; runtime CLEO tidak dibundel atau diverifikasi untuk client ini."
+      "tag": "INFO DATA",
+      "date": "Penting",
+      "title": "100% Tanpa OBB — Support Semua Data Lite & Data Full",
+      "body": "Tidak perlu repot pasang file OBB. Cukup download Data Lite/Full langsung lewat tab Manajer Data di dalam aplikasi dan otomatis diekstrak."
     }
   ],
   "data_lite": {
-    "name": "Data Lite Lombok Holiday",
-    "size_mb": 0,
+    "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
+    "size_mb": 280,
     "url": "",
-    "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Lite diunggah."
+    "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
   },
   "data_full": {
-    "name": "Data Full Lombok Holiday",
-    "size_mb": 0,
+    "name": "Data Full HD Lombok Holiday (Tanpa OBB)",
+    "size_mb": 950,
     "url": "",
-    "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Full diunggah."
-  }
+    "description": "Data Full dengan audio lengkap dan tekstur HD, 100% Tanpa OBB."
+  },
+  "_note": "Isi data_lite.url / data_full.url dengan link ZIP langsung (https). Kosong = tombol download nonaktif di launcher.",
+  "servers": []
 }

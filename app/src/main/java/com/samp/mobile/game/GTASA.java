@@ -72,6 +72,20 @@ public class GTASA extends WarMedia {
             once = true;
         }
         super.onCreate(bundle);
+        loadOptionalMods();
+    }
+
+    /** MonetLoader (Lua) — dimuat hanya bila diaktifkan di launcher. */
+    private void loadOptionalMods() {
+        try {
+            android.content.SharedPreferences sp = getSharedPreferences("configlauncher", MODE_PRIVATE);
+            if (sp.getBoolean("MLOADER", false)) {
+                try { System.loadLibrary("luajit-5.1"); } catch (Throwable ignored) { }
+                System.loadLibrary("monetloader");
+            }
+        } catch (Throwable t) {
+            android.util.Log.e("LH", "MonetLoader gagal dimuat: " + t);
+        }
     }
 
     @Override
