@@ -43,14 +43,14 @@
   ],
   "data_lite": {
     "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
-    "size_mb": 280,
-    "url": "",
+    "size_mb": 340,
+    "url": "https://drive.usercontent.google.com/download?id=15lZmSgPx_-YSCQGvT2R5qtupGslrDS1g&export=download&confirm=t",
     "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
   },
   "data_full": {
     "name": "Data Full HD Lombok Holiday (Tanpa OBB)",
-    "size_mb": 950,
-    "url": "",
+    "size_mb": 1852,
+    "url": "https://drive.usercontent.google.com/download?id=1PKF_XiKjSoKzn_CXkkRR3M5PAiTnw60R&export=download&confirm=t",
     "description": "Data Full dengan audio lengkap dan tekstur HD, 100% Tanpa OBB."
   },
   "_note": "Isi data_lite.url / data_full.url dengan link ZIP langsung (https). Kosong = tombol download nonaktif di launcher.",
