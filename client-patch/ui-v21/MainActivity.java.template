@@ -104,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isDownloading = false;
+    private String lastDownloadState = "";
 
     private final Runnable bannerTicker = new Runnable() {
         @Override public void run() {
@@ -192,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
             onPermissionReady();
             fetchRemoteDataConfig();
             refreshPeripheralsStatus();
+            resumePendingDownloadIfAny();
         } catch (Exception e) {
             finish();
         }
@@ -1062,12 +1064,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void clearTemporaryFiles() {
-        if (isDownloading) {
+        if (DataDownloadService.isPending(this)) {
             Toast.makeText(this, "Unduhan sedang berjalan. File sementara tidak dihapus.", Toast.LENGTH_SHORT).show();
             return;
         }
-        File temp = new File(getPreferredWritableDataDir(), "lombok_data_download.zip.part");
-        boolean removed = !temp.exists() || temp.delete();
+        boolean removed = true;
+        File[] leftovers = getPreferredWritableDataDir().listFiles();
+        if (leftovers != null) {
+            for (File f : leftovers) {
+                if (f.getName().startsWith("lombok_data_") && f.getName().endsWith(".zip.part")) {
+                    removed = f.delete() && removed;
+                }
+            }
+        }
+        DataDownloadService.prefs(this).edit().putString(DataDownloadService.K_STATE, "idle").apply();
         Toast.makeText(this, removed ? "File unduhan sementara dibersihkan. Data game dan mod tidak diubah." : "File sementara tidak dapat dihapus.", Toast.LENGTH_LONG).show();
     }
 
@@ -1208,157 +1218,80 @@ public class MainActivity extends AppCompatActivity {
             showCustomUrlDialog();
             return;
         }
-        if (isDownloading) {
-            Toast.makeText(this, "Unduhan sedang berjalan, harap tunggu...", Toast.LENGTH_SHORT).show();
+        if (DataDownloadService.isPending(this)) {
+            Toast.makeText(this, "Unduhan lain sedang berjalan, tunggu sampai selesai.", Toast.LENGTH_SHORT).show();
+            refreshDownloadUi();
             return;
         }
-        isDownloading = true;
-        downloadProgressBar.setVisibility(View.VISIBLE);
-        downloadProgressBar.setIndeterminate(false);
-        downloadProgressBar.setProgress(0);
-        downloadStatusText.setText("Menghubungkan ke server unduhan " + label + "...");
-
-        executor.execute(() -> {
-            File targetDir = getPreferredWritableDataDir();
-            File tempZip = new File(targetDir, "lombok_data_download.zip.part");
-            HttpURLConnection conn = null;
-            try {
-                long existingBytes = tempZip.exists() ? tempZip.length() : 0L;
-                URL url = new URL(zipUrl);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setInstanceFollowRedirects(true);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(30000);
-                if (existingBytes > 0) {
-                    conn.setRequestProperty("Range", "bytes=" + existingBytes + "-");
-                }
-                int code = conn.getResponseCode();
-                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
-                    if (existingBytes > 0) {
-                        tempZip.delete();
-                        existingBytes = 0;
-                        conn.disconnect();
-                        conn = (HttpURLConnection) url.openConnection();
-                        conn.setInstanceFollowRedirects(true);
-                        code = conn.getResponseCode();
-                    }
-                }
-                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
-                    final int errCode = code;
-                    handler.post(() -> {
-                        isDownloading = false;
-                        downloadStatusText.setText("Link unduhan belum tersedia (HTTP " + errCode + "). Gunakan tombol 'URL ZIP CUSTOM' atau unggah file .zip ke Release GitHub.");
-                        Toast.makeText(MainActivity.this, "Server mengembalikan HTTP " + errCode + ". Klik 'URL ZIP CUSTOM' untuk memasukkan link .zip data Anda.", Toast.LENGTH_LONG).show();
-                    });
-                    return;
-                }
-
-                long contentLength = conn.getContentLengthLong();
-                long totalBytes = (code == HttpURLConnection.HTTP_PARTIAL && contentLength > 0)
-                        ? (existingBytes + contentLength)
-                        : contentLength;
-                boolean append = (code == HttpURLConnection.HTTP_PARTIAL);
-
-                try (InputStream in = new BufferedInputStream(conn.getInputStream(), 65536);
-                     FileOutputStream fos = new FileOutputStream(tempZip, append)) {
-                    byte[] buf = new byte[65536];
-                    long downloaded = append ? existingBytes : 0L;
-                    long lastUpdate = System.currentTimeMillis();
-                    long bytesAtLastUpdate = downloaded;
-                    int n;
-                    while ((n = in.read(buf)) != -1) {
-                        fos.write(buf, 0, n);
-                        downloaded += n;
-                        long now = System.currentTimeMillis();
-                        if (now - lastUpdate >= 250) {
-                            long deltaB = downloaded - bytesAtLastUpdate;
-                            double speedMb = (deltaB / 1048576.0) / ((now - lastUpdate) / 1000.0);
-                            int pct = (totalBytes > 0) ? (int) ((downloaded * 100L) / totalBytes) : 0;
-                            final double dlMb = downloaded / 1048576.0;
-                            final double totMb = totalBytes > 0 ? (totalBytes / 1048576.0) : 0.0;
-                            final int fPct = pct;
-                            final double fSpd = speedMb;
-                            handler.post(() -> {
-                                downloadProgressBar.setProgress(fPct);
-                                downloadStatusText.setText(String.format(Locale.ROOT,
-                                        "Mengunduh %s: %.1f / %.1f MB (%d%%) — %.2f MB/s",
-                                        label, dlMb, totMb, fPct, fSpd));
-                            });
-                            lastUpdate = now;
-                            bytesAtLastUpdate = downloaded;
-                        }
-                    }
-                    fos.flush();
-                }
-
-                handler.post(() -> {
-                    downloadProgressBar.setIndeterminate(true);
-                    downloadStatusText.setText("Mengekstrak " + label + " ke " + targetDir.getAbsolutePath() + " ...");
-                });
-
-                extractZipSmart(tempZip, targetDir);
-                tempZip.delete();
-                provisionSampDirectory(targetDir);
-
-                handler.post(() -> {
-                    isDownloading = false;
-                    downloadProgressBar.setIndeterminate(false);
-                    downloadProgressBar.setProgress(100);
-                    String active = resolveGameDataDir(MainActivity.this);
-                    updateDataStatusLabel(active);
-                    downloadStatusText.setText("Selesai! " + label + " berhasil dipasang di: " + active);
-                    Toast.makeText(MainActivity.this, label + " selesai diunduh & diekstrak! Siap dimainkan.", Toast.LENGTH_LONG).show();
-                });
-            } catch (Exception e) {
-                final String msg = e.getMessage();
-                handler.post(() -> {
-                    isDownloading = false;
-                    downloadProgressBar.setIndeterminate(false);
-                    downloadStatusText.setText("Unduhan terhenti: " + msg + " (Klik lagi untuk Resume otomatis)");
-                });
-            } finally {
-                if (conn != null) conn.disconnect();
-            }
-        });
+        DataDownloadService.startJob(this, zipUrl, label, getPreferredWritableDataDir().getAbsolutePath());
+        startDownloadTicker();
     }
 
-    private void extractZipSmart(File zipFile, File targetRoot) throws Exception {
-        String[] knownRoots = new String[]{"texdb/", "models/", "data/", "anim/", "audio/", "samp/"};
-        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile), 65536))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[65536];
-            while ((entry = zis.getNextEntry()) != null) {
-                String rawName = entry.getName().replace('\\', '/');
-                while (rawName.startsWith("/")) rawName = rawName.substring(1);
-                if (rawName.contains("..")) continue;
+    /** Dipanggil saat app dibuka: lanjutkan unduhan yang terhenti karena app ditutup. */
+    private void resumePendingDownloadIfAny() {
+        if (DataDownloadService.isPending(this)) {
+            DataDownloadService.launch(this);
+            startDownloadTicker();
+        } else {
+            refreshDownloadUi();
+        }
+    }
 
-                // Normalisasi apabila di dalam ZIP ada subfolder pembungkus (misal "com.rockstargames.gtasa/files/texdb/...")
-                String lower = rawName.toLowerCase(Locale.ROOT);
-                for (String kr : knownRoots) {
-                    int idx = lower.indexOf(kr);
-                    if (idx > 0 && rawName.charAt(idx - 1) == '/') {
-                        rawName = rawName.substring(idx);
-                        break;
-                    }
-                }
+    private void startDownloadTicker() {
+        handler.removeCallbacks(downloadTicker);
+        handler.post(downloadTicker);
+    }
 
-                File outFile = new File(targetRoot, rawName);
-                if (entry.isDirectory()) {
-                    outFile.mkdirs();
-                } else {
-                    File parent = outFile.getParentFile();
-                    if (parent != null && !parent.exists()) parent.mkdirs();
-                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile), 65536)) {
-                        int len;
-                        while ((len = zis.read(buffer)) != -1) {
-                            bos.write(buffer, 0, len);
-                        }
-                        bos.flush();
-                    }
-                }
-                zis.closeEntry();
+    private final Runnable downloadTicker = new Runnable() {
+        @Override public void run() {
+            refreshDownloadUi();
+            if (DataDownloadService.isPending(MainActivity.this)) {
+                handler.postDelayed(this, 500L);
             }
         }
+    };
+
+    /** Menyamakan UI dengan status unduhan yang tersimpan (aman dipanggil kapan saja). */
+    private void refreshDownloadUi() {
+        if (downloadStatusText == null || downloadProgressBar == null) return;
+        SharedPreferences p = DataDownloadService.prefs(this);
+        String state = p.getString(DataDownloadService.K_STATE, "idle");
+        String msg = p.getString(DataDownloadService.K_MSG, "");
+        long done = p.getLong(DataDownloadService.K_DONE, 0L);
+        long total = p.getLong(DataDownloadService.K_TOTAL, 0L);
+        float speed = p.getFloat(DataDownloadService.K_SPEED, 0f);
+        isDownloading = DataDownloadService.isPending(this);
+
+        if ("downloading".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            int pct = total > 0 ? (int) (done * 100L / total) : 0;
+            downloadProgressBar.setProgress(pct);
+            if (total > 0) {
+                downloadStatusText.setText(String.format(Locale.ROOT,
+                        "%s — %.1f / %.1f MB (%d%%) · %.2f MB/s",
+                        msg, done / 1048576.0, total / 1048576.0, pct, speed));
+            } else {
+                downloadStatusText.setText(msg);
+            }
+        } else if ("extracting".equals(state)) {
+            downloadProgressBar.setIndeterminate(true);
+            downloadStatusText.setText(msg);
+        } else if ("done".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            downloadProgressBar.setProgress(100);
+            downloadStatusText.setText(msg);
+            String active = resolveGameDataDir(this);
+            updateDataStatusLabel(active);
+            if (!"done".equals(lastDownloadState)) {
+                Toast.makeText(this, "Data siap dimainkan!", Toast.LENGTH_LONG).show();
+            }
+        } else if ("error".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            downloadStatusText.setText(msg);
+        } else {
+            downloadProgressBar.setIndeterminate(false);
+        }
+        lastDownloadState = state;
     }
 
     private void onPermissionReady() {
@@ -1808,6 +1741,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshHomeStatus();
+        resumePendingDownloadIfAny();
         handler.removeCallbacks(bannerTicker);
         handler.postDelayed(bannerTicker, 6000L);
     }

@@ -2653,6 +2653,9 @@ def apply_ui_v21_templates(repo: Path, args):
     if "@@" in java_text:
         raise RuntimeError("Placeholder UI v2.1 belum tersubstitusi di MainActivity.java")
     java_target.write_text(java_text, encoding="utf-8")
+    service_src = ui_root / "DataDownloadService.java"
+    if service_src.exists():
+        shutil.copy2(service_src, java_target.parent / "DataDownloadService.java")
     shutil.copy2(ui_root / "main_activity.xml.template", layout_target)
     drawable_source = ui_root / "drawable"
     drawable_target = main_root / "res" / "drawable"
