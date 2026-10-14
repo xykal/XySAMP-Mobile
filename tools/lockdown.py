@@ -956,9 +956,9 @@ def patch_launcher_dashboard_and_downloader(repo: Path, args):
 
     # Update Adaptive Icon XMLs
     (res_root / "drawable" / "ic_launcher_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#0B1426" />
-</shape>
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/lh_icon_art"
+    android:gravity="fill" />
 """, encoding="utf-8")
 
     (res_root / "drawable" / "background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
