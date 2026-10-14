@@ -42,14 +42,14 @@
   ],
   "data_lite": {
     "name": "Data Lite Lombok Holiday",
-    "size_mb": 0,
-    "url": "",
+    "size_mb": 340,
+    "url": "https://drive.usercontent.google.com/download?id=15lZmSgPx_-YSCQGvT2R5qtupGslrDS1g&export=download&confirm=t",
     "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Lite diunggah."
   },
   "data_full": {
     "name": "Data Full Lombok Holiday",
-    "size_mb": 0,
-    "url": "",
+    "size_mb": 1852,
+    "url": "https://drive.usercontent.google.com/download?id=1PKF_XiKjSoKzn_CXkkRR3M5PAiTnw60R&export=download&confirm=t",
     "description": "URL ZIP belum dikonfigurasi. Tambahkan URL publik HTTPS setelah file Data Full diunggah."
   }
 }
