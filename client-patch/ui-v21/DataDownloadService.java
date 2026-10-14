@@ -104,6 +104,7 @@ public class DataDownloadService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        AppLog.ensure(this);
         createChannel();
         startForeground(NOTIF_ID, buildNotification("Menyiapkan unduhan data...", -1));
         if (!isPending(this)) {
@@ -111,6 +112,7 @@ public class DataDownloadService extends Service {
             stopSelf();
             return START_NOT_STICKY;
         }
+        AppLog.i("DL", "onStartCommand: pending=" + isPending(this) + " worker=" + workerRunning);
         if (!workerRunning) {
             workerRunning = true;
             new Thread(this::runJob, "lombok-data-download").start();
@@ -137,6 +139,8 @@ public class DataDownloadService extends Service {
             }
             if (!dir.exists()) dir.mkdirs();
             File part = partFile(dir, url);
+            AppLog.i("DL", "Mulai unduhan " + label + " | url=" + url + " | part=" + part.getName()
+                    + " (" + (part.exists() ? part.length() : 0) + " byte sudah ada)");
 
             boolean needDownload = !("extracting".equals(p.getString(K_STATE, "")) && part.exists());
             if (needDownload) {
@@ -148,6 +152,7 @@ public class DataDownloadService extends Service {
                     } catch (Exception e) {
                         attempt++;
                         String reason = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+                        AppLog.w("DL", "Percobaan " + attempt + " gagal: " + reason);
                         if (attempt >= MAX_RETRY) {
                             fail("Unduhan terhenti (" + reason + "). Tekan DOWNLOAD lagi, unduhan lanjut dari posisi terakhir.");
                             return;
@@ -165,8 +170,10 @@ public class DataDownloadService extends Service {
                     .apply();
             notifyProgress("Mengekstrak " + label + "...", -1);
             try {
-                extractZipSmart(part, dir);
+                GameDataFixer.extractZip(part, dir);
+                GameDataFixer.prepareAndReport(dir);
             } catch (Exception e) {
+                AppLog.e("DATA", "Ekstrak gagal", e);
                 // ZIP rusak: hapus agar unduhan berikutnya dimulai dari awal.
                 part.delete();
                 fail("Gagal mengekstrak " + label + " (" + e.getMessage() + "). Tekan DOWNLOAD lagi untuk mengunduh ulang.");
@@ -175,6 +182,7 @@ public class DataDownloadService extends Service {
             provisionSampDirectory(dir);
             part.delete();
 
+            AppLog.i("DL", "Unduhan & ekstrak " + label + " selesai");
             p.edit()
                     .putString(K_STATE, "done")
                     .putString(K_MSG, label + " berhasil dipasang. Siap dimainkan.")
@@ -347,45 +355,6 @@ public class DataDownloadService extends Service {
         } catch (Exception ignored) {
         }
         wakeLock = null;
-    }
-
-    private void extractZipSmart(File zipFile, File targetRoot) throws IOException {
-        String[] knownRoots = new String[]{"texdb/", "models/", "data/", "anim/", "audio/", "samp/"};
-        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile), 65536))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[65536];
-            while ((entry = zis.getNextEntry()) != null) {
-                String rawName = entry.getName().replace('\\', '/');
-                while (rawName.startsWith("/")) rawName = rawName.substring(1);
-                if (rawName.contains("..")) continue;
-
-                // Normalisasi bila di dalam ZIP ada folder pembungkus (mis. "DATA FULL/texdb/...")
-                String lower = rawName.toLowerCase(Locale.ROOT);
-                for (String kr : knownRoots) {
-                    int idx = lower.indexOf(kr);
-                    if (idx > 0 && rawName.charAt(idx - 1) == '/') {
-                        rawName = rawName.substring(idx);
-                        break;
-                    }
-                }
-
-                File outFile = new File(targetRoot, rawName);
-                if (entry.isDirectory()) {
-                    outFile.mkdirs();
-                } else {
-                    File parent = outFile.getParentFile();
-                    if (parent != null && !parent.exists()) parent.mkdirs();
-                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile), 65536)) {
-                        int len;
-                        while ((len = zis.read(buffer)) != -1) {
-                            bos.write(buffer, 0, len);
-                        }
-                        bos.flush();
-                    }
-                }
-                zis.closeEntry();
-            }
-        }
     }
 
     private void provisionSampDirectory(File baseDir) {

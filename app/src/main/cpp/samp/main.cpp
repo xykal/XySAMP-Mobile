@@ -427,17 +427,25 @@ uint32_t GetTickCount()
     return CTimer::m_snTimeInMillisecondsNonClipped;
 }	
 
+#ifndef LH_LOG_PKG
+#define LH_LOG_PKG "com.lombokholiday.mobile"
+#endif
+
 void FLog(const char* fmt, ...)
 {
 	char buffer[0xFF];
 	static FILE* flLog = nullptr;
 	const char* pszStorage = g_pszStorage;
 
-
+	// Log game disimpan di Android/media/<pkg>/log/samp_log.txt (sama dengan log launcher)
+	if (flLog == nullptr)
+	{
+		sprintf(buffer, "/storage/emulated/0/Android/media/%s/log/samp_log.txt", LH_LOG_PKG);
+		flLog = fopen(buffer, "a");
+	}
 	if (flLog == nullptr && pszStorage != nullptr)
 	{
 		sprintf(buffer, "%s/samp_log.txt", pszStorage);
-		//LOGI("buffer: %s", buffer);
 		flLog = fopen(buffer, "a");
 	}
 

@@ -171,6 +171,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppLog.init(this);
+        AppLog.i("APP", "onCreate launcher v" + APP_VERSION);
         try {
             setFullScreenMode();
             setContentView(R.layout.main_activity);
@@ -1689,6 +1691,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         String dataDir = resolveGameDataDir(this);
+        GameDataFixer.prepareAndReport(new File(dataDir));
         updateDataStatusLabel(dataDir);
         if (!hasGtaCache(new File(dataDir))) {
             Toast.makeText(this,
@@ -1716,6 +1719,11 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         saveAllSettingsToIni(nick);
+
+        AppLog.i("GAME", "Mulai game | server=" + server.host + ":" + server.port
+                + " | nick=" + nick + " | data=" + dataDir
+                + " | monetloader=" + (cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked())
+                + " | log=" + AppLog.logDirPath());
 
         Intent gameIntent = new Intent(MainActivity.this, SAMP.class);
         gameIntent.putExtra("player_name", nick);
@@ -1756,5 +1764,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacksAndMessages(null);
+        if (isFinishing()) {
+            AppLog.endSession();
+        }
     }
 }

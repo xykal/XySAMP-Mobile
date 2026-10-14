@@ -1456,7 +1456,10 @@ static FILE* TryOpenTexdbAnyFormat(const char* baseDir, const char* relPath)
                 memcpy(altRel + prefixLen, dstExt, 5);
                 strcpy(altRel + prefixLen + 5, pos + 5);
                 FILE* f = FOpenCaseInsensitive(baseDir, altRel);
-                if (f) return f;
+                if (f) {
+                    FLog("texdb fallback: %s -> %s", relPath, altRel);
+                    return f;
+                }
             }
             break;
         }
@@ -1503,6 +1506,9 @@ stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
     }
     if (!f) {
         f = TryOpenTexdbAnyFormat(baseDir, r1);
+        if (!f && strncasecmp(r1, "texdb/", 6) == 0) {
+            FLog("texdb MISSING: %s", r1);
+        }
     }
 
     if (f) {
