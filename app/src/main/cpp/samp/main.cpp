@@ -210,6 +210,8 @@ void handler3(int signum, siginfo_t *info, void* contextPtr)
 		CStackTrace::printBacktrace();
 	}
 
+	// Anti force close: jangan biarkan instruksi crash diulang (loop). Biarkan kernel menutup proses bersih.
+	signal(signum, SIG_DFL);
 	return;
 }
 
@@ -582,7 +584,5 @@ void LogVoice(const char* fmt, ...)
 	fprintf(flLog, "%s\n", buffer);
 	fflush(flLog);
 
-	// Anti force close: jangan biarkan instruksi crash diulang (loop). Biarkan kernel menutup proses bersih.
-	signal(signum, SIG_DFL);
 	return;
 }
