@@ -305,6 +305,11 @@ android:layout_width="@dimen/lh_sidebar_width"
                     android:text="URL ZIP CUSTOM" android:textColor="#FFFFFF" android:textSize="13sp"
                     android:textStyle="bold" android:textAllCaps="false" android:letterSpacing="0.04"
                     android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+<Button android:id="@+id/btnRepairData" android:layout_width="match_parent" android:layout_height="44dp"
+                    android:layout_marginTop="8dp" android:background="@drawable/bg_button_idle"
+                    android:text="PERBAIKI DATA" android:textColor="#FFFFFF" android:textSize="13sp"
+                    android:textStyle="bold" android:textAllCaps="false" android:letterSpacing="0.04"
+                    android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
     </LinearLayout>
 
     <LinearLayout

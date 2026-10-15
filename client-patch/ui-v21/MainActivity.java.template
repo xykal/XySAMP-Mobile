@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
     private final String[] navLabels = new String[7];
     private ValueAnimator sidebarAnim;
     private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls, panelToys;
-    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl;
+    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl, btnRepairData;
     private Button btnFps30, btnFps60, btnFps90, btnFps120;
     private Button btnChat5, btnChat7, btnChat9, btnChat12;
     private Button btnSaveSettings, btnResetSettings, btnRefreshDevices;
@@ -292,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
         bugText = findViewById(R.id.bugText);
         downloadProgressBar = findViewById(R.id.downloadProgressBar);
         downloadStatusText = findViewById(R.id.downloadStatusText);
+        btnRepairData = findViewById(R.id.btnRepairData);
         btnDownloadLite = findViewById(R.id.btnDownloadLite);
         btnDownloadFull = findViewById(R.id.btnDownloadFull);
         btnCustomUrl = findViewById(R.id.btnCustomUrl);
@@ -682,6 +683,7 @@ public class MainActivity extends AppCompatActivity {
         btnDownloadLite.setOnClickListener(v -> beginConfiguredDownload(liteDataUrl, "Data Lite"));
         btnDownloadFull.setOnClickListener(v -> beginConfiguredDownload(fullDataUrl, "Data Full"));
         btnCustomUrl.setOnClickListener(v -> showCustomUrlDialog());
+        btnRepairData.setOnClickListener(v -> repairGameData());
 
         switchTab(0);
         startButton.setOnClickListener(v -> {
@@ -2042,6 +2044,40 @@ public class MainActivity extends AppCompatActivity {
                     .setPositiveButton("OK", null)
                     .show();
         }
+    }
+
+    /** Perbaikan manual: normalisasi varian texdb + cek ulang file inti. Berjalan di background. */
+    private void repairGameData() {
+        final String dir = resolveGameDataDir(this);
+        final File root = new File(dir);
+        if (!root.isDirectory()) {
+            Toast.makeText(this, "Data belum ada. Unduh Data Lite/Full dulu.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        btnRepairData.setEnabled(false);
+        downloadStatusText.setText("Memperbaiki data...");
+        new Thread(() -> {
+            int fixed = 0;
+            String err = null;
+            try {
+                fixed = GameDataFixer.normalizeTexdb(root);
+                GameDataFixer.report(root);
+            } catch (Exception e) {
+                err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                AppLog.e("DATA", "Perbaikan data gagal", e);
+            }
+            final int done = fixed;
+            final String msg = err;
+            runOnUiThread(() -> {
+                btnRepairData.setEnabled(true);
+                updateDataStatusLabel(dir);
+                String text = msg == null
+                        ? "Perbaikan selesai: " + done + " file varian dinormalisasi. Detail ada di log DATA."
+                        : "Perbaikan gagal: " + msg;
+                downloadStatusText.setText(text);
+                Toast.makeText(this, msg == null ? "Data sudah diperiksa" : "Perbaikan gagal", Toast.LENGTH_SHORT).show();
+            });
+        }, "lh-repair-data").start();
     }
 
     public static void hideKeyboard(Activity activity) {
