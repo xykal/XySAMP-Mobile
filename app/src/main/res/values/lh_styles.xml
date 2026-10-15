@@ -6,8 +6,6 @@
         <item name="android:colorAccent">#38BDF8</item>
         <item name="android:textColorPrimary">#F1F5F9</item>
         <item name="android:textColorSecondary">#94A3B8</item>
-        <item name="android:buttonBarPositiveTextColor">#38BDF8</item>
-        <item name="android:buttonBarNegativeTextColor">#94A3B8</item>
         <item name="android:windowTitleStyle">@style/LHDialogTitle</item>
     </style>
 
