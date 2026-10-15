@@ -2,6 +2,8 @@
 #include "../game/game.h"
 #include "netgame.h"
 #include "../audiostream.h"
+#include "../settings.h"
+extern CSettings* pSettings;
 
 extern CGame *pGame;
 extern CNetGame *pNetGame;
@@ -1722,6 +1724,24 @@ void ScrSetPlayerAttachedObject(RPCParameters* rpcParams)
         return;
     }
     bsData.Read((char*)& info, sizeof(ATTACHED_OBJECT_INFO));
+
+    // Pengaturan toys dari client (settings.ini [toys]): aktif/nonaktif, bone, offset, skala
+    if (pSettings && slot < 10)
+    {
+        const stToySlot& t = pSettings->Get().aToy[slot];
+        if (!t.bEnabled)
+        {
+            pPed->DeattachObject(slot);
+            return;
+        }
+        if (t.iBone > 0 && t.iBone <= 18) info.dwBoneId_MP = (uint32_t)t.iBone;
+        info.vecOffset.x += t.fOffX;
+        info.vecOffset.y += t.fOffY;
+        info.vecOffset.z += t.fOffZ;
+        info.vecScale.x *= t.fScale;
+        info.vecScale.y *= t.fScale;
+        info.vecScale.z *= t.fScale;
+    }
 
     pPed->AttachObject(&info, slot);
 }

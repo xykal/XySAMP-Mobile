@@ -3,6 +3,8 @@
 #include "../../game/game.h"
 #include "../../net/netgame.h"
 #include <algorithm>
+#include <ctime>
+#include <cstdio>
 #include "../settings.h"
 #include "java/jniutil.h"
 
@@ -16,6 +18,17 @@ Chat::Chat()
 	: ListBox()
 {
 
+}
+
+static std::string ChatTimePrefix()
+{
+	if (!UISettings::chatTimestamp()) return std::string();
+	time_t now = time(nullptr);
+	struct tm tmv;
+	localtime_r(&now, &tmv);
+	char buf[16];
+	snprintf(buf, sizeof(buf), "[%02d:%02d] ", tmv.tm_hour, tmv.tm_min);
+	return std::string(buf);
 }
 
 void Chat::addChatMessage(const std::string& message, const std::string& nick, const ImColor& nick_color)
@@ -59,7 +72,7 @@ void Chat::addMessage(const std::string& message, const ImColor& color)
 		this->removeItem(0);
 	}
 
-	MessageItem* item = new MessageItem(message, color);
+	MessageItem* item = new MessageItem(ChatTimePrefix() + message, color);
 	this->addItem(item);
 	/*if(!active())*/ this->setScrollY(1.0f);
 }
@@ -71,7 +84,7 @@ void Chat::addPlayerMessage(const std::string& message, const std::string& nick,
 		this->removeItem(0);
 	}
 
-	PlayerMessageItem* item = new PlayerMessageItem(message, nick, nick_color);
+	PlayerMessageItem* item = new PlayerMessageItem(message, ChatTimePrefix() + nick, nick_color);
 	this->addItem(item);
 	/*if(!active())*/ this->setScrollY(1.0f);
 }

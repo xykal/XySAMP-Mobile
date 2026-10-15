@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema dialog LombokHoliday: kartu gelap rounded, aksen biru laut, tanpa tampilan default -->
+    <style name="LHDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/lh_dialog_window</item>
+        <item name="android:colorAccent">#38BDF8</item>
+        <item name="android:textColorPrimary">#F1F5F9</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+        <item name="android:buttonBarPositiveTextColor">#38BDF8</item>
+        <item name="android:buttonBarNegativeTextColor">#94A3B8</item>
+        <item name="android:windowTitleStyle">@style/LHDialogTitle</item>
+    </style>
+
+    <style name="LHDialogTitle" parent="@android:style/TextAppearance.Material.DialogWindowTitle">
+        <item name="android:textColor">#F1F5F9</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

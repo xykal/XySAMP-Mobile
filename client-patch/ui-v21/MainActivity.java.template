@@ -1,6 +1,7 @@
 package com.samp.mobile.launcher;
 
 import android.app.Activity;
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -28,6 +29,8 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.SeekBar;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.CheckBox;
@@ -116,8 +119,18 @@ public class MainActivity extends AppCompatActivity {
     };
 
     // UI Elements
-    private Button tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls;
-    private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls;
+    private Button tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys;
+    private Button btnToysReset;
+    private SidebarLayout sidebarLayout;
+    private ImageButton btnSidebarToggle;
+    private SeekBar seekChatX, seekChatY, seekChatW, seekChatH, seekFontSize;
+    private TextView lblChatX, lblChatY, lblChatW, lblChatH, lblFontSize, lblScrollSens;
+    private SeekBar seekScrollSens;
+    private CheckBox cbChatTimestamp;
+    private boolean sidebarExpanded = true;
+    private final String[] navLabels = new String[7];
+    private ValueAnimator sidebarAnim;
+    private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls, panelToys;
     private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl;
     private Button btnFps30, btnFps60, btnFps90, btnFps120;
     private Button btnChat5, btnChat7, btnChat9, btnChat12;
@@ -134,6 +147,11 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox cbVoiceChat, cbFpsCounter, cbFirstPerson, cbCutout, cbAndroidKeyboard;
     private CheckBox cbHpArmourText, cbOutfitGuns, cbRadarRect, cbPcMoney, cbSkyBox, cbSnow;
     private CheckBox cbEnableKeyboardMouse, cbEnableGamepad, cbMonetLoaderEnabled;
+    private SeekBar seekMouseSens;
+    private ActivityResultLauncher<Intent> gameLauncher;
+    private Intent lastGameIntent;
+    private static final String GAME_CLEAN_EXIT = "game_clean_exit";
+    private TextView lblMouseSens;
 
     private final ActivityResultLauncher<String[]> importFileLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
@@ -172,6 +190,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         AppLog.init(this);
+        gameLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                r -> onGameFinished());
+        // Anti force close: beri tahu user jika sesi sebelumnya berhenti tak terduga.
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (AppLog.takeCrashNotice()) showCrashNotice();
+        }, 700);
         AppLog.i("APP", "onCreate launcher v" + APP_VERSION);
         try {
             setFullScreenMode();
@@ -203,11 +227,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void initViews() {
         tabBtnHome = findViewById(R.id.tabBtnHome);
+        sidebarLayout = findViewById(R.id.sidebar);
+        btnSidebarToggle = findViewById(R.id.btnSidebarToggle);
+        seekChatX = findViewById(R.id.seekChatX);
+        seekChatY = findViewById(R.id.seekChatY);
+        seekChatW = findViewById(R.id.seekChatW);
+        seekChatH = findViewById(R.id.seekChatH);
+        seekFontSize = findViewById(R.id.seekFontSize);
+        lblChatX = findViewById(R.id.lblChatX);
+        lblChatY = findViewById(R.id.lblChatY);
+        lblChatW = findViewById(R.id.lblChatW);
+        lblChatH = findViewById(R.id.lblChatH);
+        lblFontSize = findViewById(R.id.lblFontSize);
+        cbChatTimestamp = findViewById(R.id.cbChatTimestamp);
+        seekScrollSens = findViewById(R.id.seekScrollSens);
+        lblScrollSens = findViewById(R.id.lblScrollSens);
         tabBtnServers = findViewById(R.id.tabBtnServers);
         tabBtnNews = findViewById(R.id.tabBtnNews);
         tabBtnMods = findViewById(R.id.tabBtnMods);
         tabBtnSettings = findViewById(R.id.tabBtnSettings);
         tabBtnControls = findViewById(R.id.tabBtnControls);
+        tabBtnToys = findViewById(R.id.tabBtnToys);
+        btnToysReset = findViewById(R.id.btnToysReset);
 
         panelHome = findViewById(R.id.panelHome);
         panelServers = findViewById(R.id.panelServers);
@@ -215,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
         panelMods = findViewById(R.id.panelMods);
         panelSettings = findViewById(R.id.panelSettings);
         panelControls = findViewById(R.id.panelControls);
+        panelToys = findViewById(R.id.panelToys);
 
         bannerFlipper = findViewById(R.id.bannerFlipper);
         bannerIndicator = findViewById(R.id.bannerIndicator);
@@ -282,7 +324,236 @@ public class MainActivity extends AppCompatActivity {
         peripheralStatusText = findViewById(R.id.peripheralStatusText);
         cbEnableKeyboardMouse = findViewById(R.id.cbEnableKeyboardMouse);
         cbEnableGamepad = findViewById(R.id.cbEnableGamepad);
+        seekMouseSens = findViewById(R.id.seekMouseSens);
+        lblMouseSens = findViewById(R.id.lblMouseSens);
         btnRefreshDevices = findViewById(R.id.btnRefreshDevices);
+    }
+
+    private Button[] navButtons() {
+        return new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys};
+    }
+
+    private void setupSidebarAndSliders() {
+        Button[] nav = navButtons();
+        int[] icons = {R.drawable.ic_nav_home, R.drawable.ic_nav_servers, R.drawable.ic_nav_news,
+                R.drawable.ic_nav_mods, R.drawable.ic_nav_settings, R.drawable.ic_nav_controls, R.drawable.ic_nav_toys};
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] == null) continue;
+            navLabels[i] = nav[i].getText().toString();
+            nav[i].setAllCaps(false);
+            nav[i].setCompoundDrawablesWithIntrinsicBounds(icons[i], 0, 0, 0);
+        }
+        sidebarExpanded = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean("sidebar_expanded", true);
+        if (sidebarLayout != null) {
+            sidebarLayout.setSwipeListener(this::setSidebarExpanded);
+            ViewGroup.LayoutParams lp = sidebarLayout.getLayoutParams();
+            lp.width = dp(sidebarExpanded ? 220 : 76);
+            sidebarLayout.setLayoutParams(lp);
+        }
+        if (btnSidebarToggle != null) {
+            btnSidebarToggle.setOnClickListener(v -> setSidebarExpanded(!sidebarExpanded));
+        }
+        applySidebarLabels(sidebarExpanded);
+
+        setupSlider(seekChatX, lblChatX, "Posisi chat X", "setting_chat_pos_x", 325f, 0, 1600);
+        setupSlider(seekChatY, lblChatY, "Posisi chat Y", "setting_chat_pos_y", 25f, 0, 900);
+        setupSlider(seekChatW, lblChatW, "Lebar chat", "setting_chat_size_x", 1150f, 400, 1900);
+        setupSlider(seekChatH, lblChatH, "Tinggi chat", "setting_chat_size_y", 220f, 100, 500);
+        setupSlider(seekFontSize, lblFontSize, "Ukuran font", "setting_font_size", 30f, 18, 40);
+        setupScrollSensitivitySlider();
+        setupToysPanel();
+        setupMouseSensSlider();
+    }
+
+    private void setSidebarExpanded(boolean expanded) {
+        if (sidebarLayout == null || sidebarExpanded == expanded) return;
+        int from = sidebarLayout.getWidth() > 0 ? sidebarLayout.getWidth() : dp(sidebarExpanded ? 220 : 76);
+        sidebarExpanded = expanded;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean("sidebar_expanded", expanded).apply();
+        applySidebarLabels(expanded);
+        if (btnSidebarToggle != null) {
+            btnSidebarToggle.setImageResource(expanded ? R.drawable.ic_chevron_left : R.drawable.ic_chevron_right);
+        }
+        if (sidebarAnim != null) sidebarAnim.cancel();
+        sidebarAnim = ValueAnimator.ofInt(from, dp(expanded ? 220 : 76));
+        sidebarAnim.setDuration(260);
+        sidebarAnim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        sidebarAnim.addUpdateListener(a -> {
+            ViewGroup.LayoutParams lp = sidebarLayout.getLayoutParams();
+            lp.width = (Integer) a.getAnimatedValue();
+            sidebarLayout.setLayoutParams(lp);
+        });
+        sidebarAnim.start();
+    }
+
+    private void applySidebarLabels(boolean expanded) {
+        Button[] nav = navButtons();
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] == null) continue;
+            nav[i].setText(expanded ? navLabels[i] : "");
+            nav[i].setGravity(expanded ? (Gravity.CENTER_VERTICAL | Gravity.START) : Gravity.CENTER);
+            nav[i].setCompoundDrawablePadding(expanded ? dp(12) : 0);
+            nav[i].setPadding(expanded ? dp(14) : 0, nav[i].getPaddingTop(), expanded ? dp(10) : 0, nav[i].getPaddingBottom());
+        }
+        int vis = expanded ? View.VISIBLE : View.GONE;
+        TextView t1 = findViewById(R.id.title1);
+        TextView t2 = findViewById(R.id.title2);
+        if (t1 != null) t1.setVisibility(vis);
+        if (t2 != null) t2.setVisibility(vis);
+    }
+
+    private void setupScrollSensitivitySlider() {
+        if (seekScrollSens == null || lblScrollSens == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        float cur = Math.max(0.2f, Math.min(3.0f, sp.getFloat("setting_scroll_sensitivity", 1.0f)));
+        seekScrollSens.setMax(28);
+        seekScrollSens.setProgress(Math.round((cur - 0.2f) * 10f));
+        lblScrollSens.setText(String.format(Locale.US, "Sensitivitas geser layar: %.1fx", cur));
+        seekScrollSens.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = 0.2f + progress * 0.1f;
+                lblScrollSens.setText(String.format(Locale.US, "Sensitivitas geser layar: %.1fx", v));
+                if (fromUser) sp.edit().putFloat("setting_scroll_sensitivity", v).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void setupSlider(SeekBar bar, TextView label, String title, String key, float def, int min, int max) {
+        if (bar == null || label == null) return;
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int start = Math.round(Math.max(min, Math.min(max, sp.getFloat(key, def))));
+        bar.setMax(max - min);
+        bar.setProgress(start - min);
+        label.setText(title + ": " + start);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int value = min + progress;
+                label.setText(title + ": " + value);
+                if (fromUser) sp.edit().putFloat(key, value).apply();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private String prefFloatString(String key, float def) {
+        return String.valueOf(getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getFloat(key, def));
+    }
+
+    private void setupToysPanel() {
+        if (btnToysReset != null) {
+            btnToysReset.setOnClickListener(v -> {
+                SharedPreferences.Editor ed = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+                for (int i = 0; i < 10; i++) {
+                    String p = "toy_" + i + "_";
+                    ed.remove(p + "enabled").remove(p + "bone").remove(p + "ox").remove(p + "oy")
+                      .remove(p + "oz").remove(p + "scale");
+                }
+                ed.apply();
+                setupToysPanel();
+                Toast.makeText(this, "Toys direset ke default", Toast.LENGTH_SHORT).show();
+            });
+        }
+        bindToySlot(0, R.id.cbToy0, R.id.seekToyBone0, R.id.lblToyBone0, R.id.seekToyX0, R.id.lblToyX0, R.id.seekToyY0, R.id.lblToyY0, R.id.seekToyZ0, R.id.lblToyZ0, R.id.seekToyScale0, R.id.lblToyScale0);
+        bindToySlot(1, R.id.cbToy1, R.id.seekToyBone1, R.id.lblToyBone1, R.id.seekToyX1, R.id.lblToyX1, R.id.seekToyY1, R.id.lblToyY1, R.id.seekToyZ1, R.id.lblToyZ1, R.id.seekToyScale1, R.id.lblToyScale1);
+        bindToySlot(2, R.id.cbToy2, R.id.seekToyBone2, R.id.lblToyBone2, R.id.seekToyX2, R.id.lblToyX2, R.id.seekToyY2, R.id.lblToyY2, R.id.seekToyZ2, R.id.lblToyZ2, R.id.seekToyScale2, R.id.lblToyScale2);
+        bindToySlot(3, R.id.cbToy3, R.id.seekToyBone3, R.id.lblToyBone3, R.id.seekToyX3, R.id.lblToyX3, R.id.seekToyY3, R.id.lblToyY3, R.id.seekToyZ3, R.id.lblToyZ3, R.id.seekToyScale3, R.id.lblToyScale3);
+        bindToySlot(4, R.id.cbToy4, R.id.seekToyBone4, R.id.lblToyBone4, R.id.seekToyX4, R.id.lblToyX4, R.id.seekToyY4, R.id.lblToyY4, R.id.seekToyZ4, R.id.lblToyZ4, R.id.seekToyScale4, R.id.lblToyScale4);
+        bindToySlot(5, R.id.cbToy5, R.id.seekToyBone5, R.id.lblToyBone5, R.id.seekToyX5, R.id.lblToyX5, R.id.seekToyY5, R.id.lblToyY5, R.id.seekToyZ5, R.id.lblToyZ5, R.id.seekToyScale5, R.id.lblToyScale5);
+        bindToySlot(6, R.id.cbToy6, R.id.seekToyBone6, R.id.lblToyBone6, R.id.seekToyX6, R.id.lblToyX6, R.id.seekToyY6, R.id.lblToyY6, R.id.seekToyZ6, R.id.lblToyZ6, R.id.seekToyScale6, R.id.lblToyScale6);
+        bindToySlot(7, R.id.cbToy7, R.id.seekToyBone7, R.id.lblToyBone7, R.id.seekToyX7, R.id.lblToyX7, R.id.seekToyY7, R.id.lblToyY7, R.id.seekToyZ7, R.id.lblToyZ7, R.id.seekToyScale7, R.id.lblToyScale7);
+        bindToySlot(8, R.id.cbToy8, R.id.seekToyBone8, R.id.lblToyBone8, R.id.seekToyX8, R.id.lblToyX8, R.id.seekToyY8, R.id.lblToyY8, R.id.seekToyZ8, R.id.lblToyZ8, R.id.seekToyScale8, R.id.lblToyScale8);
+        bindToySlot(9, R.id.cbToy9, R.id.seekToyBone9, R.id.lblToyBone9, R.id.seekToyX9, R.id.lblToyX9, R.id.seekToyY9, R.id.lblToyY9, R.id.seekToyZ9, R.id.lblToyZ9, R.id.seekToyScale9, R.id.lblToyScale9);
+    }
+
+    private void bindToySlot(int i, int cbId, int boneSeekId, int boneLblId, int xId, int xlId,
+                             int yId, int ylId, int zId, int zlId, int scId, int sclId) {
+        final String p = "toy_" + i + "_";
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        CheckBox cb = findViewById(cbId);
+        if (cb != null) {
+            cb.setChecked(sp.getBoolean(p + "enabled", true));
+            cb.setOnCheckedChangeListener((b, on) -> sp.edit().putBoolean(p + "enabled", on).apply());
+        }
+        bindFloatSlider((SeekBar) findViewById(boneSeekId), (TextView) findViewById(boneLblId), p + "bone", 0f, 0f, 1f, 18, "Bone: %.0f (0 = default)");
+        bindFloatSlider((SeekBar) findViewById(xId), (TextView) findViewById(xlId), p + "ox", 0f, -0.5f, 0.01f, 100, "Offset X: %.2f");
+        bindFloatSlider((SeekBar) findViewById(yId), (TextView) findViewById(ylId), p + "oy", 0f, -0.5f, 0.01f, 100, "Offset Y: %.2f");
+        bindFloatSlider((SeekBar) findViewById(zId), (TextView) findViewById(zlId), p + "oz", 0f, -0.5f, 0.01f, 100, "Offset Z: %.2f");
+        bindFloatSlider((SeekBar) findViewById(scId), (TextView) findViewById(sclId), p + "scale", 1f, 0.5f, 0.01f, 150, "Skala: %.2fx");
+    }
+
+    private void bindFloatSlider(SeekBar bar, TextView label, String key, float def, float min, float step, int maxProgress, String fmt) {
+        if (bar == null || label == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int p = Math.round((sp.getFloat(key, def) - min) / step);
+        p = Math.max(0, Math.min(maxProgress, p));
+        bar.setMax(maxProgress);
+        bar.setProgress(p);
+        label.setText(String.format(Locale.US, fmt, min + p * step));
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = min + progress * step;
+                label.setText(String.format(Locale.US, fmt, v));
+                if (fromUser) sp.edit().putFloat(key, v).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private String toysIniSection() {
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        StringBuilder b = new StringBuilder("\n[toys]\n");
+        for (int i = 0; i < 10; i++) {
+            String p = "toy_" + i + "_";
+            b.append("Slot").append(i).append("Enabled=").append(sp.getBoolean(p + "enabled", true)).append("\n");
+            b.append("Slot").append(i).append("Bone=").append(Math.round(sp.getFloat(p + "bone", 0f))).append("\n");
+            b.append("Slot").append(i).append("OffsetX=").append(sp.getFloat(p + "ox", 0f)).append("\n");
+            b.append("Slot").append(i).append("OffsetY=").append(sp.getFloat(p + "oy", 0f)).append("\n");
+            b.append("Slot").append(i).append("OffsetZ=").append(sp.getFloat(p + "oz", 0f)).append("\n");
+            b.append("Slot").append(i).append("Scale=").append(sp.getFloat(p + "scale", 1f)).append("\n");
+        }
+        return b.toString();
+    }
+
+    private void showCrashNotice() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                .setTitle("Sesi sebelumnya berhenti tak terduga")
+                .setMessage("Game sempat crash atau force close. Log lengkap tersimpan di:\n" + AppLog.logDirPath()
+                        + "\n\nKalau sering terjadi, kirim file log terakhir.")
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void setupMouseSensSlider() {
+        if (seekMouseSens == null || lblMouseSens == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        float cur = Math.max(0.2f, Math.min(3.0f, sp.getFloat("setting_mouse_sensitivity", 1.0f)));
+        WarGamepad.sMouseSensitivity = cur;
+        seekMouseSens.setMax(28);
+        seekMouseSens.setProgress(Math.round((cur - 0.2f) * 10f));
+        lblMouseSens.setText(String.format(Locale.US, "Sensitivitas mouse: %.1fx", cur));
+        seekMouseSens.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = 0.2f + progress * 0.1f;
+                WarGamepad.sMouseSensitivity = v;
+                lblMouseSens.setText(String.format(Locale.US, "Sensitivitas mouse: %.1fx", v));
+                if (fromUser) sp.edit().putFloat("setting_mouse_sensitivity", v).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
     }
 
     private void switchTab(int tabIndex) {
@@ -292,8 +563,9 @@ public class MainActivity extends AppCompatActivity {
         panelMods.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
         panelSettings.setVisibility(tabIndex == 4 ? View.VISIBLE : View.GONE);
         panelControls.setVisibility(tabIndex == 5 ? View.VISIBLE : View.GONE);
+        panelToys.setVisibility(tabIndex == 6 ? View.VISIBLE : View.GONE);
 
-        Button[] nav = new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls};
+        Button[] nav = new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys};
         for (int i = 0; i < nav.length; i++) {
             if (nav[i] != null) nav[i].setBackgroundResource(i == tabIndex ? R.drawable.nav_item_selected : R.drawable.nav_item);
         }
@@ -321,11 +593,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupTabsAndListeners() {
         tabBtnHome.setOnClickListener(v -> switchTab(0));
+        setupSidebarAndSliders();
         tabBtnServers.setOnClickListener(v -> switchTab(1));
         tabBtnNews.setOnClickListener(v -> switchTab(2));
         tabBtnMods.setOnClickListener(v -> switchTab(3));
         tabBtnSettings.setOnClickListener(v -> switchTab(4));
         tabBtnControls.setOnClickListener(v -> switchTab(5));
+        tabBtnToys.setOnClickListener(v -> switchTab(6));
         btnOpenServers.setOnClickListener(v -> switchTab(1));
         btnOpenNews.setOnClickListener(v -> switchTab(2));
         btnAddServer.setOnClickListener(v -> showAddServerDialog());
@@ -734,7 +1008,7 @@ public class MainActivity extends AppCompatActivity {
         form.addView(name, fieldParams);
         form.addView(host, fieldParams);
         form.addView(port, fieldParams);
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
                 .setTitle("Tambah server SA-MP")
                 .setMessage("Masukkan host dan port UDP. IPv6 belum didukung.")
                 .setView(form)
@@ -789,7 +1063,7 @@ public class MainActivity extends AppCompatActivity {
                     {0xFF155E75, 0xFF2563EB, 0xFF5B21B6}
             };
             GradientDrawable background = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors[i % colors.length]);
-            background.setCornerRadius(dp(22));
+            background.setCornerRadius(dp(28));
             background.setStroke(dp(1), 0x6687DFFF);
             card.setBackground(background);
             TextView badge = new TextView(this);
@@ -1184,7 +1458,7 @@ public class MainActivity extends AppCompatActivity {
         input.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, liteDataUrl == null ? "" : liteDataUrl));
         input.setSingleLine(true);
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
                 .setTitle("Download Data GTA (.zip) dari URL")
                 .setMessage("Masukkan link direct download file .zip Data GTA (Lite/Full). Aplikasi akan otomatis mengunduh dan mengekstrak ke folder data game:")
                 .setView(input)
@@ -1472,6 +1746,7 @@ public class MainActivity extends AppCompatActivity {
         if (cbFpsCounter != null) cbFpsCounter.setChecked(prefs.getBoolean("setting_fps_counter", true));
         if (cbFirstPerson != null) cbFirstPerson.setChecked(prefs.getBoolean("setting_first_person", true));
         if (cbCutout != null) cbCutout.setChecked(prefs.getBoolean("setting_cutout", true));
+        if (cbChatTimestamp != null) cbChatTimestamp.setChecked(prefs.getBoolean("setting_chat_timestamp", false));
         if (cbAndroidKeyboard != null) cbAndroidKeyboard.setChecked(prefs.getBoolean("setting_android_keyboard", false));
         if (cbHpArmourText != null) cbHpArmourText.setChecked(prefs.getBoolean("setting_hp_armour", true));
         if (cbOutfitGuns != null) cbOutfitGuns.setChecked(prefs.getBoolean("setting_outfit_guns", true));
@@ -1529,6 +1804,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("setting_fps_counter", cbFpsCounter != null && cbFpsCounter.isChecked())
                 .putBoolean("setting_first_person", cbFirstPerson != null && cbFirstPerson.isChecked())
                 .putBoolean("setting_cutout", cbCutout != null && cbCutout.isChecked())
+                .putBoolean("setting_chat_timestamp", cbChatTimestamp != null && cbChatTimestamp.isChecked())
                 .putBoolean("setting_android_keyboard", cbAndroidKeyboard != null && cbAndroidKeyboard.isChecked())
                 .putBoolean("setting_hp_armour", cbHpArmourText != null && cbHpArmourText.isChecked())
                 .putBoolean("setting_outfit_guns", cbOutfitGuns != null && cbOutfitGuns.isChecked())
@@ -1540,7 +1816,7 @@ public class MainActivity extends AppCompatActivity {
                 .putBoolean("setting_gamepad", cbEnableGamepad != null && cbEnableGamepad.isChecked())
                 .putBoolean(KEY_MONETLOADER_ENABLED, cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked())
                 .putString(KEY_SELECTED_SERVER, server.key())
-                .apply();
+                .commit();
 
         List<String> targetDirs = new ArrayList<>();
         targetDirs.add(activeDir);
@@ -1567,13 +1843,15 @@ public class MainActivity extends AppCompatActivity {
                 + "online=true\n\n"
                 + "[gui]\n"
                 + "Font=arial.ttf\n"
-                + "FontSize=30.0\n"
+                + "FontSize=" + prefFloatString("setting_font_size", 30f) + "\n"
                 + "FontOutline=2\n"
-                + "ChatPosX=325.0\n"
-                + "ChatPosY=25.0\n"
-                + "ChatSizeX=1150.0\n"
-                + "ChatSizeY=220.0\n"
+                + "ChatPosX=" + prefFloatString("setting_chat_pos_x", 325f) + "\n"
+                + "ChatPosY=" + prefFloatString("setting_chat_pos_y", 25f) + "\n"
+                + "ChatSizeX=" + prefFloatString("setting_chat_size_x", 1150f) + "\n"
+                + "ChatSizeY=" + prefFloatString("setting_chat_size_y", 220f) + "\n"
                 + "ChatMaxMessages=" + selectedChatLines + "\n"
+                + "ChatTimestamp=" + (cbChatTimestamp != null && cbChatTimestamp.isChecked() ? "true" : "false") + "\n"
+                + "ScrollSensitivity=" + prefFloatString("setting_scroll_sensitivity", 1.0f) + "\n"
                 + "FPSLimit=" + selectedFps + "\n"
                 + "VoiceChatEnable=" + (cbVoiceChat != null && cbVoiceChat.isChecked() ? "true" : "false") + "\n"
                 + "fps=" + (cbFpsCounter != null && cbFpsCounter.isChecked() ? "true" : "false") + "\n"
@@ -1585,7 +1863,8 @@ public class MainActivity extends AppCompatActivity {
                 + "radarrect=" + (cbRadarRect != null && cbRadarRect.isChecked() ? "true" : "false") + "\n"
                 + "pcmoney=" + (cbPcMoney != null && cbPcMoney.isChecked() ? "true" : "false") + "\n"
                 + "skybox=" + (cbSkyBox != null && cbSkyBox.isChecked() ? "true" : "false") + "\n"
-                + "snow=" + (cbSnow != null && cbSnow.isChecked() ? "true" : "false") + "\n";
+                + "snow=" + (cbSnow != null && cbSnow.isChecked() ? "true" : "false") + "\n"
+                + toysIniSection();
 
         boolean ok = false;
         for (String dir : targetDirs) {
@@ -1731,7 +2010,38 @@ public class MainActivity extends AppCompatActivity {
         gameIntent.putExtra("server_host", server.host);
         gameIntent.putExtra("server_port", server.port);
         gameIntent.putExtra("enable_monetloader", cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked());
-        startActivity(gameIntent);
+        gameIntent.putExtra("wg_kbm", WarGamepad.sEnableKeyboardMouse);
+        gameIntent.putExtra("wg_pad", WarGamepad.sEnableGamepad);
+        gameIntent.putExtra("wg_sens", WarGamepad.sMouseSensitivity);
+        lastGameIntent = gameIntent;
+        gameLauncher.launch(gameIntent);
+    }
+
+    /** Dipanggil saat activity game selesai. Tanpa penanda keluar normal = crash/FC -> buka ulang otomatis. */
+    private void onGameFinished() {
+        File marker = new File(getFilesDir(), GAME_CLEAN_EXIT);
+        boolean cleanExit = marker.exists();
+        marker.delete();
+        if (cleanExit) { lastGameIntent = null; return; }
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        int count = sp.getInt("game_crash_count", 0);
+        long windowStart = sp.getLong("game_crash_window", 0L);
+        if (now - windowStart > 5 * 60 * 1000L) { count = 0; windowStart = now; }
+        count++;
+        sp.edit().putInt("game_crash_count", count).putLong("game_crash_window", windowStart).apply();
+        AppLog.e("GAME", "Game berhenti tak terduga (crash/FC) ke-" + count + " dalam 5 menit");
+        if (count <= 3 && lastGameIntent != null) {
+            Toast.makeText(this, "Game sempat crash. Memulai ulang otomatis...", Toast.LENGTH_LONG).show();
+            final Intent again = lastGameIntent;
+            new Handler(Looper.getMainLooper()).postDelayed(() -> gameLauncher.launch(again), 1200);
+        } else {
+            new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                    .setTitle("Game berulang kali crash")
+                    .setMessage("Game berhenti tak terduga beberapa kali. Cek log di:\n" + AppLog.logDirPath())
+                    .setPositiveButton("OK", null)
+                    .show();
+        }
     }
 
     public static void hideKeyboard(Activity activity) {

@@ -13,3 +13,7 @@ This app can optionally package and load MonetLoader, a Lua script loader for GT
 MonetLoader is optional and experimental in this client. GTA-side Lua support is enabled; SA-MP-specific compatibility is not verified across both ABIs. Mod scripts can execute code and should only be installed from trusted sources.
 
 The launcher can copy CLEO Android `.csa` / `.csi` files into a user-visible folder, but this build does **not** include or verify a CLEO runtime. Windows `.dll` files are not Android libraries; Android native plugins must be built as compatible `.so` libraries for the relevant ABI.
+
+## Material Design Icons (Pictogrammers)
+Icon navigasi, aksi, dan notifikasi di `client-patch/ui-v21/drawable/ic_*.xml` berasal dari
+Material Design Icons (https://github.com/Templarian/MaterialDesign), dilisensikan Apache License 2.0.

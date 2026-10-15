@@ -1,5 +1,15 @@
 package com.samp.mobile.game;
 
+import android.content.Intent;
+
+import com.wardrumstudios.utils.WarGamepad;
+
+import java.io.StringWriter;
+
+import java.io.PrintWriter;
+
+import java.io.File;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -85,9 +95,14 @@ public class SAMP extends GTASA implements CustomKeyboard.InputListener, HeightP
 
     public void exitGame(){
         
-
+        markCleanExit();
         finishAndRemoveTask();
         System.exit(0);
+    }
+
+    /** Penanda keluar normal. Launcher memakai ini untuk membedakan keluar biasa dari crash/FC. */
+    private void markCleanExit() {
+        try { new File(getFilesDir(), "game_clean_exit").createNewFile(); } catch (Exception ignored) {}
     }
 
     public void showDialog(int dialogId, int dialogTypeId, byte[] bArr, byte[] bArr2, byte[] bArr3, byte[] bArr4) {
@@ -177,6 +192,29 @@ public class SAMP extends GTASA implements CustomKeyboard.InputListener, HeightP
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "**** onCreate");
+        // Anti force close: crash Java di proses game ditangani di sini (tanpa dialog 'app has stopped').
+        // Launcher melihat proses ini mati tanpa penanda keluar normal, lalu membuka game ulang.
+        Thread.setDefaultUncaughtExceptionHandler((t, ex) -> {
+            try {
+                StringWriter sw = new StringWriter();
+                ex.printStackTrace(new PrintWriter(sw));
+                File dir = com.samp.mobile.launcher.AppLog.resolveDir(SAMP.this);
+                if (!dir.exists()) dir.mkdirs();
+                java.io.FileOutputStream fos = new java.io.FileOutputStream(
+                        new File(dir, "game_crash_" + System.currentTimeMillis() + ".txt"));
+                fos.write(("thread=" + t.getName() + "\n" + sw).getBytes("UTF-8"));
+                fos.close();
+            } catch (Exception ignored) {}
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(10);
+        });
+        // Nilai input dari launcher (berbagi lewat Intent karena proses terpisah).
+        Intent wgIn = getIntent();
+        if (wgIn != null) {
+            if (wgIn.hasExtra("wg_kbm")) WarGamepad.sEnableKeyboardMouse = wgIn.getBooleanExtra("wg_kbm", true);
+            if (wgIn.hasExtra("wg_pad")) WarGamepad.sEnableGamepad = wgIn.getBooleanExtra("wg_pad", true);
+            if (wgIn.hasExtra("wg_sens")) WarGamepad.sMouseSensitivity = wgIn.getFloatExtra("wg_sens", 1.0f);
+        }
         loadMonetLoaderIfEnabled();
         super.onCreate(savedInstanceState);
 
@@ -270,6 +308,7 @@ public class SAMP extends GTASA implements CustomKeyboard.InputListener, HeightP
     @Override
     public void onDestroy() {
         Log.i(TAG, "**** onDestroy");
+        if (isFinishing()) markCleanExit();
         super.onDestroy();
     }
 

@@ -303,7 +303,7 @@ public class DataDownloadService extends Service {
 
     private android.app.Notification buildNotification(String text, int pct) {
         NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setSmallIcon(R.drawable.ic_notif_lh)
                 .setContentTitle("Lombok Holiday")
                 .setContentText(text)
                 .setOngoing(true)
@@ -327,7 +327,7 @@ public class DataDownloadService extends Service {
     private void notifyDone(String text) {
         try {
             NotificationCompat.Builder b = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(android.R.drawable.stat_sys_download_done)
+                    .setSmallIcon(R.drawable.ic_notif_lh)
                     .setContentTitle("Lombok Holiday")
                     .setContentText(text)
                     .setAutoCancel(true)

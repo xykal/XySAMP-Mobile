@@ -54,9 +54,11 @@ void ScrollPanel::draw(ImGuiRenderer* renderer)
 	Widget::draw(renderer);
 }
 
-void ScrollPanel::touchMoveEvent(const ImVec2& delta)
+void ScrollPanel::touchMoveEvent(const ImVec2& rawDelta)
 {
 	if (children().empty()) return;
+	const float sens = UISettings::scrollSensitivity();
+	const ImVec2 delta(rawDelta.x * sens, rawDelta.y * sens);
 	Widget* child = children()[0];
 
 	/*if (m_scrollableX && child->width() > width())

@@ -2,6 +2,14 @@
 
 #define MAX_SETTINGS_STRING	0x7F
 
+struct stToySlot
+{
+	bool bEnabled;
+	int iBone;
+	float fOffX, fOffY, fOffZ;
+	float fScale;
+};
+
 struct stSettings
 {
 	// client
@@ -25,6 +33,9 @@ struct stSettings
 	float fChatSizeX;
 	float fChatSizeY;
 	int iChatMaxMessages;
+	bool bChatTimestamp;
+	float fScrollSensitivity;
+	stToySlot aToy[10];
 	float fSpawnScreenPosX;
 	float fSpawnScreenPosY;
 	float fSpawnScreenSizeX;

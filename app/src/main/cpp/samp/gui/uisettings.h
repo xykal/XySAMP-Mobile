@@ -30,6 +30,8 @@ public:
 	static ImVec2 chatSize() { return m_chatSize; }
 	static ImVec2 chatItemSize() { return m_chatItemSize; }
 	static int chatMaxMessages() { return m_chatMaxMessages; }
+	static bool chatTimestamp() { return m_chatTimestamp; }
+	static float scrollSensitivity() { return m_scrollSensitivity; }
 
 	/* spawn */
 	static ImVec2 spawnPos() { return m_spawnPos; }
@@ -97,6 +99,8 @@ private:
 	static ImVec2 m_chatItemSize;
 	static int m_chatDispMesssages;
 	static int m_chatMaxMessages;
+	static bool m_chatTimestamp;
+	static float m_scrollSensitivity;
 
 	/* spawn */
 	static ImVec2 m_spawnPos;

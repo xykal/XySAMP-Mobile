@@ -1,5 +1,11 @@
 package com.samp.mobile.launcher;
 
+import android.content.Intent;
+
+import android.app.PendingIntent;
+
+import android.app.AlarmManager;
+
 import android.content.Context;
 import android.os.Build;
 
@@ -38,6 +44,8 @@ public final class AppLog {
     private static final SimpleDateFormat LINE_TS = new SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT);
 
     private static File logDir;
+    private static Context appCtx;
+    private static boolean lastSessionCrashed = false;
     private static File currentFile;
     private static PrintWriter writer;
     private static boolean installed = false;
@@ -77,6 +85,7 @@ public final class AppLog {
 
     public static synchronized void init(Context ctx) {
         try {
+            appCtx = ctx.getApplicationContext();
             logDir = resolveDir(ctx);
             if (!logDir.exists()) logDir.mkdirs();
 
@@ -86,6 +95,7 @@ public final class AppLog {
                 File last = old.get(old.size() - 1);
                 if (!fileEndsWithMarker(last)) {
                     rawAppend(last, "\n=== SESSION TIDAK BERAKHIR NORMAL (crash / force close / app dihentikan sistem) ===\n");
+                    lastSessionCrashed = true;
                 }
             }
 
@@ -114,10 +124,34 @@ public final class AppLog {
                 e("CRASH", "Uncaught exception di thread " + t.getName(), ex);
                 writeLine("E", "CRASH", "=== CRASH: sesi berakhir karena exception ===");
                 closeQuietly();
+                scheduleRelaunch();
             } catch (Exception ignored) {}
-            if (prev != null) prev.uncaughtException(t, ex);
+            // Anti force close: tanpa dialog 'app has stopped'. Launcher dibuka ulang oleh alarm di atas.
+            android.os.Process.killProcess(android.os.Process.myPid());
+            System.exit(10);
         });
     }
+
+    private static void scheduleRelaunch() {
+        if (appCtx == null) return;
+        try {
+            Intent i = appCtx.getPackageManager().getLaunchIntentForPackage(appCtx.getPackageName());
+            if (i == null) return;
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent pi = PendingIntent.getActivity(appCtx, 4242, i,
+                    PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            AlarmManager am = (AlarmManager) appCtx.getSystemService(Context.ALARM_SERVICE);
+            if (am != null) am.set(AlarmManager.RTC, System.currentTimeMillis() + 1500L, pi);
+        } catch (Exception ignored) {}
+    }
+
+    /** true sekali jika sesi sebelumnya tidak berakhir normal (crash / FC). */
+    public static synchronized boolean takeCrashNotice() {
+        boolean v = lastSessionCrashed;
+        lastSessionCrashed = false;
+        return v;
+    }
+
 
     public static synchronized void i(String tag, String msg) { writeLine("I", tag, msg); }
     public static synchronized void w(String tag, String msg) { writeLine("W", tag, msg); }

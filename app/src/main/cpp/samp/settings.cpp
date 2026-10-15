@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "main.h"
 #include "settings.h"
 #include "lockdown.h"
@@ -60,6 +61,35 @@ CSettings::CSettings()
     m_Settings.fChatSizeX = iniOk ? (float)reader.GetReal("gui", "ChatSizeX", 1150.0) : 1150.0f;
     m_Settings.fChatSizeY = iniOk ? (float)reader.GetReal("gui", "ChatSizeY", 220.0) : 220.0f;
     m_Settings.iChatMaxMessages = iniOk ? (int)reader.GetInteger("gui", "ChatMaxMessages", 7) : 7;
+    m_Settings.bChatTimestamp = iniOk ? reader.GetBoolean("gui", "ChatTimestamp", false) : false;
+    m_Settings.fScrollSensitivity = iniOk ? (float)reader.GetReal("gui", "ScrollSensitivity", 1.0) : 1.0f;
+    if (m_Settings.fScrollSensitivity < 0.2f) m_Settings.fScrollSensitivity = 0.2f;
+    if (m_Settings.fScrollSensitivity > 3.0f) m_Settings.fScrollSensitivity = 3.0f;
+    for (int t = 0; t < 10; ++t)
+    {
+        char key[40];
+        snprintf(key, sizeof(key), "Slot%dEnabled", t);
+        m_Settings.aToy[t].bEnabled = iniOk ? reader.GetBoolean("toys", key, true) : true;
+        snprintf(key, sizeof(key), "Slot%dBone", t);
+        m_Settings.aToy[t].iBone = iniOk ? (int)reader.GetInteger("toys", key, 0) : 0;
+        if (m_Settings.aToy[t].iBone < 0 || m_Settings.aToy[t].iBone > 18) m_Settings.aToy[t].iBone = 0;
+        snprintf(key, sizeof(key), "Slot%dOffsetX", t);
+        m_Settings.aToy[t].fOffX = iniOk ? (float)reader.GetReal("toys", key, 0.0) : 0.0f;
+        snprintf(key, sizeof(key), "Slot%dOffsetY", t);
+        m_Settings.aToy[t].fOffY = iniOk ? (float)reader.GetReal("toys", key, 0.0) : 0.0f;
+        snprintf(key, sizeof(key), "Slot%dOffsetZ", t);
+        m_Settings.aToy[t].fOffZ = iniOk ? (float)reader.GetReal("toys", key, 0.0) : 0.0f;
+        snprintf(key, sizeof(key), "Slot%dScale", t);
+        m_Settings.aToy[t].fScale = iniOk ? (float)reader.GetReal("toys", key, 1.0) : 1.0f;
+        if (m_Settings.aToy[t].fScale < 0.5f) m_Settings.aToy[t].fScale = 0.5f;
+        if (m_Settings.aToy[t].fScale > 2.0f) m_Settings.aToy[t].fScale = 2.0f;
+        if (m_Settings.aToy[t].fOffX < -0.5f) m_Settings.aToy[t].fOffX = -0.5f;
+        if (m_Settings.aToy[t].fOffX > 0.5f) m_Settings.aToy[t].fOffX = 0.5f;
+        if (m_Settings.aToy[t].fOffY < -0.5f) m_Settings.aToy[t].fOffY = -0.5f;
+        if (m_Settings.aToy[t].fOffY > 0.5f) m_Settings.aToy[t].fOffY = 0.5f;
+        if (m_Settings.aToy[t].fOffZ < -0.5f) m_Settings.aToy[t].fOffZ = -0.5f;
+        if (m_Settings.aToy[t].fOffZ > 0.5f) m_Settings.aToy[t].fOffZ = 0.5f;
+    }
 
     m_Settings.fSpawnScreenPosX = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosX", 660.0) : 660.0f;
     m_Settings.fSpawnScreenPosY = iniOk ? (float)reader.GetReal("gui", "SpawnScreenPosY", 950.0) : 950.0f;

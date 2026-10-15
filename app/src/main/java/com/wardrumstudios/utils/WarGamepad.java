@@ -26,6 +26,9 @@ public class WarGamepad extends WarBilling {
     public static volatile boolean sEnableGamepad = true;
     private static volatile boolean sActivePeripheralInput = false;
     private static volatile int sButtonMask = 0;
+    public static volatile float sMouseSensitivity = 1.0f;
+    private static final float[] sMouseLook = new float[2]; // akumulasi gerak mouse -> stick kanan
+    private static float sLastMouseX = Float.NaN, sLastMouseY = Float.NaN;
     private static final float[] sAxes = new float[6]; // 0:LX, 1:LY, 2:RX, 3:RY, 4:LT(Aim), 5:RT(Fire/Gas)
 
     // Keyboard WASD state
@@ -147,6 +150,7 @@ public class WarGamepad extends WarBilling {
                 case KeyEvent.KEYCODE_Q:          setBtn(BTN_DPAD_LEFT, isDown); return false;
                 case KeyEvent.KEYCODE_E:          setBtn(BTN_DPAD_RIGHT, isDown); return false;
                 case KeyEvent.KEYCODE_V:          setBtn(BTN_BACK, isDown); return false;
+                case KeyEvent.KEYCODE_ESCAPE:     setBtn(BTN_START, isDown); return false;
             }
         }
         return false;
@@ -200,6 +204,21 @@ public class WarGamepad extends WarBilling {
             sAxes[5] = leftClick ? 1.0f : 0.0f;
             setBtn(BTN_R3, middleClick);
 
+            int act = event.getActionMasked();
+            if (act == MotionEvent.ACTION_HOVER_MOVE || act == MotionEvent.ACTION_MOVE) {
+                float dx = event.getAxisValue(MotionEvent.AXIS_RELATIVE_X);
+                float dy = event.getAxisValue(MotionEvent.AXIS_RELATIVE_Y);
+                if (dx == 0.0f && dy == 0.0f && !Float.isNaN(sLastMouseX)) {
+                    dx = event.getX() - sLastMouseX;
+                    dy = event.getY() - sLastMouseY;
+                }
+                sLastMouseX = event.getX();
+                sLastMouseY = event.getY();
+                float gain = 0.02f * sMouseSensitivity;
+                sMouseLook[0] = clampUnit(sMouseLook[0] + dx * gain);
+                sMouseLook[1] = clampUnit(sMouseLook[1] + dy * gain);
+                sActivePeripheralInput = true;
+            }
             if (event.getActionMasked() == MotionEvent.ACTION_SCROLL) {
                 float vScroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
                 if (vScroll > 0.1f) {
@@ -237,16 +256,33 @@ public class WarGamepad extends WarBilling {
         return index == 0 ? sButtonMask : 0;
     }
 
+    private static float clampUnit(float v) {
+        return v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v);
+    }
+
+    /** Stick kanan = analog + gerak mouse (dengan peluruhan per pembacaan / frame). */
+    private static float readAxis(int axisId) {
+        float v = sAxes[axisId];
+        if (axisId == 2 || axisId == 3) {
+            int k = axisId - 2;
+            if (sEnableKeyboardMouse) v += sMouseLook[k];
+            sMouseLook[k] *= 0.6f;
+            if (Math.abs(sMouseLook[k]) < 0.001f) sMouseLook[k] = 0.0f;
+            v = clampUnit(v);
+        }
+        return v;
+    }
+
     public float GetGamepadAxis(int axisId) {
         if (axisId >= 0 && axisId < sAxes.length) {
-            return sAxes[axisId];
+            return readAxis(axisId);
         }
         return 0.0f;
     }
 
     public float GetGamepadAxis(int index, int axisId) {
         if (index == 0 && axisId >= 0 && axisId < sAxes.length) {
-            return sAxes[axisId];
+            return readAxis(axisId);
         }
         return 0.0f;
     }

@@ -36,6 +36,8 @@ ImVec2 UISettings::m_splashScreenPBarSize = ImVec2(440.0f, 10.0f);
 /* chat */
 int UISettings::m_chatDispMesssages = 9;
 int UISettings::m_chatMaxMessages = 30;
+bool UISettings::m_chatTimestamp = false;
+float UISettings::m_scrollSensitivity = 1.0f;
 ImVec2 UISettings::m_chatPos = ImVec2(100.0f, 10.0f);
 ImVec2 UISettings::m_chatSize = ImVec2(400.0f, 0.0f);
 ImVec2 UISettings::m_chatItemSize = ImVec2(400.0f, 13.0f);
@@ -85,6 +87,7 @@ void UISettings::Initialize(const ImVec2& display_size)
 	m_chatDispMesssages = pSettings->Get().iChatMaxMessages;
 
 	/* font */
+	m_fontSize = pSettings->Get().fFontSize;
 	m_fontSize *= m_scaleFactor.y;
 
 	/* keyboard */
@@ -99,6 +102,11 @@ void UISettings::Initialize(const ImVec2& display_size)
 	m_splashScreenPBarSize = m_splashScreenPBarSize * m_scaleFactor;
 
 	/* chat */
+	m_chatPos = ImVec2(pSettings->Get().fChatPosX, pSettings->Get().fChatPosY);
+	m_chatSize.x = pSettings->Get().fChatSizeX;
+	m_chatItemSize.y = pSettings->Get().fChatSizeY / (m_chatDispMesssages > 0 ? m_chatDispMesssages : 1);
+	m_chatTimestamp = pSettings->Get().bChatTimestamp;
+	m_scrollSensitivity = pSettings->Get().fScrollSensitivity;
 	m_chatPos = m_chatPos * m_scaleFactor;
 	m_chatSize.y = m_chatItemSize.y * m_chatDispMesssages;
 	m_chatSize = m_chatSize * m_scaleFactor;

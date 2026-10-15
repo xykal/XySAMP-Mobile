@@ -67,6 +67,7 @@
 
         <activity
             android:name="com.samp.mobile.game.SAMP"
+            android:process=":game"
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.AppCompat.NoActionBar"
             android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
