@@ -42,10 +42,10 @@
     }
   ],
   "data_lite": {
-    "name": "Data Lite Lombok Holiday (Semua GPU - Tanpa OBB)",
-    "size_mb": 340,
-    "url": "https://drive.usercontent.google.com/download?id=15lZmSgPx_-YSCQGvT2R5qtupGslrDS1g&export=download&confirm=t",
-    "description": "Data Lite ringan support semua GPU (Adreno/Mali/PowerVR), 100% Tanpa OBB."
+    "name": "Data Lite Lombok Holiday v2 (Semua GPU - Tanpa OBB)",
+    "size_mb": 487,
+    "url": "https://drive.usercontent.google.com/download?id=1x2Da4ipDp87ZLo4oXc-DtcuZUmjmTN6n&export=download&confirm=t",
+    "description": "Data Lite v2: tekstur dxt/etc/pvr lengkap untuk gta3, mobile, txd. Support Adreno/Mali/PowerVR, 100% Tanpa OBB, tanpa rename manual."
   },
   "data_full": {
     "name": "Data Full HD Lombok Holiday (Tanpa OBB)",

@@ -1068,14 +1068,11 @@ public class MainActivity extends AppCompatActivity {
             card.setOrientation(LinearLayout.VERTICAL);
             card.setGravity(Gravity.CENTER_VERTICAL);
             card.setPadding(dp(18), dp(12), dp(18), dp(12));
-            int[][] colors = new int[][]{
-                    {0xFF0E7490, 0xFF1D4ED8, 0xFF6D28D9},
-                    {0xFF1D4ED8, 0xFF4338CA, 0xFF7C3AED},
-                    {0xFF155E75, 0xFF2563EB, 0xFF5B21B6}
-            };
-            GradientDrawable background = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, colors[i % colors.length]);
-            background.setCornerRadius(dp(28));
-            background.setStroke(dp(1), 0x6687DFFF);
+            int[] colors = new int[]{0xFF0C4A6E, 0xFF1E3A8A, 0xFF134E4A};
+            GradientDrawable background = new GradientDrawable();
+            background.setColor(colors[i % colors.length]);
+            background.setCornerRadius(dp(24));
+            background.setStroke(dp(1), 0x3338BDF8);
             card.setBackground(background);
             TextView badge = new TextView(this);
             badge.setText(item.optString("badge", "LOMBOK HOLIDAY"));

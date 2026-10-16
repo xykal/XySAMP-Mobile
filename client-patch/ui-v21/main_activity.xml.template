@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="#060A14">
 
-    <!-- Background gambar senja + scrim gelap agar konten tetap terbaca -->
+    <!-- Background foto senja + scrim datar (tanpa gradient) agar konten tetap terbaca -->
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -15,7 +15,7 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#8C060A14" />
+        android:background="#73060B16" />
 
     <LinearLayout
         android:layout_width="match_parent"
