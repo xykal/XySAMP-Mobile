@@ -1525,6 +1525,7 @@ stFile* NvFOpen_hook(const char* r0, const char* r1, int r2, int r3)
     // Fallback ke NvFOpen_orig milik libGTASA.so untuk membaca dari APK assets/ (scache.txt, Text/american.gxt, dll)
     if (NvFOpen_orig) {
         stFile* apkSt = NvFOpen_orig(r0, r1, r2, r3);
+        FLog("NVFOpen APK fallback: %s -> %s", r1, apkSt ? "ok" : "gagal");
         if (apkSt) {
             return apkSt;
         }

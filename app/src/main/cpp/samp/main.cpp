@@ -1,4 +1,6 @@
 #include <csignal>
+#include <cstdlib>
+#include <exception>
 #include "lockdown.h"
 #include <jni.h>
 #include <pthread.h>
@@ -351,6 +353,26 @@ void InitGui()
 #include "armhook/patch.h"
 #include "util/CUtil.h"
 void SetUpGLHooks();
+// std::terminate (exception C++ tidak tertangkap, mis. std::system_error dari std::mutex::lock).
+// Mencatat tipe/pesan exception dan thread id ke log sebelum abort.
+static void LHTerminateHandler()
+{
+	long tid = syscall(SYS_gettid);
+	try {
+		if (auto ep = std::current_exception())
+			std::rethrow_exception(ep);
+		FLog("TERMINATE | tanpa exception aktif | tid=%ld", tid);
+	}
+	catch (const std::exception& ex) {
+		FLog("TERMINATE | std::exception: %s | tid=%ld", ex.what(), tid);
+	}
+	catch (...) {
+		FLog("TERMINATE | exception tidak dikenal | tid=%ld", tid);
+	}
+	CStackTrace::printBacktrace();
+	std::abort();
+}
+
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	javaVM = vm;
@@ -403,6 +425,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 
 	//pthread_t thread;
 	//pthread_create(&thread, 0, Init, 0);
+
+	std::set_terminate(LHTerminateHandler);
 
 	struct sigaction act;
 	act.sa_sigaction = handler;

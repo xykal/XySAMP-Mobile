@@ -153,7 +153,7 @@ android:layout_width="@dimen/lh_sidebar_width"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Lombok Holiday  •  v2.1.0"
+            android:text="Lombok Holiday  •  v2.2.0"
             android:textColor="#64748B"
             android:textSize="11sp" />
     </com.samp.mobile.launcher.SidebarLayout>

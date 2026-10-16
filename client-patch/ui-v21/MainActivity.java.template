@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int DEFAULT_SERVER_PORT = @@SERVER_PORT@@;
     private static final String EXPECTED_CERT_SHA256 = "@@CERT_SHA256@@";
     private static final String REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/xykal/XySAMP-Mobile/main/data-config.json";
-    private static final String APP_VERSION = "2.1.0";
+    private static final String APP_VERSION = "2.2.0";
     private static final String MONETLOADER_PROFILE = "{\"gtasa_name\":\"libGTASA.so\",\"compat_scripts\":[],\"profile_name\":\"Lombok Holiday GTA hooks only\",\"samp_name\":\"\",\"receiveignorerpc_pattern\":\"\",\"cnetgame_ctor_pattern\":\"\",\"rakclientinterface_netgame_offset\":0,\"use_samp_touch_workaround\":false,\"nveventinsertnewest_offset\":0}";
 
     private String liteDataUrl = "";
