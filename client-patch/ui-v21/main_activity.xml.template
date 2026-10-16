@@ -281,6 +281,28 @@ android:layout_width="@dimen/lh_sidebar_width"
                 android:textColor="#34D399" android:textSize="11sp" android:textStyle="bold" />
             <TextView android:id="@+id/bugText" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" android:text="Mendeteksi direktori data GTA..." android:textColor="#94A3B8" android:textSize="12sp" />
+            <LinearLayout android:id="@+id/cardDataReady" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:visibility="gone" android:orientation="vertical" android:layout_marginTop="10dp"
+                android:background="@drawable/bg_banner" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATA SIAP DIMAINKAN" android:textColor="#34D399" android:textSize="12sp"
+                    android:textStyle="bold" android:letterSpacing="0.08" />
+                <TextView android:id="@+id/dataReadyInfo" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="" android:textColor="#CBD5E1" android:textSize="12sp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:orientation="horizontal">
+                    <Button android:id="@+id/btnReadyRepair" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp"
+                        android:background="@drawable/bg_button_blue" android:text="PERBAIKI DATA" android:textColor="#FFFFFF"
+                        android:textSize="12sp" android:textStyle="bold" android:textAllCaps="false"
+                        android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+                    <Button android:id="@+id/btnChangeData" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp"
+                        android:layout_marginStart="8dp" android:background="@drawable/bg_button_muted" android:text="GANTI DATA"
+                        android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:textAllCaps="false"
+                        android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/groupDownload" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
             <ProgressBar android:id="@+id/downloadProgressBar" style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="10dp"
                 android:max="100" android:progress="0" android:progressTint="#38BDF8" android:progressBackgroundTint="#1E293B" />
@@ -310,6 +332,7 @@ android:layout_width="@dimen/lh_sidebar_width"
                     android:text="PERBAIKI DATA" android:textColor="#FFFFFF" android:textSize="13sp"
                     android:textStyle="bold" android:textAllCaps="false" android:letterSpacing="0.04"
                     android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+            </LinearLayout>
     </LinearLayout>
 
     <LinearLayout

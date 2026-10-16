@@ -131,7 +131,9 @@ public class MainActivity extends AppCompatActivity {
     private final String[] navLabels = new String[7];
     private ValueAnimator sidebarAnim;
     private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls, panelToys;
-    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl, btnRepairData;
+    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl, btnRepairData, btnReadyRepair, btnChangeData;
+    private View groupDownload, cardDataReady;
+    private TextView dataReadyInfo;
     private Button btnFps30, btnFps60, btnFps90, btnFps120;
     private Button btnChat5, btnChat7, btnChat9, btnChat12;
     private Button btnSaveSettings, btnResetSettings, btnRefreshDevices;
@@ -289,6 +291,11 @@ public class MainActivity extends AppCompatActivity {
         startButton = findViewById(R.id.startButton);
 
         dataBadgeStatus = findViewById(R.id.dataBadgeStatus);
+        groupDownload = findViewById(R.id.groupDownload);
+        cardDataReady = findViewById(R.id.cardDataReady);
+        dataReadyInfo = findViewById(R.id.dataReadyInfo);
+        btnReadyRepair = findViewById(R.id.btnReadyRepair);
+        btnChangeData = findViewById(R.id.btnChangeData);
         bugText = findViewById(R.id.bugText);
         downloadProgressBar = findViewById(R.id.downloadProgressBar);
         downloadStatusText = findViewById(R.id.downloadStatusText);
@@ -684,6 +691,8 @@ public class MainActivity extends AppCompatActivity {
         btnDownloadFull.setOnClickListener(v -> beginConfiguredDownload(fullDataUrl, "Data Full"));
         btnCustomUrl.setOnClickListener(v -> showCustomUrlDialog());
         btnRepairData.setOnClickListener(v -> repairGameData());
+        btnReadyRepair.setOnClickListener(v -> repairGameData());
+        btnChangeData.setOnClickListener(v -> setDownloadGroupVisible(true));
 
         switchTab(0);
         startButton.setOnClickListener(v -> {
@@ -1445,6 +1454,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void beginConfiguredDownload(String url, String label) {
+        setDownloadGroupVisible(true);
         if (isHttpUrl(url)) {
             startInAppDataDownload(url, label);
         } else {
@@ -1580,6 +1590,12 @@ public class MainActivity extends AppCompatActivity {
         updateDataStatusLabel(dir);
     }
 
+    private void setDownloadGroupVisible(boolean show) {
+        if (groupDownload == null || cardDataReady == null) return;
+        groupDownload.setVisibility(show ? View.VISIBLE : View.GONE);
+        cardDataReady.setVisibility(show ? View.GONE : View.VISIBLE);
+    }
+
     private void updateDataStatusLabel(String dir) {
         if (bugText == null || dataBadgeStatus == null) return;
         File d = new File(dir);
@@ -1587,12 +1603,15 @@ public class MainActivity extends AppCompatActivity {
             dataBadgeStatus.setText("DATA SIAP (TANPA OBB)");
             dataBadgeStatus.setTextColor(0xFF34D399);
             dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_success);
-            bugText.setText("Lokasi Data Aktif: " + dir);
+            bugText.setText("Lokasi data aktif: " + dir);
+            if (dataReadyInfo != null) dataReadyInfo.setText("Tersimpan di: " + dir + "\nTombol download disembunyikan. Pakai GANTI DATA untuk mengunduh ulang.");
+            setDownloadGroupVisible(false);
         } else {
             dataBadgeStatus.setText("DATA BELUM ADA");
             dataBadgeStatus.setTextColor(0xFFFBBF24);
             dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_warning);
-            bugText.setText("Data GTA belum ditemukan. Klik tombol 'DOWNLOAD DATA LITE / FULL' di bawah atau taruh folder data GTA di /sdcard/GTA/");
+            bugText.setText("Data GTA belum ditemukan. Pilih DATA LITE / FULL di bawah.");
+            setDownloadGroupVisible(true);
         }
     }
 
@@ -2019,6 +2038,24 @@ public class MainActivity extends AppCompatActivity {
         gameLauncher.launch(gameIntent);
     }
 
+    /** Cuplikan crash terbaru dari proses game (game_crash_*.txt) untuk ditampilkan ke user. */
+    private String latestGameCrashExcerpt() {
+        try {
+            File dir = new File(AppLog.logDirPath());
+            File[] list = dir.listFiles((d, n) -> n.startsWith("game_crash_"));
+            if (list == null || list.length == 0) return "(belum ada detail crash)";
+            File newest = list[0];
+            for (File f : list) if (f.lastModified() > newest.lastModified()) newest = f;
+            byte[] buf = new byte[900];
+            try (java.io.FileInputStream in = new java.io.FileInputStream(newest)) {
+                int n = in.read(buf);
+                return n > 0 ? new String(buf, 0, n, "UTF-8") : "(file crash kosong)";
+            }
+        } catch (Exception e) {
+            return "(gagal membaca detail crash)";
+        }
+    }
+
     /** Dipanggil saat activity game selesai. Tanpa penanda keluar normal = crash/FC -> buka ulang otomatis. */
     private void onGameFinished() {
         File marker = new File(getFilesDir(), GAME_CLEAN_EXIT);
@@ -2040,7 +2077,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             new AlertDialog.Builder(this, R.style.LHDialogTheme)
                     .setTitle("Game berulang kali crash")
-                    .setMessage("Game berhenti tak terduga beberapa kali. Cek log di:\n" + AppLog.logDirPath())
+                    .setMessage("Game berhenti tak terduga beberapa kali.\n\n" + latestGameCrashExcerpt() + "\n\nLog: " + AppLog.logDirPath())
                     .setPositiveButton("OK", null)
                     .show();
         }

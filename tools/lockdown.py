@@ -988,9 +988,14 @@ def patch_launcher_dashboard_and_downloader(repo: Path, args):
 
     # Update Adaptive Icon XMLs
     (res_root / "drawable" / "ic_launcher_background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFECEDED"/>
+</shape>
+""", encoding="utf-8")
+    (res_root / "drawable" / "ic_launcher_foreground.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/lh_icon_art"
-    android:gravity="fill" />
+    android:src="@drawable/lh_icon_fg"
+    android:gravity="center" />
 """, encoding="utf-8")
 
     (res_root / "drawable" / "background.xml").write_text("""<?xml version="1.0" encoding="utf-8"?>
@@ -2724,8 +2729,8 @@ android {{
         applicationId "{args.package_id}"
         minSdk 24
         targetSdk 34
-        versionCode 210
-        versionName "2.1.0"
+        versionCode 220
+        versionName "2.2.0"
 
         multiDexEnabled true
 

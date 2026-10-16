@@ -118,7 +118,10 @@ final class GameDataFixer {
             String target = name.substring(0, idx) + ".unc." + name.substring(idx + ".rename.".length());
             File dst = new File(f.getParentFile(), target);
             try {
-                if (dst.exists() && !dst.delete()) continue;
+                if (dst.exists()) {
+                    AppLog.w("DATA", "texdb: " + f.getParentFile().getName() + "/" + name + " dilewati, " + target + " sudah ada");
+                    continue;
+                }
                 if (f.renameTo(dst)) {
                     changed++;
                     AppLog.i("DATA", "texdb: " + f.getParentFile().getName() + "/" + name + " -> " + target);
