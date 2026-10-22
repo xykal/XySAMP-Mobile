@@ -522,7 +522,7 @@ public class MainActivity extends AppCompatActivity {
         add(custom, customUrlInput, 10);
         add(custom, ghostButton("DOWNLOAD DARI URL", v -> {
             String u = customUrlInput.getText().toString().trim();
-            if (!u.startsWith("https://") && !u.startsWith("http://")) {
+            if (!u.startsWith("https://")) {
                 Toast.makeText(this, "URL harus diawali https://", Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -1232,6 +1232,9 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 File outFile = new File(targetRoot, rawName);
+                // Defense-in-depth: tolak entry yang secara kanonikal keluar dari targetRoot (Zip Slip)
+                String canonicalTarget = targetRoot.getCanonicalPath() + File.separator;
+                if (!outFile.getCanonicalPath().startsWith(canonicalTarget)) continue;
                 if (entry.isDirectory()) {
                     outFile.mkdirs();
                 } else {
