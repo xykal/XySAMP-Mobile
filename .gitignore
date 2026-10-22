@@ -15,3 +15,7 @@
 local.properties
 /app/src/main/cpp/samp/lockdown.h
 /dist/
+
+# Environment secrets — jangan pernah commit
+.env
+*.env
