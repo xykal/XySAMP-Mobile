@@ -1420,9 +1420,9 @@ public class MainActivity extends AppCompatActivity {
                     String fullUrl = full == null ? "" : full.optString("url", "").trim();
                     JSONArray banners = obj.optJSONArray("banners");
                     JSONArray news = obj.optJSONArray("news");
-                    if (isHttpUrl(liteUrl)) liteDataUrl = liteUrl;
+                    if (isHttpsUrl(liteUrl)) liteDataUrl = liteUrl;
                     else liteDataUrl = "";
-                    if (isHttpUrl(fullUrl)) fullDataUrl = fullUrl;
+                    if (isHttpsUrl(fullUrl)) fullDataUrl = fullUrl;
                     else fullDataUrl = "";
                     remoteBanners = banners == null ? new JSONArray() : banners;
                     remoteNews = news == null ? new JSONArray() : news;
@@ -1444,15 +1444,15 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private boolean isHttpUrl(String value) {
+    private boolean isHttpsUrl(String value) {
         if (value == null) return false;
         String lower = value.trim().toLowerCase(Locale.ROOT);
-        return lower.startsWith("https://") || lower.startsWith("http://");
+        return lower.startsWith("https://");
     }
 
     private void beginConfiguredDownload(String url, String label) {
         setDownloadGroupVisible(true);
-        if (isHttpUrl(url)) {
+        if (isHttpsUrl(url)) {
             startInAppDataDownload(url, label);
         } else {
             Toast.makeText(this, label + " belum memiliki URL publik. Masukkan URL ZIP yang sudah diunggah.", Toast.LENGTH_LONG).show();
@@ -1473,8 +1473,8 @@ public class MainActivity extends AppCompatActivity {
                 .setView(input)
                 .setPositiveButton("Download & Ekstrak", (d, w) -> {
                     String url = input.getText().toString().trim();
-                    if (!isHttpUrl(url)) {
-                        Toast.makeText(this, "URL harus diawali http:// atau https://", Toast.LENGTH_LONG).show();
+                    if (!isHttpsUrl(url)) {
+                        Toast.makeText(this, "URL harus diawali https://", Toast.LENGTH_LONG).show();
                         return;
                     }
                     prefs.edit().putString(KEY_CUSTOM_ZIP_URL, url).apply();
@@ -1498,7 +1498,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startInAppDataDownload(final String zipUrl, final String label) {
-        if (!isHttpUrl(zipUrl)) {
+        if (!isHttpsUrl(zipUrl)) {
             Toast.makeText(this, "URL unduhan belum diatur. Masukkan URL ZIP publik terlebih dahulu.", Toast.LENGTH_LONG).show();
             showCustomUrlDialog();
             return;

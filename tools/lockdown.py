@@ -2082,8 +2082,8 @@ public class MainActivity extends AppCompatActivity {{
                 .setView(input)
                 .setPositiveButton("Download & Ekstrak", (d, w) -> {{
                     String url = input.getText().toString().trim();
-                    if (!url.startsWith("http")) {{
-                        Toast.makeText(this, "URL harus diawali http:// atau https://", Toast.LENGTH_LONG).show();
+                    if (!url.startsWith("https://")) {{
+                        Toast.makeText(this, "URL harus diawali https://", Toast.LENGTH_LONG).show();
                         return;
                     }}
                     prefs.edit().putString(KEY_CUSTOM_ZIP_URL, url).apply();
@@ -2107,6 +2107,11 @@ public class MainActivity extends AppCompatActivity {{
     }}
 
     private void startInAppDataDownload(final String zipUrl, final String label) {{
+        // Chokepoint keamanan: unduhan data wajib https (blokir MITM file yang langsung diekstrak)
+        if (zipUrl == null || !zipUrl.trim().regionMatches(true, 0, "https://", 0, 8)) {{
+            Toast.makeText(this, "URL unduhan harus https://", Toast.LENGTH_LONG).show();
+            return;
+        }}
         if (isDownloading) {{
             Toast.makeText(this, "Unduhan sedang berjalan, harap tunggu...", Toast.LENGTH_SHORT).show();
             return;
