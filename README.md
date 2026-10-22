@@ -24,7 +24,7 @@ Launcher menulis host/port server terpilih ke `SAMP/settings.ini`. Handshake pri
 
 ## Data game
 
-Aplikasi mendukung download ZIP dan ekstraksi ke folder data tanpa OBB. Isi `data_lite.url` dan `data_full.url` saat file ZIP sudah diunggah ke URL publik; kedua nilai saat ini sengaja kosong agar launcher tidak mengarahkan pengguna ke release yang belum memiliki arsip data.
+Aplikasi mendukung download ZIP dan ekstraksi ke folder data tanpa OBB. Isi `data_lite.url` dan `data_full.url` di [`data-config.json`](data-config.json) dengan link ZIP langsung (https); nilai saat ini mengarah ke arsip data di Google Drive. URL kosong = tombol download nonaktif di launcher.
 
 ## Build resmi
 
