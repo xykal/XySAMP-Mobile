@@ -35,6 +35,7 @@ final class GameDataFixer {
         String prefix = detectStripPrefix(zipFile);
         AppLog.i("DATA", "Ekstrak " + zipFile.getName() + " | prefix dilepas: '" + prefix + "'");
         int written = 0;
+        final String rootPath = root.getCanonicalPath() + File.separator;
         try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile), 65536))) {
             ZipEntry entry;
             byte[] buffer = new byte[65536];
@@ -49,6 +50,8 @@ final class GameDataFixer {
                 if (name.isEmpty()) continue;
 
                 File outFile = new File(root, name);
+                // Zip-Slip guard: target wajib tetap berada di dalam root ekstraksi
+                if (!outFile.getCanonicalPath().startsWith(rootPath)) continue;
                 if (entry.isDirectory()) {
                     outFile.mkdirs();
                 } else {
