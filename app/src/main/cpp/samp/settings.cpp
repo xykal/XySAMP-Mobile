@@ -1,10 +1,10 @@
-#include <cstdio>
 #include "main.h"
 #include "settings.h"
 #include "lockdown.h"
 #include "vendor/inih/cpp/INIReader.h"
 #include "vendor/SimpleIni/SimpleIni.h"
 #include "game/game.h"
+#include <cstdio>
 #include <sys/stat.h>
 
 extern CGame *pGame;

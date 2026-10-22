@@ -1,15 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Lombok Holiday v3.1 UI: sidebar kiri (landscape), konten kanan. Semua ukuran dp/sp. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:background="@drawable/background"
-    android:baselineAligned="false">
+    android:background="#060A14">
+
+    <!-- Background foto senja + scrim datar (tanpa gradient) agar konten tetap terbaca -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/lh_bg" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#73060B16" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
 
     <!-- SIDEBAR -->
-    <LinearLayout
-        android:layout_width="@dimen/lh_sidebar_width"
+    <com.samp.mobile.launcher.SidebarLayout
+        android:id="@+id/sidebar"
+android:layout_width="@dimen/lh_sidebar_width"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="@drawable/bg_sidebar"
@@ -17,6 +34,17 @@
         android:paddingEnd="14dp"
         android:paddingTop="18dp"
         android:paddingBottom="16dp">
+        <ImageButton
+            android:id="@+id/btnSidebarToggle"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="end"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_chip"
+            android:contentDescription="Perkecil atau besarkan sidebar"
+            android:padding="9dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_chevron_left" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -28,8 +56,9 @@
                 android:id="@+id/logoImage"
                 android:layout_width="46dp"
                 android:layout_height="46dp"
-                android:background="@drawable/bg_chip"
-                android:padding="5dp"
+                android:background="@drawable/bg_logo_badge"
+                android:clipToOutline="true"
+                android:padding="3dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/logo" />
 
@@ -76,37 +105,43 @@
             android:layout_marginTop="0dp" android:background="@drawable/nav_item_selected"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="⌂  Beranda" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Beranda" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="bold" android:textAllCaps="false" />
         <Button android:id="@+id/tabBtnServers" android:layout_width="match_parent" android:layout_height="46dp"
             android:layout_marginTop="6dp" android:background="@drawable/nav_item"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="◎  Daftar Server" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Daftar Server" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="normal" android:textAllCaps="false" />
         <Button android:id="@+id/tabBtnNews" android:layout_width="match_parent" android:layout_height="46dp"
             android:layout_marginTop="6dp" android:background="@drawable/nav_item"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="◷  Berita &amp; Update" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Berita &amp; Update" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="normal" android:textAllCaps="false" />
         <Button android:id="@+id/tabBtnMods" android:layout_width="match_parent" android:layout_height="46dp"
             android:layout_marginTop="6dp" android:background="@drawable/nav_item"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="◈  Mod Center" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Mod Center" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="normal" android:textAllCaps="false" />
         <Button android:id="@+id/tabBtnSettings" android:layout_width="match_parent" android:layout_height="46dp"
             android:layout_marginTop="6dp" android:background="@drawable/nav_item"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="⚙  Pengaturan" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Pengaturan" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="normal" android:textAllCaps="false" />
         <Button android:id="@+id/tabBtnControls" android:layout_width="match_parent" android:layout_height="46dp"
             android:layout_marginTop="6dp" android:background="@drawable/nav_item"
             android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
             android:minHeight="0dp" android:minWidth="0dp"
-            android:text="⌗  Kontrol" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:text="Kontrol" android:textColor="#F1F5F9" android:textSize="14sp"
+            android:textStyle="normal" android:textAllCaps="false" />
+        <Button android:id="@+id/tabBtnToys" android:layout_width="match_parent" android:layout_height="46dp"
+            android:layout_marginTop="6dp" android:background="@drawable/nav_item"
+            android:gravity="start|center_vertical" android:paddingStart="14dp" android:paddingEnd="10dp"
+            android:minHeight="0dp" android:minWidth="0dp"
+            android:text="Toys" android:textColor="#F1F5F9" android:textSize="14sp"
             android:textStyle="normal" android:textAllCaps="false" />
         <View
             android:layout_width="match_parent"
@@ -121,7 +156,7 @@
             android:text="Lombok Holiday  •  v2.1.0"
             android:textColor="#64748B"
             android:textSize="11sp" />
-    </LinearLayout>
+    </com.samp.mobile.launcher.SidebarLayout>
 
     <!-- KONTEN KANAN -->
     <LinearLayout
@@ -174,6 +209,7 @@
             android:orientation="vertical" android:paddingStart="@dimen/lh_content_pad" android:paddingEnd="@dimen/lh_content_pad" android:paddingTop="12dp" android:paddingBottom="24dp">
             <ViewFlipper
                 android:id="@+id/bannerFlipper"
+                android:clipToOutline="true"
                 android:layout_width="match_parent"
                 android:layout_height="170dp"
                 android:background="@drawable/bg_banner"
@@ -200,6 +236,7 @@
 <TextView android:id="@+id/homeServerText" android:layout_width="wrap_content" android:layout_height="wrap_content"
                     android:layout_marginTop="0dp" android:text="Lombok Holiday Roleplay" android:textColor="#F1F5F9"
                     android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:id="@+id/homeServerStatus" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="○  Memeriksa server..." android:textColor="#94A3B8" android:textSize="12sp" android:textStyle="bold" />
 <Button android:id="@+id/btnOpenServers" android:layout_width="match_parent" android:layout_height="42dp"
                     android:layout_marginTop="12dp" android:background="@drawable/bg_button_muted"
                     android:text="KELOLA SERVER" android:textColor="#FFFFFF" android:textSize="13sp"
@@ -244,6 +281,28 @@
                 android:textColor="#34D399" android:textSize="11sp" android:textStyle="bold" />
             <TextView android:id="@+id/bugText" android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_marginTop="8dp" android:text="Mendeteksi direktori data GTA..." android:textColor="#94A3B8" android:textSize="12sp" />
+            <LinearLayout android:id="@+id/cardDataReady" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:visibility="gone" android:orientation="vertical" android:layout_marginTop="10dp"
+                android:background="@drawable/bg_banner" android:padding="14dp">
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="DATA SIAP DIMAINKAN" android:textColor="#34D399" android:textSize="12sp"
+                    android:textStyle="bold" android:letterSpacing="0.08" />
+                <TextView android:id="@+id/dataReadyInfo" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp" android:text="" android:textColor="#CBD5E1" android:textSize="12sp" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:orientation="horizontal">
+                    <Button android:id="@+id/btnReadyRepair" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp"
+                        android:background="@drawable/bg_button_blue" android:text="PERBAIKI DATA" android:textColor="#FFFFFF"
+                        android:textSize="12sp" android:textStyle="bold" android:textAllCaps="false"
+                        android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+                    <Button android:id="@+id/btnChangeData" android:layout_width="0dp" android:layout_weight="1" android:layout_height="44dp"
+                        android:layout_marginStart="8dp" android:background="@drawable/bg_button_muted" android:text="GANTI DATA"
+                        android:textColor="#FFFFFF" android:textSize="12sp" android:textStyle="bold" android:textAllCaps="false"
+                        android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:id="@+id/groupDownload" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical">
             <ProgressBar android:id="@+id/downloadProgressBar" style="?android:attr/progressBarStyleHorizontal"
                 android:layout_width="match_parent" android:layout_height="8dp" android:layout_marginTop="10dp"
                 android:max="100" android:progress="0" android:progressTint="#38BDF8" android:progressBackgroundTint="#1E293B" />
@@ -268,6 +327,12 @@
                     android:text="URL ZIP CUSTOM" android:textColor="#FFFFFF" android:textSize="13sp"
                     android:textStyle="bold" android:textAllCaps="false" android:letterSpacing="0.04"
                     android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+<Button android:id="@+id/btnRepairData" android:layout_width="match_parent" android:layout_height="44dp"
+                    android:layout_marginTop="8dp" android:background="@drawable/bg_button_idle"
+                    android:text="PERBAIKI DATA" android:textColor="#FFFFFF" android:textSize="13sp"
+                    android:textStyle="bold" android:textAllCaps="false" android:letterSpacing="0.04"
+                    android:minHeight="0dp" android:minWidth="0dp" android:paddingStart="8dp" android:paddingEnd="8dp" />
+            </LinearLayout>
     </LinearLayout>
 
     <LinearLayout
@@ -333,6 +398,430 @@
 
         </LinearLayout>
     </ScrollView>
+    <ScrollView android:id="@+id/panelToys" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:fillViewport="true" android:scrollbars="none" android:visibility="gone">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:paddingStart="@dimen/lh_content_pad" android:paddingEnd="@dimen/lh_content_pad"
+        android:paddingTop="12dp" android:paddingBottom="24dp">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="TOYS SERVER" android:textColor="#38BDF8" android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.14" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp"
+        android:text="Aksesoris dari server (topi, tas, dll). Matikan slot yang tidak ingin tampil, atau atur bone, posisi, dan skala per slot." android:textColor="#94A3B8" android:textSize="12sp" />
+    <Button android:id="@+id/btnToysReset" android:layout_width="match_parent" android:layout_height="44dp"
+        android:layout_marginTop="12dp" android:background="@drawable/bg_button_muted"
+        android:text="Reset semua toys" android:textColor="#F1F5F9" android:textSize="14sp" android:textAllCaps="false" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 0" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy0" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 1" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy1" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 2" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy2" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 3" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy3" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 4" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy4" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 5" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy5" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 6" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy6" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 7" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy7" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone7" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone7" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX7" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX7" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY7" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY7" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ7" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ7" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale7" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale7" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 8" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy8" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone8" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone8" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX8" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX8" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY8" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY8" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ8" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ8" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale8" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale8" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Slot 9" android:textColor="#F1F5F9" android:textSize="15sp" android:textStyle="bold" />
+            <CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                android:id="@+id/cbToy9" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+        <TextView android:id="@+id/lblToyBone9" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Bone" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyBone9" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="18" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyX9" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset X" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyX9" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyY9" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Y" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyY9" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyZ9" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Offset Z" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyZ9" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="100" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+        <TextView android:id="@+id/lblToyScale9" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="Skala" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekToyScale9" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="150" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+    </LinearLayout>
+</ScrollView>
     <ScrollView android:id="@+id/panelSettings" android:layout_width="match_parent" android:layout_height="match_parent"
         android:fillViewport="true" android:scrollbars="none" android:visibility="gone">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -417,7 +906,56 @@
                 </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout
+        <LinearLayout
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginBottom="14dp" android:orientation="vertical"
+        android:background="@drawable/bg_card" android:padding="16dp">
+<TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginBottom="2dp" android:text="CHAT &amp; HUD" android:textColor="#38BDF8"
+                    android:textSize="11sp" android:textStyle="bold" android:letterSpacing="0.14" />
+<TextView android:id="@+id/lblChatX" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekChatX" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="1600" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+<TextView android:id="@+id/lblChatY" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekChatY" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="900" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+<TextView android:id="@+id/lblChatW" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekChatW" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="1500" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+<TextView android:id="@+id/lblChatH" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekChatH" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="400" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+<TextView android:id="@+id/lblFontSize" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekFontSize" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="22" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp"
+                    android:id="@+id/cbChatTimestamp" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" android:minHeight="40dp" android:text="Timestamp di chat [HH:MM]"
+                    android:textColor="#E2E8F0" android:textSize="14sp" />
+<TextView android:id="@+id/lblScrollSens" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekScrollSens" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="28" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
+    </LinearLayout>
+
+<LinearLayout
         android:layout_width="match_parent" android:layout_height="wrap_content"
         android:layout_marginBottom="14dp" android:orientation="vertical"
         android:background="@drawable/bg_card" android:padding="16dp">
@@ -425,37 +963,37 @@
                     android:layout_marginTop="0dp" android:layout_marginBottom="6dp"
                     android:text="FITUR GAME" android:textColor="#38BDF8" android:textSize="11sp"
                     android:textStyle="bold" android:letterSpacing="0.14" />
-<CheckBox android:id="@+id/cbVoiceChat" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbVoiceChat" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Voice Chat In-Game (Mic)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbFpsCounter" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbFpsCounter" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Tampilkan FPS Counter"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbFirstPerson" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbFirstPerson" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Mode Kamera First-Person (FPP)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbCutout" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbCutout" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Full Screen (Layar Poni/Cutout)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbAndroidKeyboard" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbAndroidKeyboard" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Gunakan Keyboard Sistem Android"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbHpArmourText" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbHpArmourText" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Tampilkan Angka HP &amp; Armour"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbOutfitGuns" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbOutfitGuns" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Senjata Terlihat di Badan (Outfit)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbRadarRect" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbRadarRect" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Bentuk Radar Kotak (Rect Radar)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbPcMoney" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbPcMoney" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Format Uang Gaya PC ($00000000)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbSkyBox" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbSkyBox" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Efek Langit HD (SkyBox)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbSnow" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbSnow" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Efek Salju (Winter Snow)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
     </LinearLayout>
@@ -488,7 +1026,7 @@
                     android:text="MOD CENTER" android:textColor="#38BDF8" android:textSize="11sp"
                     android:textStyle="bold" android:letterSpacing="0.14" />
             <TextView android:id="@+id/modRuntimeStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="MonetLoader opsional untuk script Lua. CLEO hanya menerima file; runtime CLEO belum terpasang." android:textColor="#94A3B8" android:textSize="13sp" />
-<CheckBox android:id="@+id/cbMonetLoaderEnabled" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbMonetLoaderEnabled" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Aktifkan MonetLoader saat memulai game (eksperimental)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
 <Button android:id="@+id/btnImportLua" android:layout_width="match_parent" android:layout_height="46dp"
@@ -533,12 +1071,18 @@
                     android:text="KONTROL PERANGKAT" android:textColor="#38BDF8" android:textSize="11sp"
                     android:textStyle="bold" android:letterSpacing="0.14" />
             <TextView android:id="@+id/peripheralStatusText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:padding="12dp" android:background="@drawable/bg_button_idle" android:text="Memindai perangkat USB OTG / Bluetooth..." android:textColor="#E2E8F0" android:textSize="13sp" />
-<CheckBox android:id="@+id/cbEnableKeyboardMouse" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbEnableKeyboardMouse" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Aktifkan Kontrol Keyboard Fisik (WASD + Chat T/F6) &amp; Mouse (Klik Kiri/Kanan)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
-<CheckBox android:id="@+id/cbEnableGamepad" android:layout_width="match_parent" android:layout_height="wrap_content"
+<CheckBox android:button="@drawable/lh_switch" android:paddingStart="10dp" android:id="@+id/cbEnableGamepad" android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" android:minHeight="40dp" android:text="Aktifkan Kontrol Gamepad / Joystick (PS4, PS5, Xbox, MOGA, USB/BT Pad)"
                     android:textColor="#E2E8F0" android:textSize="14sp" android:buttonTint="#38BDF8" />
+<TextView android:id="@+id/lblMouseSens" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp" android:text="-" android:textColor="#E2E8F0" android:textSize="13sp" />
+<SeekBar android:id="@+id/seekMouseSens" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:max="28" android:minHeight="34dp" android:splitTrack="false"
+                    android:progressDrawable="@drawable/lh_seek_progress" android:thumb="@drawable/lh_seek_thumb"
+                    android:thumbOffset="11dp" />
 <Button android:id="@+id/btnRefreshDevices" android:layout_width="match_parent" android:layout_height="46dp"
                     android:layout_marginTop="10dp" android:background="@drawable/bg_button_blue"
                     android:text="SCAN ULANG PERANGKAT" android:textColor="#FFFFFF" android:textSize="13sp"
@@ -565,3 +1109,4 @@
         </FrameLayout>
     </LinearLayout>
 </LinearLayout>
+</FrameLayout>

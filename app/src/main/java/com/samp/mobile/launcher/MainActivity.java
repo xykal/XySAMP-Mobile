@@ -1,6 +1,7 @@
 package com.samp.mobile.launcher;
 
 import android.app.Activity;
+import android.animation.ValueAnimator;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -9,37 +10,45 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.pm.SigningInfo;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.provider.OpenableColumns;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.InputDevice;
-import android.view.MotionEvent;
-import android.view.View;
 import android.view.ViewGroup;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.EditText;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.SeekBar;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.ViewFlipper;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.content.ContextCompat;
 
+import com.samp.mobile.R;
 import com.samp.mobile.game.SAMP;
+import com.wardrumstudios.utils.WarGamepad;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -47,13 +56,15 @@ import org.json.JSONObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -65,1246 +76,1539 @@ import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * Lombok Holiday — Launcher v3.0.0
- * Dibangkitkan otomatis oleh tools/lockdown.py (placeholder diganti saat build).
- */
 public class MainActivity extends AppCompatActivity {
-
-    // ===================== KONFIGURASI (inject saat build) =====================
     private static final String PREFS_NAME = "lombok_holiday_prefs";
-    private static final String MOD_PREFS = "configlauncher";
     private static final String KEY_NICKNAME = "player_nickname";
     private static final String KEY_PASSWORD = "server_password";
     private static final String KEY_FPS = "fps_limit";
     private static final String KEY_CHAT_LINES = "chat_lines";
-    private static final String KEY_FONT_SIZE = "font_size";
     private static final String KEY_CUSTOM_ZIP_URL = "custom_zip_url";
-    private static final String KEY_CUSTOM_SERVERS = "custom_servers";
-    private static final String KEY_REMOTE_CACHE = "remote_config_cache";
-    private static final String KEY_MLOADER = "MLOADER";
-    private static final String KEY_CLEO = "CLEO";
+    private static final String KEY_CUSTOM_SERVERS = "custom_servers_json";
+    private static final String KEY_SELECTED_SERVER = "selected_server_key";
+    private static final String KEY_MONETLOADER_ENABLED = "monetloader_enabled";
     private static final String DEFAULT_NICK = "Warga_Lombok";
-    private static final int LOCKED_PORT = 7777;
-    private static final String SERVER_TITLE = "Lombok Holiday Roleplay";
+    private static final String DEFAULT_SERVER_HOST = "play.lombokholiday.my.id";
+    private static final int DEFAULT_SERVER_PORT = 7777;
     private static final String EXPECTED_CERT_SHA256 = "93fa85c2c42e17125bb66adbeab49fa3ccfcee646429aeb5078bdc322ea9341c";
     private static final String REMOTE_CONFIG_URL = "https://raw.githubusercontent.com/xykal/XySAMP-Mobile/main/data-config.json";
-    private static final String PACKAGE_ID = "com.lombokholiday.mobile";
-    private static final String APP_VERSION = "3.0.0";
-    /** Koneksi ke server lain (selain server resmi). Diaktifkan hanya bila admin mengizinkan. */
-    private static final boolean MULTI_SERVER_ENABLED = false;
+    private static final String APP_VERSION = "2.1.0";
+    private static final String MONETLOADER_PROFILE = "{\"gtasa_name\":\"libGTASA.so\",\"compat_scripts\":[],\"profile_name\":\"Lombok Holiday GTA hooks only\",\"samp_name\":\"\",\"receiveignorerpc_pattern\":\"\",\"cnetgame_ctor_pattern\":\"\",\"rakclientinterface_netgame_offset\":0,\"use_samp_touch_workaround\":false,\"nveventinsertnewest_offset\":0}";
 
-    // ===================== WARNA (Modern Cyber Blue-Purple) =====================
-    private static final int C_BG = 0xFF0B1020;
-    private static final int C_PANEL = 0xFF101829;
-    private static final int C_CARD = 0xFF162038;
-    private static final int C_INPUT = 0xFF1E2A47;
-    private static final int C_TEXT = 0xFFE2E8F0;
-    private static final int C_MUTED = 0xFF94A3B8;
-    private static final int C_A = 0xFF38BDF8;
-    private static final int C_B = 0xFFA78BFA;
-    private static final int C_OK = 0xFF34D399;
-    private static final int C_WARN = 0xFFFBBF24;
-    private static final int MP = ViewGroup.LayoutParams.MATCH_PARENT;
-    private static final int WP = ViewGroup.LayoutParams.WRAP_CONTENT;
+    private String liteDataUrl = "";
+    private String fullDataUrl = "";
+    private JSONArray remoteBanners = new JSONArray();
+    private JSONArray remoteNews = new JSONArray();
+    private final List<ServerEntry> servers = new ArrayList<>();
+    private ServerEntry officialServer;
+    private String selectedServerKey = "";
+    private String pendingImportTarget = "";
+    private boolean loadingSavedSettings = false;
 
-    private static final int[] FPS_VALUES = {30, 60, 90, 120};
-    private static final int[] CHAT_VALUES = {5, 7, 9, 12};
-    private static final int[] FONT_VALUES = {24, 30, 36};
-    private static final String[] PAGE_TITLES = {"Beranda", "Server", "Data GTA", "Pengaturan", "Kontrol", "Tentang"};
-    private static final String[] PAGE_ICONS = {"\uD83C\uDFE0", "\uD83C\uDF10", "\uD83D\uDCE6", "\u2699\uFE0F", "\uD83C\uDFAE", "\u2139\uFE0F"};
-
-    // ===================== STATE =====================
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isDownloading = false;
-    private SharedPreferences prefs;
-    private SharedPreferences modPrefs;
+    private String lastDownloadState = "";
 
-    private FrameLayout pageContainer;
-    private LinearLayout sidebar;
-    private View scrim;
-    private TextView topTitle;
-    private boolean sidebarOpen = false;
-    private final View[] pages = new View[PAGE_TITLES.length];
-    private final TextView[] navItems = new TextView[PAGE_TITLES.length];
-
-    // Remote config (banner, news, data, server)
-    private final List<String[]> banners = new ArrayList<>();   // {badge, title, subtitle, accentHex}
-    private final List<String[]> newsItems = new ArrayList<>(); // {tag, date, title, body}
-    private final List<String[]> remoteServers = new ArrayList<>(); // {name, desc, status}
-    private String liteDataUrl = "", fullDataUrl = "";
-    private String liteName = "Data Lite", fullName = "Data Full";
-    private String liteSize = "", fullSize = "";
-
-    // Home
-    private FrameLayout bannerHost;
-    private LinearLayout bannerDots;
-    private TextView bannerBadge, bannerTitle, bannerSubtitle;
-    private int bannerIndex = 0;
-    private float touchX0 = 0f;
-    private final Runnable bannerTick = new Runnable() {
-        @Override
-        public void run() {
-            showBanner(bannerIndex + 1);
-            handler.postDelayed(this, 4500);
+    private final Runnable bannerTicker = new Runnable() {
+        @Override public void run() {
+            if (bannerFlipper == null || bannerFlipper.getChildCount() < 2) return;
+            bannerFlipper.showNext();
+            updateBannerIndicator();
+            handler.postDelayed(this, 6000L);
         }
     };
-    private LinearLayout newsContainer;
-    private TextView homeServerLine;
+
+    // UI Elements
+    private Button tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys;
+    private Button btnToysReset;
+    private SidebarLayout sidebarLayout;
+    private ImageButton btnSidebarToggle;
+    private SeekBar seekChatX, seekChatY, seekChatW, seekChatH, seekFontSize;
+    private TextView lblChatX, lblChatY, lblChatW, lblChatH, lblFontSize, lblScrollSens;
+    private SeekBar seekScrollSens;
+    private CheckBox cbChatTimestamp;
+    private boolean sidebarExpanded = true;
+    private final String[] navLabels = new String[7];
+    private ValueAnimator sidebarAnim;
+    private ScrollView panelHome, panelServers, panelNews, panelMods, panelSettings, panelControls, panelToys;
+    private Button startButton, btnDownloadLite, btnDownloadFull, btnCustomUrl, btnRepairData, btnReadyRepair, btnChangeData;
+    private View groupDownload, cardDataReady;
+    private TextView dataReadyInfo;
+    private Button btnFps30, btnFps60, btnFps90, btnFps120;
+    private Button btnChat5, btnChat7, btnChat9, btnChat12;
+    private Button btnSaveSettings, btnResetSettings, btnRefreshDevices;
+    private Button btnAddServer, btnOpenServers, btnOpenNews, btnImportLua, btnImportCleo, btnClearTemp;
+    private Button btnProfileBattery, btnProfileBalanced, btnProfilePerformance;
     private EditText nicknameInput, passwordInput;
-
-    // Server
-    private LinearLayout serverListContainer;
-
-    // Data
-    private TextView dataBadge, dataPathText, downloadStatusText, liteDescText, fullDescText;
-    private TextView btnDownloadLite, btnDownloadFull;
-    private EditText customUrlInput;
+    private TextView abiBadgeText, dataBadgeStatus, bugText, downloadStatusText, peripheralStatusText;
+    private TextView homeServerText, homeServerStatus, bannerIndicator, modRuntimeStatus, modStoragePath;
+    private ViewFlipper bannerFlipper;
+    private LinearLayout serverListContainer, newsContainer, homeNewsContainer;
     private ProgressBar downloadProgressBar;
 
-    // Settings
-    private int selectedFps = 60, selectedChatLines = 7, selectedFont = 30;
-    private final List<TextView> fpsChips = new ArrayList<>();
-    private final List<TextView> chatChips = new ArrayList<>();
-    private final List<TextView> fontChips = new ArrayList<>();
-    private SwitchCompat swVoice, swFpsCounter, swFirstPerson, swCutout, swAndroidKb, swHpArmour;
-    private SwitchCompat swOutfitGuns, swRadarRect, swPcMoney, swSkyBox, swSnow, swBooster;
-    private SwitchCompat swMLoader, swCleo;
+    private CheckBox cbVoiceChat, cbFpsCounter, cbFirstPerson, cbCutout, cbAndroidKeyboard;
+    private CheckBox cbHpArmourText, cbOutfitGuns, cbRadarRect, cbPcMoney, cbSkyBox, cbSnow;
+    private CheckBox cbEnableKeyboardMouse, cbEnableGamepad, cbMonetLoaderEnabled;
+    private SeekBar seekMouseSens;
+    private ActivityResultLauncher<Intent> gameLauncher;
+    private Intent lastGameIntent;
+    private static final String GAME_CLEAN_EXIT = "game_clean_exit";
+    private TextView lblMouseSens;
 
-    // Controls
-    private TextView peripheralStatusText;
+    private final ActivityResultLauncher<String[]> importFileLauncher =
+            registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
+                if (uri != null) importSelectedFile(uri);
+            });
 
-    // About
-    private TextView aboutSignatureText;
+    private int selectedFps = 60;
+    private int selectedChatLines = 7;
+    private boolean storagePermissionGranted = false;
 
-    // ===================== LIFECYCLE =====================
+    private final ActivityResultLauncher<String[]> requestStoragePermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), permissions -> {
+                boolean allGranted = true;
+                for (Boolean granted : permissions.values()) {
+                    if (!granted) {
+                        allGranted = false;
+                        break;
+                    }
+                }
+                if (allGranted) {
+                    storagePermissionGranted = true;
+                    onPermissionReady();
+                } else {
+                    storagePermissionGranted = true; // App-specific external files dir tetap bisa diakses tanpa izin di Android 10+
+                    onPermissionReady();
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> manageStorageLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                storagePermissionGranted = true;
+                onPermissionReady();
+            });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppLog.init(this);
+        gameLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                r -> onGameFinished());
+        // Anti force close: beri tahu user jika sesi sebelumnya berhenti tak terduga.
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (AppLog.takeCrashNotice()) showCrashNotice();
+        }, 700);
+        AppLog.i("APP", "onCreate launcher v" + APP_VERSION);
         try {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-            prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-            modPrefs = getSharedPreferences(MOD_PREFS, MODE_PRIVATE);
-            initDefaultContent();
-
+            setFullScreenMode();
+            setContentView(R.layout.main_activity);
+            initViews();
             if (!verifyOfficialSignature()) {
                 markTampered(true);
                 Toast.makeText(this, "PERINGATAN: APK telah dimodifikasi / bukan rilis resmi!", Toast.LENGTH_LONG).show();
                 finish();
                 return;
+            } else {
+                markTampered(false);
             }
-            markTampered(false);
-
-            buildUi();
-            loadSavedSettings();
-            showPage(0);
-            requestStorageIfNeeded();
+            setupTabsAndListeners();
+            loadServerList();
+            refreshServerList();
+            renderBanners(null);
+            renderNews(null);
+            refreshModInfo();
+            checkAndRequestStoragePermission();
             onPermissionReady();
-            loadCachedRemoteConfig();
-            fetchRemoteConfig();
+            fetchRemoteDataConfig();
             refreshPeripheralsStatus();
+            resumePendingDownloadIfAny();
         } catch (Exception e) {
             finish();
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        handler.removeCallbacks(bannerTick);
-        handler.postDelayed(bannerTick, 4500);
-        if (dataBadge != null) updateDataStatusLabel(resolveGameDataDir(this));
-        refreshPeripheralsStatus();
-    }
+    private void initViews() {
+        tabBtnHome = findViewById(R.id.tabBtnHome);
+        sidebarLayout = findViewById(R.id.sidebar);
+        btnSidebarToggle = findViewById(R.id.btnSidebarToggle);
+        seekChatX = findViewById(R.id.seekChatX);
+        seekChatY = findViewById(R.id.seekChatY);
+        seekChatW = findViewById(R.id.seekChatW);
+        seekChatH = findViewById(R.id.seekChatH);
+        seekFontSize = findViewById(R.id.seekFontSize);
+        lblChatX = findViewById(R.id.lblChatX);
+        lblChatY = findViewById(R.id.lblChatY);
+        lblChatW = findViewById(R.id.lblChatW);
+        lblChatH = findViewById(R.id.lblChatH);
+        lblFontSize = findViewById(R.id.lblFontSize);
+        cbChatTimestamp = findViewById(R.id.cbChatTimestamp);
+        seekScrollSens = findViewById(R.id.seekScrollSens);
+        lblScrollSens = findViewById(R.id.lblScrollSens);
+        tabBtnServers = findViewById(R.id.tabBtnServers);
+        tabBtnNews = findViewById(R.id.tabBtnNews);
+        tabBtnMods = findViewById(R.id.tabBtnMods);
+        tabBtnSettings = findViewById(R.id.tabBtnSettings);
+        tabBtnControls = findViewById(R.id.tabBtnControls);
+        tabBtnToys = findViewById(R.id.tabBtnToys);
+        btnToysReset = findViewById(R.id.btnToysReset);
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        handler.removeCallbacks(bannerTick);
-    }
+        panelHome = findViewById(R.id.panelHome);
+        panelServers = findViewById(R.id.panelServers);
+        panelNews = findViewById(R.id.panelNews);
+        panelMods = findViewById(R.id.panelMods);
+        panelSettings = findViewById(R.id.panelSettings);
+        panelControls = findViewById(R.id.panelControls);
+        panelToys = findViewById(R.id.panelToys);
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        handler.removeCallbacksAndMessages(null);
-    }
+        bannerFlipper = findViewById(R.id.bannerFlipper);
+        bannerIndicator = findViewById(R.id.bannerIndicator);
+        homeServerText = findViewById(R.id.homeServerText);
+        homeServerStatus = findViewById(R.id.homeServerStatus);
+        serverListContainer = findViewById(R.id.serverListContainer);
+        newsContainer = findViewById(R.id.newsContainer);
+        homeNewsContainer = findViewById(R.id.homeNewsContainer);
+        btnAddServer = findViewById(R.id.btnAddServer);
+        btnOpenServers = findViewById(R.id.btnOpenServers);
+        btnOpenNews = findViewById(R.id.btnOpenNews);
+        cbMonetLoaderEnabled = findViewById(R.id.cbMonetLoaderEnabled);
+        btnImportLua = findViewById(R.id.btnImportLua);
+        btnImportCleo = findViewById(R.id.btnImportCleo);
+        btnClearTemp = findViewById(R.id.btnClearTemp);
+        btnProfileBattery = findViewById(R.id.btnProfileBattery);
+        btnProfileBalanced = findViewById(R.id.btnProfileBalanced);
+        btnProfilePerformance = findViewById(R.id.btnProfilePerformance);
+        modRuntimeStatus = findViewById(R.id.modRuntimeStatus);
+        modStoragePath = findViewById(R.id.modStoragePath);
 
-    @Override
-    public void onBackPressed() {
-        if (sidebarOpen) {
-            closeSidebar();
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-    @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if (hasFocus && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            View decor = getWindow().getDecorView();
-            decor.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN);
-        }
-    }
-
-    private void initDefaultContent() {
-        banners.clear();
-        banners.add(new String[]{"SELAMAT DATANG", "Lombok Holiday Roleplay",
-                "Performa tinggi, Voice Chat jernih, dan kontrol lengkap untuk HP kamu.", "#38BDF8"});
-        newsItems.clear();
-        newsItems.add(new String[]{"INFO", "Terbaru", "Selamat datang di Launcher Lombok Holiday",
-                "Unduh data game dari tab Data GTA, lalu masuk server dari tab Beranda."});
-    }
-
-    // ===================== UI BUILDER =====================
-    private void buildUi() {
-        FrameLayout root = new FrameLayout(this);
-        root.setBackgroundColor(C_BG);
-
-        LinearLayout main = vertical();
-
-        LinearLayout top = new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setPadding(dp(14), dp(14), dp(14), dp(8));
-
-        TextView menuBtn = text("\u2261  MENU", 13, C_TEXT, true);
-        menuBtn.setGravity(Gravity.CENTER);
-        menuBtn.setPadding(dp(14), dp(10), dp(14), dp(10));
-        menuBtn.setBackground(rounded(C_CARD, 14));
-        menuBtn.setOnClickListener(v -> toggleSidebar());
-        top.addView(menuBtn);
-
-        topTitle = text("Beranda", 17, C_TEXT, true);
-        topTitle.setPadding(dp(14), 0, 0, 0);
-        top.addView(topTitle, new LinearLayout.LayoutParams(0, WP, 1f));
-
-        TextView abi = text(abiLabel(), 11, C_A, true);
-        abi.setPadding(dp(10), dp(6), dp(10), dp(6));
-        abi.setBackground(rounded(0x3338BDF8, 10));
-        top.addView(abi);
-        main.addView(top, new LinearLayout.LayoutParams(MP, WP));
-
-        pageContainer = new FrameLayout(this);
-        main.addView(pageContainer, new LinearLayout.LayoutParams(MP, 0, 1f));
-        root.addView(main, new FrameLayout.LayoutParams(MP, MP));
-
-        pages[0] = buildHomePage();
-        pages[1] = buildServerPage();
-        pages[2] = buildDataPage();
-        pages[3] = buildSettingsPage();
-        pages[4] = buildControlsPage();
-        pages[5] = buildAboutPage();
-        for (View p : pages) {
-            p.setVisibility(View.GONE);
-            pageContainer.addView(p, new FrameLayout.LayoutParams(MP, MP));
+        abiBadgeText = findViewById(R.id.abiBadgeText);
+        if (abiBadgeText != null) {
+            String abi = (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
+            abiBadgeText.setText("ABI AKTIF: " + abi.toUpperCase(Locale.ROOT));
         }
 
-        scrim = new View(this);
-        scrim.setBackgroundColor(0x99000000);
-        scrim.setVisibility(View.GONE);
-        scrim.setOnClickListener(v -> closeSidebar());
-        root.addView(scrim, new FrameLayout.LayoutParams(MP, MP));
+        nicknameInput = findViewById(R.id.nicknameInput);
+        passwordInput = findViewById(R.id.passwordInput);
+        startButton = findViewById(R.id.startButton);
 
-        sidebar = buildSidebar();
-        FrameLayout.LayoutParams slp = new FrameLayout.LayoutParams(dp(276), MP);
-        slp.gravity = Gravity.START;
-        root.addView(sidebar, slp);
-        sidebar.setTranslationX(-dp(300));
+        dataBadgeStatus = findViewById(R.id.dataBadgeStatus);
+        groupDownload = findViewById(R.id.groupDownload);
+        cardDataReady = findViewById(R.id.cardDataReady);
+        dataReadyInfo = findViewById(R.id.dataReadyInfo);
+        btnReadyRepair = findViewById(R.id.btnReadyRepair);
+        btnChangeData = findViewById(R.id.btnChangeData);
+        bugText = findViewById(R.id.bugText);
+        downloadProgressBar = findViewById(R.id.downloadProgressBar);
+        downloadStatusText = findViewById(R.id.downloadStatusText);
+        btnRepairData = findViewById(R.id.btnRepairData);
+        btnDownloadLite = findViewById(R.id.btnDownloadLite);
+        btnDownloadFull = findViewById(R.id.btnDownloadFull);
+        btnCustomUrl = findViewById(R.id.btnCustomUrl);
 
-        setContentView(root);
+        btnFps30 = findViewById(R.id.btnFps30);
+        btnFps60 = findViewById(R.id.btnFps60);
+        btnFps90 = findViewById(R.id.btnFps90);
+        btnFps120 = findViewById(R.id.btnFps120);
+
+        btnChat5 = findViewById(R.id.btnChat5);
+        btnChat7 = findViewById(R.id.btnChat7);
+        btnChat9 = findViewById(R.id.btnChat9);
+        btnChat12 = findViewById(R.id.btnChat12);
+
+        cbVoiceChat = findViewById(R.id.cbVoiceChat);
+        cbFpsCounter = findViewById(R.id.cbFpsCounter);
+        cbFirstPerson = findViewById(R.id.cbFirstPerson);
+        cbCutout = findViewById(R.id.cbCutout);
+        cbAndroidKeyboard = findViewById(R.id.cbAndroidKeyboard);
+        cbHpArmourText = findViewById(R.id.cbHpArmourText);
+        cbOutfitGuns = findViewById(R.id.cbOutfitGuns);
+        cbRadarRect = findViewById(R.id.cbRadarRect);
+        cbPcMoney = findViewById(R.id.cbPcMoney);
+        cbSkyBox = findViewById(R.id.cbSkyBox);
+        cbSnow = findViewById(R.id.cbSnow);
+
+        btnSaveSettings = findViewById(R.id.btnSaveSettings);
+        btnResetSettings = findViewById(R.id.btnResetSettings);
+
+        peripheralStatusText = findViewById(R.id.peripheralStatusText);
+        cbEnableKeyboardMouse = findViewById(R.id.cbEnableKeyboardMouse);
+        cbEnableGamepad = findViewById(R.id.cbEnableGamepad);
+        seekMouseSens = findViewById(R.id.seekMouseSens);
+        lblMouseSens = findViewById(R.id.lblMouseSens);
+        btnRefreshDevices = findViewById(R.id.btnRefreshDevices);
     }
 
-    private LinearLayout buildSidebar() {
-        LinearLayout s = vertical();
-        s.setPadding(dp(16), dp(44), dp(16), dp(20));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(C_PANEL);
-        float r = dp(28);
-        bg.setCornerRadii(new float[]{0, 0, r, r, r, r, 0, 0});
-        s.setBackground(bg);
-        s.setClickable(true);
+    private Button[] navButtons() {
+        return new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys};
+    }
 
-        LinearLayout brand = new LinearLayout(this);
-        brand.setOrientation(LinearLayout.HORIZONTAL);
-        brand.setGravity(Gravity.CENTER_VERTICAL);
-        TextView logo = text("LH", 16, Color.WHITE, true);
-        logo.setGravity(Gravity.CENTER);
-        logo.setBackground(gradient(C_A, C_B, 16));
-        brand.addView(logo, new LinearLayout.LayoutParams(dp(50), dp(50)));
-        LinearLayout bt = vertical();
-        bt.setPadding(dp(12), 0, 0, 0);
-        bt.addView(text("Lombok Holiday", 17, C_TEXT, true));
-        bt.addView(text("Official Client v" + APP_VERSION, 12, C_MUTED, false));
-        brand.addView(bt);
-        s.addView(brand, new LinearLayout.LayoutParams(MP, WP));
-
-        for (int i = 0; i < PAGE_TITLES.length; i++) {
-            final int idx = i;
-            TextView t = text(PAGE_ICONS[i] + "   " + PAGE_TITLES[i], 15, C_MUTED, false);
-            t.setPadding(dp(16), dp(14), dp(16), dp(14));
-            t.setClickable(true);
-            t.setOnClickListener(v -> {
-                showPage(idx);
-                closeSidebar();
-            });
-            navItems[i] = t;
-            add(s, t, 6);
+    private void setupSidebarAndSliders() {
+        Button[] nav = navButtons();
+        int[] icons = {R.drawable.ic_nav_home, R.drawable.ic_nav_servers, R.drawable.ic_nav_news,
+                R.drawable.ic_nav_mods, R.drawable.ic_nav_settings, R.drawable.ic_nav_controls, R.drawable.ic_nav_toys};
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] == null) continue;
+            navLabels[i] = nav[i].getText().toString();
+            nav[i].setAllCaps(false);
+            nav[i].setCompoundDrawablesWithIntrinsicBounds(icons[i], 0, 0, 0);
         }
-
-        View spacer = new View(this);
-        s.addView(spacer, new LinearLayout.LayoutParams(MP, 0, 1f));
-
-        LinearLayout foot = vertical();
-        foot.setPadding(dp(14), dp(12), dp(14), dp(12));
-        foot.setBackground(rounded(C_CARD, 16));
-        foot.addView(text("Keamanan: AKTIF", 12, C_OK, true));
-        foot.addView(text("Official Signed \u2022 R8 \u2022 Anti-Tamper", 11, C_MUTED, false));
-        s.addView(foot, new LinearLayout.LayoutParams(MP, WP));
-        return s;
-    }
-
-    private void toggleSidebar() {
-        if (sidebarOpen) closeSidebar();
-        else openSidebar();
-    }
-
-    private void openSidebar() {
-        sidebarOpen = true;
-        scrim.setVisibility(View.VISIBLE);
-        scrim.setAlpha(0f);
-        scrim.animate().alpha(1f).setDuration(200).start();
-        sidebar.animate().translationX(0).setDuration(260).start();
-    }
-
-    private void closeSidebar() {
-        sidebarOpen = false;
-        scrim.animate().alpha(0f).setDuration(200).withEndAction(() -> scrim.setVisibility(View.GONE)).start();
-        sidebar.animate().translationX(-dp(300)).setDuration(220).start();
-    }
-
-    private void showPage(int idx) {
-        for (int i = 0; i < pages.length; i++) {
-            pages[i].setVisibility(i == idx ? View.VISIBLE : View.GONE);
-            boolean sel = i == idx;
-            navItems[i].setBackground(sel ? gradient(0x4438BDF8, 0x44A78BFA, 16) : null);
-            navItems[i].setTextColor(sel ? Color.WHITE : C_MUTED);
-            navItems[i].setTypeface(null, sel ? Typeface.BOLD : Typeface.NORMAL);
+        sidebarExpanded = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean("sidebar_expanded", true);
+        if (sidebarLayout != null) {
+            sidebarLayout.setSwipeListener(this::setSidebarExpanded);
+            ViewGroup.LayoutParams lp = sidebarLayout.getLayoutParams();
+            lp.width = dp(sidebarExpanded ? 220 : 76);
+            sidebarLayout.setLayoutParams(lp);
         }
-        topTitle.setText(PAGE_TITLES[idx]);
+        if (btnSidebarToggle != null) {
+            btnSidebarToggle.setOnClickListener(v -> setSidebarExpanded(!sidebarExpanded));
+        }
+        applySidebarLabels(sidebarExpanded);
+
+        setupSlider(seekChatX, lblChatX, "Posisi chat X", "setting_chat_pos_x", 325f, 0, 1600);
+        setupSlider(seekChatY, lblChatY, "Posisi chat Y", "setting_chat_pos_y", 25f, 0, 900);
+        setupSlider(seekChatW, lblChatW, "Lebar chat", "setting_chat_size_x", 1150f, 400, 1900);
+        setupSlider(seekChatH, lblChatH, "Tinggi chat", "setting_chat_size_y", 220f, 100, 500);
+        setupSlider(seekFontSize, lblFontSize, "Ukuran font", "setting_font_size", 30f, 18, 40);
+        setupScrollSensitivitySlider();
+        setupToysPanel();
+        setupMouseSensSlider();
     }
 
-    // ----- HOME -----
-    private View buildHomePage() {
-        LinearLayout c = page();
-
-        bannerHost = new FrameLayout(this);
-        bannerHost.setBackground(gradient(C_A, C_B, 24));
-        bannerHost.setMinimumHeight(dp(180));
-        LinearLayout bl = vertical();
-        bl.setPadding(dp(18), dp(16), dp(18), dp(36));
-        bannerBadge = text("", 11, Color.WHITE, true);
-        bannerBadge.setPadding(dp(10), dp(5), dp(10), dp(5));
-        bannerBadge.setBackground(rounded(0x33000000, 8));
-        bl.addView(bannerBadge, new LinearLayout.LayoutParams(WP, WP));
-        bannerTitle = text("", 20, Color.WHITE, true);
-        add(bl, bannerTitle, 12);
-        bannerSubtitle = text("", 13, 0xEEFFFFFF, false);
-        add(bl, bannerSubtitle, 6);
-        bannerHost.addView(bl, new FrameLayout.LayoutParams(MP, MP));
-
-        bannerDots = new LinearLayout(this);
-        bannerDots.setOrientation(LinearLayout.HORIZONTAL);
-        bannerDots.setGravity(Gravity.CENTER_VERTICAL);
-        FrameLayout.LayoutParams dlp = new FrameLayout.LayoutParams(WP, WP, Gravity.BOTTOM | Gravity.START);
-        dlp.setMargins(dp(18), 0, 0, dp(14));
-        bannerHost.addView(bannerDots, dlp);
-
-        bannerHost.setOnTouchListener((v, ev) -> {
-            switch (ev.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                    touchX0 = ev.getX();
-                    handler.removeCallbacks(bannerTick);
-                    return true;
-                case MotionEvent.ACTION_UP:
-                    float dx = ev.getX() - touchX0;
-                    if (dx < -dp(40)) showBanner(bannerIndex + 1);
-                    else if (dx > dp(40)) showBanner(bannerIndex - 1);
-                    handler.postDelayed(bannerTick, 4500);
-                    return true;
-                case MotionEvent.ACTION_CANCEL:
-                    handler.postDelayed(bannerTick, 4500);
-                    return true;
-                default:
-                    return true;
-            }
+    private void setSidebarExpanded(boolean expanded) {
+        if (sidebarLayout == null || sidebarExpanded == expanded) return;
+        int from = sidebarLayout.getWidth() > 0 ? sidebarLayout.getWidth() : dp(sidebarExpanded ? 220 : 76);
+        sidebarExpanded = expanded;
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean("sidebar_expanded", expanded).apply();
+        applySidebarLabels(expanded);
+        if (btnSidebarToggle != null) {
+            btnSidebarToggle.setImageResource(expanded ? R.drawable.ic_chevron_left : R.drawable.ic_chevron_right);
+        }
+        if (sidebarAnim != null) sidebarAnim.cancel();
+        sidebarAnim = ValueAnimator.ofInt(from, dp(expanded ? 220 : 76));
+        sidebarAnim.setDuration(260);
+        sidebarAnim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        sidebarAnim.addUpdateListener(a -> {
+            ViewGroup.LayoutParams lp = sidebarLayout.getLayoutParams();
+            lp.width = (Integer) a.getAnimatedValue();
+            sidebarLayout.setLayoutParams(lp);
         });
-        c.addView(bannerHost, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout play = card();
-        play.addView(text("Mulai Bermain", 18, C_TEXT, true));
-        homeServerLine = text("", 12, C_MUTED, false);
-        add(play, homeServerLine, 4);
-        nicknameInput = input("Nickname_Roleplay", InputType.TYPE_CLASS_TEXT);
-        add(play, nicknameInput, 14);
-        passwordInput = input("Password server (opsional)",
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        add(play, passwordInput, 8);
-        add(play, accentButton("MASUK SERVER", v -> startGame()), 14);
-        c.addView(play, new LinearLayout.LayoutParams(MP, WP));
-
-        c.addView(text("Berita Terbaru", 18, C_TEXT, true), marginParams(4));
-        newsContainer = vertical();
-        c.addView(newsContainer, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
+        sidebarAnim.start();
     }
 
-    // ----- SERVER -----
-    private View buildServerPage() {
-        LinearLayout c = page();
-
-        LinearLayout active = card();
-        active.addView(text("SERVER AKTIF", 11, C_A, true));
-        active.addView(text(SERVER_TITLE, 19, C_TEXT, true));
-        add(active, text("Koneksi dikunci ke server resmi dan dilindungi handshake keamanan.", 13, C_MUTED, false), 6);
-        add(active, accentButton("MAIN DI SERVER INI", v -> startGame()), 14);
-        c.addView(active, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout list = card();
-        list.addView(text("Daftar Server", 18, C_TEXT, true));
-        add(list, text("Tekan lama server tambahan untuk menghapus.", 12, C_MUTED, false), 4);
-        serverListContainer = vertical();
-        add(list, serverListContainer, 10);
-        add(list, ghostButton("+ TAMBAH SERVER", v -> showAddServerDialog()), 12);
-        c.addView(list, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
+    private void applySidebarLabels(boolean expanded) {
+        Button[] nav = navButtons();
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] == null) continue;
+            nav[i].setText(expanded ? navLabels[i] : "");
+            nav[i].setGravity(expanded ? (Gravity.CENTER_VERTICAL | Gravity.START) : Gravity.CENTER);
+            nav[i].setCompoundDrawablePadding(expanded ? dp(12) : 0);
+            nav[i].setPadding(expanded ? dp(14) : 0, nav[i].getPaddingTop(), expanded ? dp(10) : 0, nav[i].getPaddingBottom());
+        }
+        int vis = expanded ? View.VISIBLE : View.GONE;
+        TextView t1 = findViewById(R.id.title1);
+        TextView t2 = findViewById(R.id.title2);
+        if (t1 != null) t1.setVisibility(vis);
+        if (t2 != null) t2.setVisibility(vis);
     }
 
-    // ----- DATA -----
-    private View buildDataPage() {
-        LinearLayout c = page();
-
-        LinearLayout status = card();
-        dataBadge = text("", 12, C_OK, true);
-        dataBadge.setPadding(dp(10), dp(6), dp(10), dp(6));
-        status.addView(dataBadge, new LinearLayout.LayoutParams(WP, WP));
-        dataPathText = text("", 12, C_MUTED, false);
-        add(status, dataPathText, 8);
-        c.addView(status, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout lite = card();
-        lite.addView(text("Data Lite", 17, C_TEXT, true));
-        liteDescText = text("", 12, C_MUTED, false);
-        add(lite, liteDescText, 4);
-        btnDownloadLite = accentButton("DOWNLOAD DATA LITE", v -> startInAppDataDownload(liteDataUrl, liteName));
-        add(lite, btnDownloadLite, 12);
-        c.addView(lite, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout full = card();
-        full.addView(text("Data Full", 17, C_TEXT, true));
-        fullDescText = text("", 12, C_MUTED, false);
-        add(full, fullDescText, 4);
-        btnDownloadFull = accentButton("DOWNLOAD DATA FULL", v -> startInAppDataDownload(fullDataUrl, fullName));
-        add(full, btnDownloadFull, 12);
-        c.addView(full, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout custom = card();
-        custom.addView(text("URL ZIP Custom", 17, C_TEXT, true));
-        customUrlInput = input("https://.../data.zip", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        customUrlInput.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, ""));
-        add(custom, customUrlInput, 10);
-        add(custom, ghostButton("DOWNLOAD DARI URL", v -> {
-            String u = customUrlInput.getText().toString().trim();
-            if (!u.startsWith("https://")) {
-                Toast.makeText(this, "URL harus diawali https://", Toast.LENGTH_SHORT).show();
-                return;
+    private void setupScrollSensitivitySlider() {
+        if (seekScrollSens == null || lblScrollSens == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        float cur = Math.max(0.2f, Math.min(3.0f, sp.getFloat("setting_scroll_sensitivity", 1.0f)));
+        seekScrollSens.setMax(28);
+        seekScrollSens.setProgress(Math.round((cur - 0.2f) * 10f));
+        lblScrollSens.setText(String.format(Locale.US, "Sensitivitas geser layar: %.1fx", cur));
+        seekScrollSens.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = 0.2f + progress * 0.1f;
+                lblScrollSens.setText(String.format(Locale.US, "Sensitivitas geser layar: %.1fx", v));
+                if (fromUser) sp.edit().putFloat("setting_scroll_sensitivity", v).apply();
             }
-            prefs.edit().putString(KEY_CUSTOM_ZIP_URL, u).apply();
-            startInAppDataDownload(u, "Data Custom");
-        }), 10);
-        c.addView(custom, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout prog = card();
-        downloadProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        downloadProgressBar.setMax(100);
-        downloadProgressBar.setProgressTintList(ColorStateList.valueOf(C_A));
-        downloadProgressBar.setProgressBackgroundTintList(ColorStateList.valueOf(C_INPUT));
-        prog.addView(downloadProgressBar, new LinearLayout.LayoutParams(MP, dp(10)));
-        downloadStatusText = text("Siap. Data diekstrak otomatis tanpa OBB.", 12, C_MUTED, false);
-        add(prog, downloadStatusText, 8);
-        c.addView(prog, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
-    }
-
-    // ----- SETTINGS -----
-    private View buildSettingsPage() {
-        LinearLayout c = page();
-
-        LinearLayout perf = card();
-        perf.addView(text("Performa & Tampilan Chat", 18, C_TEXT, true));
-        add(perf, text("Batas FPS", 12, C_MUTED, true), 12);
-        add(perf, chipRow(new String[]{"30", "60", "90", "120"}, FPS_VALUES, selectedFps, fpsChips,
-                v -> selectedFps = v), 6);
-        add(perf, text("Baris Chat", 12, C_MUTED, true), 12);
-        add(perf, chipRow(new String[]{"5", "7", "9", "12"}, CHAT_VALUES, selectedChatLines, chatChips,
-                v -> selectedChatLines = v), 6);
-        add(perf, text("Ukuran Font", 12, C_MUTED, true), 12);
-        add(perf, chipRow(new String[]{"Kecil", "Sedang", "Besar"}, FONT_VALUES, selectedFont, fontChips,
-                v -> selectedFont = v), 6);
-        swBooster = toggle(perf, "Mode Booster", "Matikan efek berat (Salju, SkyBox, Outfit Guns) agar lebih ringan", false);
-        c.addView(perf, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout fx = card();
-        fx.addView(text("Tampilan & Kontrol", 18, C_TEXT, true));
-        swVoice = toggle(fx, "Voice Chat", "Aktifkan voice chat in-game", false);
-        swFpsCounter = toggle(fx, "FPS Counter", "Tampilkan angka FPS di layar", false);
-        swFirstPerson = toggle(fx, "Kamera First-Person", "Mode bidik orang pertama", false);
-        swCutout = toggle(fx, "Layar Penuh (Cutout)", "Pakai area poni / notch", true);
-        swAndroidKb = toggle(fx, "Keyboard Android", "Gunakan keyboard sistem untuk chat", false);
-        swHpArmour = toggle(fx, "Angka HP & Armour", "Tampilkan angka darah & armor", true);
-        swOutfitGuns = toggle(fx, "Outfit Guns", "Senjata terlihat di badan", true);
-        swRadarRect = toggle(fx, "Radar Kotak", "Bentuk radar persegi", false);
-        swPcMoney = toggle(fx, "Format Uang Gaya PC", "Contoh: $00000000", true);
-        swSkyBox = toggle(fx, "Efek Langit (SkyBox)", "Langit HD", true);
-        swSnow = toggle(fx, "Efek Salju", "Partikel salju", false);
-        c.addView(fx, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout mods = card();
-        mods.addView(text("Mod Loader (Eksperimental)", 18, C_TEXT, true));
-        add(mods, text("MonetLoader memuat mod Lua dari folder monetloader/. CLEO menyiapkan folder cleo/ — library CLEO belum disertakan di build ini.", 12, C_MUTED, false), 4);
-        swMLoader = toggle(mods, "MonetLoader (Lua)", "Aktifkan loader mod .lua", false);
-        swCleo = toggle(mods, "CLEO (folder cleo/)", "Siapkan folder CLEO untuk script .cs", false);
-        c.addView(mods, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout actions = card();
-        actions.addView(accentButton("SIMPAN PENGATURAN", v -> {
-            hideKeyboard(this);
-            String nick = sanitizeNick(nicknameInput.getText().toString());
-            if (nick.isEmpty()) nick = sanitizeNick(DEFAULT_NICK);
-            nicknameInput.setText(nick);
-            boolean ok = saveAllSettingsToIni(nick);
-            Toast.makeText(this, ok ? "Pengaturan tersimpan ke SAMP/settings.ini" : "Gagal menyimpan pengaturan", Toast.LENGTH_SHORT).show();
-        }), new LinearLayout.LayoutParams(MP, WP));
-        add(actions, ghostButton("RESET DEFAULT", v -> resetDefaults()), 10);
-        add(actions, ghostButton("REPAIR DATA & FONT", v -> {
-            File dir = new File(resolveGameDataDir(this));
-            provisionSampDirectory(dir);
-            new File(dir, "SAMP/.tampered").delete();
-            Toast.makeText(this, "Repair selesai: font & struktur SAMP diperbaiki", Toast.LENGTH_SHORT).show();
-            updateDataStatusLabel(resolveGameDataDir(this));
-        }), 10);
-        c.addView(actions, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
-    }
-
-    // ----- CONTROLS -----
-    private View buildControlsPage() {
-        LinearLayout c = page();
-
-        LinearLayout st = card();
-        st.addView(text("Perangkat Terdeteksi", 18, C_TEXT, true));
-        peripheralStatusText = text("", 13, C_TEXT, false);
-        add(st, peripheralStatusText, 10);
-        add(st, ghostButton("SCAN ULANG", v -> refreshPeripheralsStatus()), 12);
-        c.addView(st, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout map = card();
-        map.addView(text("Kontrol Keyboard & Mouse", 16, C_TEXT, true));
-        add(map, text("WASD / Panah : gerak & setir\nSpace : lompat / rem tangan\nShift : lari\nF / Enter : masuk kendaraan\nT / F6 / / : buka chat\nESC : kembali / menu\nKlik kiri : tembak / pukul\nKlik kanan (tahan) : bidik\nScroll : ganti senjata", 13, C_MUTED, false), 8);
-        c.addView(map, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout pad = card();
-        pad.addView(text("Gamepad / Controller", 16, C_TEXT, true));
-        add(pad, text("PS4, PS5, Xbox, dan joystick HID. Analog kiri = gerak, analog kanan = kamera, R2 = tembak, L2 = bidik, X/Kotak = lompat, Segitiga/Y = masuk kendaraan.", 13, C_MUTED, false), 8);
-        c.addView(pad, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
-    }
-
-    // ----- ABOUT -----
-    private View buildAboutPage() {
-        LinearLayout c = page();
-        LinearLayout info = card();
-        info.addView(text("Lombok Holiday", 20, C_TEXT, true));
-        add(info, text("Versi " + APP_VERSION + "\nPackage: " + PACKAGE_ID + "\nABI aktif: " + abiLabel(), 13, C_MUTED, false), 8);
-        aboutSignatureText = text("", 13, C_OK, true);
-        add(info, aboutSignatureText, 12);
-        c.addView(info, new LinearLayout.LayoutParams(MP, WP));
-
-        LinearLayout fit = card();
-        fit.addView(text("Fitur Launcher", 16, C_TEXT, true));
-        add(fit, text("\u2022 Banner slider & berita otomatis (remote config)\n\u2022 Daftar server & tambah server\n\u2022 Download data Lite / Full + URL custom (tanpa OBB)\n\u2022 Pengaturan FPS, font, chat & booster\n\u2022 MonetLoader & CLEO (eksperimental)\n\u2022 Keyboard fisik, mouse OTG/BT, gamepad\n\u2022 Dukungan multi-touch hingga 4 jari", 13, C_MUTED, false), 8);
-        c.addView(fit, new LinearLayout.LayoutParams(MP, WP));
-        return scroll(c);
-    }
-
-    // ===================== UI HELPERS =====================
-    private int dp(int v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
-    }
-
-    private LinearLayout vertical() {
-        LinearLayout l = new LinearLayout(this);
-        l.setOrientation(LinearLayout.VERTICAL);
-        return l;
-    }
-
-    private LinearLayout page() {
-        LinearLayout l = vertical();
-        l.setPadding(dp(16), dp(6), dp(16), dp(40));
-        return l;
-    }
-
-    private ScrollView scroll(LinearLayout content) {
-        ScrollView sv = new ScrollView(this);
-        sv.setFillViewport(true);
-        sv.setVerticalScrollBarEnabled(false);
-        sv.addView(content, new FrameLayout.LayoutParams(MP, WP));
-        return sv;
-    }
-
-    private LinearLayout card() {
-        LinearLayout c = vertical();
-        c.setPadding(dp(16), dp(16), dp(16), dp(16));
-        c.setBackground(rounded(C_CARD, 22));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(MP, WP);
-        lp.setMargins(0, 0, 0, dp(12));
-        c.setLayoutParams(lp);
-        return c;
-    }
-
-    private LinearLayout.LayoutParams marginParams(int topDp) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(MP, WP);
-        lp.setMargins(0, dp(topDp), 0, dp(8));
-        return lp;
-    }
-
-    private void add(LinearLayout parent, View v, int topDp) {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(MP, WP);
-        lp.setMargins(0, dp(topDp), 0, 0);
-        parent.addView(v, lp);
-    }
-
-    private TextView text(String s, float sp, int color, boolean bold) {
-        TextView t = new TextView(this);
-        t.setText(s);
-        t.setTextSize(sp);
-        t.setTextColor(color);
-        if (bold) t.setTypeface(null, Typeface.BOLD);
-        return t;
-    }
-
-    private EditText input(String hint, int inputType) {
-        EditText e = new EditText(this);
-        e.setHint(hint);
-        e.setHintTextColor(C_MUTED);
-        e.setTextColor(C_TEXT);
-        e.setTextSize(15);
-        e.setSingleLine(true);
-        e.setInputType(inputType);
-        e.setBackground(rounded(C_INPUT, 14));
-        e.setPadding(dp(14), dp(12), dp(14), dp(12));
-        return e;
-    }
-
-    private TextView button(String label, GradientDrawable bg, View.OnClickListener l) {
-        TextView b = new TextView(this);
-        b.setText(label);
-        b.setGravity(Gravity.CENTER);
-        b.setTextColor(Color.WHITE);
-        b.setTypeface(null, Typeface.BOLD);
-        b.setTextSize(14);
-        b.setPadding(dp(16), dp(14), dp(16), dp(14));
-        b.setBackground(bg);
-        b.setClickable(true);
-        b.setFocusable(true);
-        b.setOnClickListener(l);
-        return b;
-    }
-
-    private TextView accentButton(String label, View.OnClickListener l) {
-        return button(label, gradient(C_A, C_B, 16), l);
-    }
-
-    private TextView ghostButton(String label, View.OnClickListener l) {
-        return button(label, rounded(C_INPUT, 16), l);
-    }
-
-    private GradientDrawable rounded(int color, int radiusDp) {
-        GradientDrawable g = new GradientDrawable();
-        g.setColor(color);
-        g.setCornerRadius(dp(radiusDp));
-        return g;
-    }
-
-    private GradientDrawable gradient(int a, int b, int radiusDp) {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{a, b});
-        g.setCornerRadius(dp(radiusDp));
-        return g;
-    }
-
-    private SwitchCompat toggle(LinearLayout parent, String title, String desc, boolean checked) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(8), 0, dp(8));
-        LinearLayout col = vertical();
-        col.addView(text(title, 14, C_TEXT, true));
-        if (desc != null && !desc.isEmpty()) col.addView(text(desc, 12, C_MUTED, false));
-        row.addView(col, new LinearLayout.LayoutParams(0, WP, 1f));
-        SwitchCompat sw = new SwitchCompat(this);
-        sw.setChecked(checked);
-        ColorStateList states = new ColorStateList(
-                new int[][]{{android.R.attr.state_checked}, {}},
-                new int[]{C_A, 0xFF64748B});
-        ColorStateList tracks = new ColorStateList(
-                new int[][]{{android.R.attr.state_checked}, {}},
-                new int[]{0x6638BDF8, 0xFF334155});
-        sw.setThumbTintList(states);
-        sw.setTrackTintList(tracks);
-        row.addView(sw);
-        parent.addView(row, new LinearLayout.LayoutParams(MP, WP));
-        return sw;
-    }
-
-    private interface IntPick {
-        void pick(int v);
-    }
-
-    private LinearLayout chipRow(String[] labels, final int[] values, int current,
-                                 final List<TextView> outChips, final IntPick onPick) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        outChips.clear();
-        for (int i = 0; i < labels.length; i++) {
-            final int v = values[i];
-            TextView c = new TextView(this);
-            c.setText(labels[i]);
-            c.setGravity(Gravity.CENTER);
-            c.setTextSize(13);
-            c.setTypeface(null, Typeface.BOLD);
-            c.setPadding(0, dp(10), 0, dp(10));
-            c.setClickable(true);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, WP, 1f);
-            lp.setMargins(dp(3), 0, dp(3), 0);
-            row.addView(c, lp);
-            c.setOnClickListener(x -> {
-                onPick.pick(v);
-                restyleChips(outChips, v, values);
-            });
-            outChips.add(c);
-        }
-        restyleChips(outChips, current, values);
-        return row;
-    }
-
-    private void restyleChips(List<TextView> chips, int current, int[] values) {
-        for (int i = 0; i < chips.size() && i < values.length; i++) {
-            boolean sel = values[i] == current;
-            TextView c = chips.get(i);
-            c.setBackground(sel ? gradient(C_A, C_B, 12) : rounded(C_INPUT, 12));
-            c.setTextColor(sel ? Color.WHITE : C_MUTED);
-        }
-    }
-
-    private int parseColor(String hex, int fallback) {
-        try {
-            return Color.parseColor(hex);
-        } catch (Exception e) {
-            return fallback;
-        }
-    }
-
-    private String abiLabel() {
-        String abi = (Build.SUPPORTED_ABIS != null && Build.SUPPORTED_ABIS.length > 0) ? Build.SUPPORTED_ABIS[0] : "arm64-v8a";
-        return "ABI: " + abi.toUpperCase(Locale.ROOT);
-    }
-
-    // ===================== HOME: BANNER & NEWS =====================
-    private void showBanner(int idx) {
-        if (banners.isEmpty() || bannerHost == null) return;
-        int n = banners.size();
-        bannerIndex = ((idx % n) + n) % n;
-        String[] b = banners.get(bannerIndex);
-        bannerBadge.setText(b[0]);
-        bannerTitle.setText(b[1]);
-        bannerSubtitle.setText(b[2]);
-        bannerHost.setBackground(gradient(parseColor(b[3], C_A), C_B, 24));
-        bannerDots.removeAllViews();
-        for (int i = 0; i < n; i++) {
-            View d = new View(this);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(i == bannerIndex ? dp(18) : dp(6), dp(6));
-            lp.setMargins(dp(3), 0, dp(3), 0);
-            d.setBackground(rounded(i == bannerIndex ? Color.WHITE : 0x66FFFFFF, 3));
-            bannerDots.addView(d, lp);
-        }
-    }
-
-    private void renderNews() {
-        if (newsContainer == null) return;
-        newsContainer.removeAllViews();
-        for (String[] n : newsItems) {
-            LinearLayout card = card();
-            TextView tag = text(n[0], 11, C_A, true);
-            tag.setPadding(dp(8), dp(4), dp(8), dp(4));
-            tag.setBackground(rounded(0x2238BDF8, 8));
-            card.addView(tag, new LinearLayout.LayoutParams(WP, WP));
-            add(card, text(n[2], 15, C_TEXT, true), 10);
-            add(card, text(n[3], 13, C_MUTED, false), 6);
-            add(card, text(n[1], 11, 0xFF64748B, false), 8);
-            newsContainer.addView(card, new LinearLayout.LayoutParams(MP, WP));
-        }
-    }
-
-    // ===================== SERVER LIST =====================
-    private JSONArray loadCustomServers() {
-        try {
-            return new JSONArray(prefs.getString(KEY_CUSTOM_SERVERS, "[]"));
-        } catch (Exception e) {
-            return new JSONArray();
-        }
-    }
-
-    private void renderServers() {
-        if (serverListContainer == null) return;
-        serverListContainer.removeAllViews();
-        addServerRow(SERVER_TITLE, "Server resmi \u2022 Terkunci", "Aktif", true, -1);
-        for (String[] s : remoteServers) {
-            addServerRow(s[0], s[1], s[2], false, -1);
-        }
-        JSONArray custom = loadCustomServers();
-        for (int i = 0; i < custom.length(); i++) {
-            JSONObject o = custom.optJSONObject(i);
-            if (o == null) continue;
-            String name = o.optString("name", "Server");
-            String addr = o.optString("host", "") + ":" + o.optInt("port", 7777);
-            addServerRow(name, addr, MULTI_SERVER_ENABLED ? "Tambahan" : "Nonaktif", false, i);
-        }
-    }
-
-    private void addServerRow(String name, String sub, String badge, boolean official, final int customIndex) {
-        LinearLayout row = vertical();
-        row.setPadding(dp(14), dp(12), dp(14), dp(12));
-        row.setBackground(rounded(official ? 0x2238BDF8 : C_INPUT, 16));
-        LinearLayout top = new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        top.addView(text(name, 15, C_TEXT, true), new LinearLayout.LayoutParams(0, WP, 1f));
-        TextView b = text(badge, 11, official ? C_OK : C_MUTED, true);
-        top.addView(b);
-        row.addView(top, new LinearLayout.LayoutParams(MP, WP));
-        add(row, text(sub, 12, C_MUTED, false), 4);
-        row.setClickable(true);
-        row.setOnClickListener(v -> {
-            if (official) {
-                Toast.makeText(this, "Server resmi dipilih. Tekan MAIN DI SERVER INI.", Toast.LENGTH_SHORT).show();
-            } else if (!MULTI_SERVER_ENABLED) {
-                Toast.makeText(this, "Koneksi ke server lain belum diaktifkan di build ini.", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Server dipilih: " + name, Toast.LENGTH_SHORT).show();
-            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        if (customIndex >= 0) {
-            row.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(this)
-                        .setTitle("Hapus server?")
-                        .setMessage(name)
-                        .setPositiveButton("Hapus", (d, w) -> {
-                            JSONArray arr = loadCustomServers();
-                            JSONArray next = new JSONArray();
-                            for (int i = 0; i < arr.length(); i++) {
-                                if (i != customIndex) next.put(arr.optJSONObject(i));
-                            }
-                            prefs.edit().putString(KEY_CUSTOM_SERVERS, next.toString()).apply();
-                            renderServers();
-                        })
-                        .setNegativeButton("Batal", null)
-                        .show();
-                return true;
-            });
-        }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(MP, WP);
-        lp.setMargins(0, dp(8), 0, 0);
-        serverListContainer.addView(row, lp);
     }
 
-    private void showAddServerDialog() {
-        LinearLayout form = vertical();
-        form.setPadding(dp(20), dp(10), dp(20), 0);
-        EditText name = input("Nama server", InputType.TYPE_CLASS_TEXT);
-        EditText host = input("IP / domain server", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        EditText port = input("Port (default 7777)", InputType.TYPE_CLASS_NUMBER);
-        port.setText("7777");
-        add(form, name, 0);
-        add(form, host, 10);
-        add(form, port, 10);
-        new AlertDialog.Builder(this)
-                .setTitle("Tambah Server")
-                .setView(form)
-                .setPositiveButton("Simpan", (d, w) -> {
-                    String n = name.getText().toString().trim();
-                    String h = host.getText().toString().trim();
-                    int p;
-                    try {
-                        p = Integer.parseInt(port.getText().toString().trim());
-                    } catch (Exception e) {
-                        p = -1;
-                    }
-                    if (n.isEmpty() || !h.matches("^[A-Za-z0-9.\\-]+$") || p < 1 || p > 65535) {
-                        Toast.makeText(this, "Isi nama, host (huruf/angka/titik), dan port 1-65535", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    try {
-                        JSONArray arr = loadCustomServers();
-                        JSONObject o = new JSONObject();
-                        o.put("name", n);
-                        o.put("host", h);
-                        o.put("port", p);
-                        arr.put(o);
-                        prefs.edit().putString(KEY_CUSTOM_SERVERS, arr.toString()).apply();
-                        renderServers();
-                        Toast.makeText(this, "Server ditambahkan", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Gagal menyimpan server", Toast.LENGTH_SHORT).show();
-                    }
-                })
-                .setNegativeButton("Batal", null)
+    private void setupSlider(SeekBar bar, TextView label, String title, String key, float def, int min, int max) {
+        if (bar == null || label == null) return;
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int start = Math.round(Math.max(min, Math.min(max, sp.getFloat(key, def))));
+        bar.setMax(max - min);
+        bar.setProgress(start - min);
+        label.setText(title + ": " + start);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int value = min + progress;
+                label.setText(title + ": " + value);
+                if (fromUser) sp.edit().putFloat(key, value).apply();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private String prefFloatString(String key, float def) {
+        return String.valueOf(getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getFloat(key, def));
+    }
+
+    private void setupToysPanel() {
+        if (btnToysReset != null) {
+            btnToysReset.setOnClickListener(v -> {
+                SharedPreferences.Editor ed = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit();
+                for (int i = 0; i < 10; i++) {
+                    String p = "toy_" + i + "_";
+                    ed.remove(p + "enabled").remove(p + "bone").remove(p + "ox").remove(p + "oy")
+                      .remove(p + "oz").remove(p + "scale");
+                }
+                ed.apply();
+                setupToysPanel();
+                Toast.makeText(this, "Toys direset ke default", Toast.LENGTH_SHORT).show();
+            });
+        }
+        bindToySlot(0, R.id.cbToy0, R.id.seekToyBone0, R.id.lblToyBone0, R.id.seekToyX0, R.id.lblToyX0, R.id.seekToyY0, R.id.lblToyY0, R.id.seekToyZ0, R.id.lblToyZ0, R.id.seekToyScale0, R.id.lblToyScale0);
+        bindToySlot(1, R.id.cbToy1, R.id.seekToyBone1, R.id.lblToyBone1, R.id.seekToyX1, R.id.lblToyX1, R.id.seekToyY1, R.id.lblToyY1, R.id.seekToyZ1, R.id.lblToyZ1, R.id.seekToyScale1, R.id.lblToyScale1);
+        bindToySlot(2, R.id.cbToy2, R.id.seekToyBone2, R.id.lblToyBone2, R.id.seekToyX2, R.id.lblToyX2, R.id.seekToyY2, R.id.lblToyY2, R.id.seekToyZ2, R.id.lblToyZ2, R.id.seekToyScale2, R.id.lblToyScale2);
+        bindToySlot(3, R.id.cbToy3, R.id.seekToyBone3, R.id.lblToyBone3, R.id.seekToyX3, R.id.lblToyX3, R.id.seekToyY3, R.id.lblToyY3, R.id.seekToyZ3, R.id.lblToyZ3, R.id.seekToyScale3, R.id.lblToyScale3);
+        bindToySlot(4, R.id.cbToy4, R.id.seekToyBone4, R.id.lblToyBone4, R.id.seekToyX4, R.id.lblToyX4, R.id.seekToyY4, R.id.lblToyY4, R.id.seekToyZ4, R.id.lblToyZ4, R.id.seekToyScale4, R.id.lblToyScale4);
+        bindToySlot(5, R.id.cbToy5, R.id.seekToyBone5, R.id.lblToyBone5, R.id.seekToyX5, R.id.lblToyX5, R.id.seekToyY5, R.id.lblToyY5, R.id.seekToyZ5, R.id.lblToyZ5, R.id.seekToyScale5, R.id.lblToyScale5);
+        bindToySlot(6, R.id.cbToy6, R.id.seekToyBone6, R.id.lblToyBone6, R.id.seekToyX6, R.id.lblToyX6, R.id.seekToyY6, R.id.lblToyY6, R.id.seekToyZ6, R.id.lblToyZ6, R.id.seekToyScale6, R.id.lblToyScale6);
+        bindToySlot(7, R.id.cbToy7, R.id.seekToyBone7, R.id.lblToyBone7, R.id.seekToyX7, R.id.lblToyX7, R.id.seekToyY7, R.id.lblToyY7, R.id.seekToyZ7, R.id.lblToyZ7, R.id.seekToyScale7, R.id.lblToyScale7);
+        bindToySlot(8, R.id.cbToy8, R.id.seekToyBone8, R.id.lblToyBone8, R.id.seekToyX8, R.id.lblToyX8, R.id.seekToyY8, R.id.lblToyY8, R.id.seekToyZ8, R.id.lblToyZ8, R.id.seekToyScale8, R.id.lblToyScale8);
+        bindToySlot(9, R.id.cbToy9, R.id.seekToyBone9, R.id.lblToyBone9, R.id.seekToyX9, R.id.lblToyX9, R.id.seekToyY9, R.id.lblToyY9, R.id.seekToyZ9, R.id.lblToyZ9, R.id.seekToyScale9, R.id.lblToyScale9);
+    }
+
+    private void bindToySlot(int i, int cbId, int boneSeekId, int boneLblId, int xId, int xlId,
+                             int yId, int ylId, int zId, int zlId, int scId, int sclId) {
+        final String p = "toy_" + i + "_";
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        CheckBox cb = findViewById(cbId);
+        if (cb != null) {
+            cb.setChecked(sp.getBoolean(p + "enabled", true));
+            cb.setOnCheckedChangeListener((b, on) -> sp.edit().putBoolean(p + "enabled", on).apply());
+        }
+        bindFloatSlider((SeekBar) findViewById(boneSeekId), (TextView) findViewById(boneLblId), p + "bone", 0f, 0f, 1f, 18, "Bone: %.0f (0 = default)");
+        bindFloatSlider((SeekBar) findViewById(xId), (TextView) findViewById(xlId), p + "ox", 0f, -0.5f, 0.01f, 100, "Offset X: %.2f");
+        bindFloatSlider((SeekBar) findViewById(yId), (TextView) findViewById(ylId), p + "oy", 0f, -0.5f, 0.01f, 100, "Offset Y: %.2f");
+        bindFloatSlider((SeekBar) findViewById(zId), (TextView) findViewById(zlId), p + "oz", 0f, -0.5f, 0.01f, 100, "Offset Z: %.2f");
+        bindFloatSlider((SeekBar) findViewById(scId), (TextView) findViewById(sclId), p + "scale", 1f, 0.5f, 0.01f, 150, "Skala: %.2fx");
+    }
+
+    private void bindFloatSlider(SeekBar bar, TextView label, String key, float def, float min, float step, int maxProgress, String fmt) {
+        if (bar == null || label == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        int p = Math.round((sp.getFloat(key, def) - min) / step);
+        p = Math.max(0, Math.min(maxProgress, p));
+        bar.setMax(maxProgress);
+        bar.setProgress(p);
+        label.setText(String.format(Locale.US, fmt, min + p * step));
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = min + progress * step;
+                label.setText(String.format(Locale.US, fmt, v));
+                if (fromUser) sp.edit().putFloat(key, v).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private String toysIniSection() {
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        StringBuilder b = new StringBuilder("\n[toys]\n");
+        for (int i = 0; i < 10; i++) {
+            String p = "toy_" + i + "_";
+            b.append("Slot").append(i).append("Enabled=").append(sp.getBoolean(p + "enabled", true)).append("\n");
+            b.append("Slot").append(i).append("Bone=").append(Math.round(sp.getFloat(p + "bone", 0f))).append("\n");
+            b.append("Slot").append(i).append("OffsetX=").append(sp.getFloat(p + "ox", 0f)).append("\n");
+            b.append("Slot").append(i).append("OffsetY=").append(sp.getFloat(p + "oy", 0f)).append("\n");
+            b.append("Slot").append(i).append("OffsetZ=").append(sp.getFloat(p + "oz", 0f)).append("\n");
+            b.append("Slot").append(i).append("Scale=").append(sp.getFloat(p + "scale", 1f)).append("\n");
+        }
+        return b.toString();
+    }
+
+    private void showCrashNotice() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                .setTitle("Sesi sebelumnya berhenti tak terduga")
+                .setMessage("Game sempat crash atau force close. Log lengkap tersimpan di:\n" + AppLog.logDirPath()
+                        + "\n\nKalau sering terjadi, kirim file log terakhir.")
+                .setPositiveButton("OK", null)
                 .show();
     }
 
-    // ===================== REMOTE CONFIG =====================
-    private void loadCachedRemoteConfig() {
-        String cached = prefs.getString(KEY_REMOTE_CACHE, "");
-        if (cached != null && !cached.isEmpty()) applyRemoteConfig(cached);
-    }
-
-    private void fetchRemoteConfig() {
-        if (REMOTE_CONFIG_URL == null || REMOTE_CONFIG_URL.isEmpty()) return;
-        executor.execute(() -> {
-            String body = httpGet(REMOTE_CONFIG_URL, 8000);
-            if (body == null) return;
-            prefs.edit().putString(KEY_REMOTE_CACHE, body).apply();
-            handler.post(() -> applyRemoteConfig(body));
+    private void setupMouseSensSlider() {
+        if (seekMouseSens == null || lblMouseSens == null) return;
+        final SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        float cur = Math.max(0.2f, Math.min(3.0f, sp.getFloat("setting_mouse_sensitivity", 1.0f)));
+        WarGamepad.sMouseSensitivity = cur;
+        seekMouseSens.setMax(28);
+        seekMouseSens.setProgress(Math.round((cur - 0.2f) * 10f));
+        lblMouseSens.setText(String.format(Locale.US, "Sensitivitas mouse: %.1fx", cur));
+        seekMouseSens.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                float v = 0.2f + progress * 0.1f;
+                WarGamepad.sMouseSensitivity = v;
+                lblMouseSens.setText(String.format(Locale.US, "Sensitivitas mouse: %.1fx", v));
+                if (fromUser) sp.edit().putFloat("setting_mouse_sensitivity", v).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
     }
 
-    private void applyRemoteConfig(String body) {
+    private void switchTab(int tabIndex) {
+        panelHome.setVisibility(tabIndex == 0 ? View.VISIBLE : View.GONE);
+        panelServers.setVisibility(tabIndex == 1 ? View.VISIBLE : View.GONE);
+        panelNews.setVisibility(tabIndex == 2 ? View.VISIBLE : View.GONE);
+        panelMods.setVisibility(tabIndex == 3 ? View.VISIBLE : View.GONE);
+        panelSettings.setVisibility(tabIndex == 4 ? View.VISIBLE : View.GONE);
+        panelControls.setVisibility(tabIndex == 5 ? View.VISIBLE : View.GONE);
+        panelToys.setVisibility(tabIndex == 6 ? View.VISIBLE : View.GONE);
+
+        Button[] nav = new Button[]{tabBtnHome, tabBtnServers, tabBtnNews, tabBtnMods, tabBtnSettings, tabBtnControls, tabBtnToys};
+        for (int i = 0; i < nav.length; i++) {
+            if (nav[i] != null) nav[i].setBackgroundResource(i == tabIndex ? R.drawable.nav_item_selected : R.drawable.nav_item);
+        }
+        if (tabIndex == 1) refreshServerList();
+        if (tabIndex == 2) renderNews(remoteNews);
+        if (tabIndex == 3) refreshModInfo();
+        if (tabIndex == 5) refreshPeripheralsStatus();
+    }
+
+    private void updateFpsButtons(int fps) {
+        selectedFps = fps;
+        btnFps30.setBackgroundResource(fps == 30 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps60.setBackgroundResource(fps == 60 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps90.setBackgroundResource(fps == 90 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnFps120.setBackgroundResource(fps == 120 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+    }
+
+    private void updateChatLineButtons(int lines) {
+        selectedChatLines = lines;
+        btnChat5.setBackgroundResource(lines == 5 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat7.setBackgroundResource(lines == 7 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat9.setBackgroundResource(lines == 9 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+        btnChat12.setBackgroundResource(lines == 12 ? R.drawable.bg_button_blue : R.drawable.bg_button_idle);
+    }
+
+    private void setupTabsAndListeners() {
+        tabBtnHome.setOnClickListener(v -> switchTab(0));
+        setupSidebarAndSliders();
+        tabBtnServers.setOnClickListener(v -> switchTab(1));
+        tabBtnNews.setOnClickListener(v -> switchTab(2));
+        tabBtnMods.setOnClickListener(v -> switchTab(3));
+        tabBtnSettings.setOnClickListener(v -> switchTab(4));
+        tabBtnControls.setOnClickListener(v -> switchTab(5));
+        tabBtnToys.setOnClickListener(v -> switchTab(6));
+        btnOpenServers.setOnClickListener(v -> switchTab(1));
+        btnOpenNews.setOnClickListener(v -> switchTab(2));
+        btnAddServer.setOnClickListener(v -> showAddServerDialog());
+        btnImportLua.setOnClickListener(v -> openImportPicker("lua"));
+        btnImportCleo.setOnClickListener(v -> openImportPicker("cleo"));
+        btnClearTemp.setOnClickListener(v -> clearTemporaryFiles());
+        btnProfileBattery.setOnClickListener(v -> applyPerformancePreset(0));
+        btnProfileBalanced.setOnClickListener(v -> applyPerformancePreset(1));
+        btnProfilePerformance.setOnClickListener(v -> applyPerformancePreset(2));
+
+        cbMonetLoaderEnabled.setOnCheckedChangeListener((button, checked) -> {
+            if (loadingSavedSettings) return;
+            if (!checked) {
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_MONETLOADER_ENABLED, false).apply();
+                Toast.makeText(this, "MonetLoader akan dinonaktifkan pada sesi game berikutnya.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            cbMonetLoaderEnabled.setEnabled(false);
+            startButton.setEnabled(false);
+            executor.execute(() -> {
+                boolean prepared = ensureMonetLoaderFiles();
+                handler.post(() -> {
+                    cbMonetLoaderEnabled.setEnabled(true);
+                    startButton.setEnabled(true);
+                    if (!prepared) {
+                        loadingSavedSettings = true;
+                        cbMonetLoaderEnabled.setChecked(false);
+                        loadingSavedSettings = false;
+                        Toast.makeText(MainActivity.this, "Gagal menyiapkan MonetLoader. Coba lagi atau main tanpa mod.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().putBoolean(KEY_MONETLOADER_ENABLED, true).apply();
+                    refreshModInfo();
+                    Toast.makeText(MainActivity.this, "MonetLoader siap. Script Lua akan aktif saat game berikutnya dimulai.", Toast.LENGTH_LONG).show();
+                });
+            });
+        });
+
+        btnFps30.setOnClickListener(v -> updateFpsButtons(30));
+        btnFps60.setOnClickListener(v -> updateFpsButtons(60));
+        btnFps90.setOnClickListener(v -> updateFpsButtons(90));
+        btnFps120.setOnClickListener(v -> updateFpsButtons(120));
+
+        btnChat5.setOnClickListener(v -> updateChatLineButtons(5));
+        btnChat7.setOnClickListener(v -> updateChatLineButtons(7));
+        btnChat9.setOnClickListener(v -> updateChatLineButtons(9));
+        btnChat12.setOnClickListener(v -> updateChatLineButtons(12));
+
+        btnSaveSettings.setOnClickListener(v -> {
+            String nick = sanitizeNick(nicknameInput.getText().toString());
+            if (nick.isEmpty()) nick = DEFAULT_NICK;
+            saveAllSettingsToIni(nick);
+            Toast.makeText(this, "Pengaturan berhasil disimpan ke SAMP/settings.ini!", Toast.LENGTH_SHORT).show();
+        });
+
+        btnResetSettings.setOnClickListener(v -> {
+            updateFpsButtons(60);
+            updateChatLineButtons(7);
+            cbVoiceChat.setChecked(true);
+            cbFpsCounter.setChecked(true);
+            cbFirstPerson.setChecked(true);
+            cbCutout.setChecked(true);
+            cbAndroidKeyboard.setChecked(false);
+            cbHpArmourText.setChecked(true);
+            cbOutfitGuns.setChecked(true);
+            cbRadarRect.setChecked(false);
+            cbPcMoney.setChecked(false);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+            String nick = sanitizeNick(nicknameInput.getText().toString());
+            if (nick.isEmpty()) nick = DEFAULT_NICK;
+            saveAllSettingsToIni(nick);
+            Toast.makeText(this, "Pengaturan dikembalikan ke default!", Toast.LENGTH_SHORT).show();
+        });
+
+        cbEnableKeyboardMouse.setOnCheckedChangeListener((b, checked) -> WarGamepad.sEnableKeyboardMouse = checked);
+        cbEnableGamepad.setOnCheckedChangeListener((b, checked) -> WarGamepad.sEnableGamepad = checked);
+        btnRefreshDevices.setOnClickListener(v -> refreshPeripheralsStatus());
+
+        btnDownloadLite.setOnClickListener(v -> beginConfiguredDownload(liteDataUrl, "Data Lite"));
+        btnDownloadFull.setOnClickListener(v -> beginConfiguredDownload(fullDataUrl, "Data Full"));
+        btnCustomUrl.setOnClickListener(v -> showCustomUrlDialog());
+        btnRepairData.setOnClickListener(v -> repairGameData());
+        btnReadyRepair.setOnClickListener(v -> repairGameData());
+        btnChangeData.setOnClickListener(v -> setDownloadGroupVisible(true));
+
+        switchTab(0);
+        startButton.setOnClickListener(v -> {
+            v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80)
+                    .withEndAction(() -> v.animate().scaleX(1f).scaleY(1f).setDuration(80).start())
+                    .start();
+            startGame();
+        });
+    }
+
+    private static final class ServerEntry {
+        final String name;
+        final String host;
+        final int port;
+        final boolean official;
+        ServerEntry(String name, String host, int port, boolean official) {
+            this.name = name;
+            this.host = host;
+            this.port = port;
+            this.official = official;
+        }
+        String key() { return host.toLowerCase(Locale.ROOT) + ":" + port; }
+    }
+
+    private int dp(float value) {
+        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
+    }
+
+    private boolean isValidServerHost(String host) {
+        if (host == null) return false;
+        String value = host.trim();
+        if (value.isEmpty() || value.length() > 127 || value.contains("..") || value.startsWith(".") || value.endsWith(".")) return false;
+        if (value.startsWith("-") || value.endsWith("-")) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (!(Character.isLetterOrDigit(c) || c == '.' || c == '-')) return false;
+        }
+        return true;
+    }
+
+    private void loadServerList() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        officialServer = new ServerEntry("Lombok Holiday Roleplay [OFFICIAL]", DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, true);
+        servers.clear();
+        servers.add(officialServer);
         try {
-            JSONObject o = new JSONObject(body);
-            JSONArray b = o.optJSONArray("banners");
-            if (b != null && b.length() > 0) {
-                banners.clear();
-                for (int i = 0; i < b.length(); i++) {
-                    JSONObject x = b.optJSONObject(i);
-                    if (x == null) continue;
-                    banners.add(new String[]{x.optString("badge", "INFO"), x.optString("title", ""),
-                            x.optString("subtitle", ""), x.optString("accent", "#38BDF8")});
-                }
+            JSONArray saved = new JSONArray(prefs.getString(KEY_CUSTOM_SERVERS, "[]"));
+            for (int i = 0; i < saved.length(); i++) {
+                JSONObject obj = saved.optJSONObject(i);
+                if (obj == null) continue;
+                String name = obj.optString("name", "Server").trim();
+                String host = obj.optString("host", "").trim();
+                int port = obj.optInt("port", 0);
+                if (!isValidServerHost(host) || port < 1 || port > 65535) continue;
+                ServerEntry entry = new ServerEntry(name.isEmpty() ? host : name, host, port, false);
+                if (!containsServer(entry.key())) servers.add(entry);
             }
-            JSONArray n = o.optJSONArray("news");
-            if (n != null && n.length() > 0) {
-                newsItems.clear();
-                for (int i = 0; i < n.length(); i++) {
-                    JSONObject x = n.optJSONObject(i);
-                    if (x == null) continue;
-                    newsItems.add(new String[]{x.optString("tag", "INFO"), x.optString("date", ""),
-                            x.optString("title", ""), x.optString("body", "")});
-                }
-            }
-            JSONArray s = o.optJSONArray("servers");
-            if (s != null) {
-                remoteServers.clear();
-                for (int i = 0; i < s.length(); i++) {
-                    JSONObject x = s.optJSONObject(i);
-                    if (x == null) continue;
-                    remoteServers.add(new String[]{x.optString("name", "Server"), x.optString("description", ""),
-                            x.optString("status", "Info")});
-                }
-            }
-            JSONObject lite = o.optJSONObject("data_lite");
-            if (lite != null) {
-                liteDataUrl = lite.optString("url", "");
-                liteName = lite.optString("name", "Data Lite");
-                liteSize = lite.optString("size_mb", "");
-            }
-            JSONObject full = o.optJSONObject("data_full");
-            if (full != null) {
-                fullDataUrl = full.optString("url", "");
-                fullName = full.optString("name", "Data Full");
-                fullSize = full.optString("size_mb", "");
-            }
-            if (bannerHost != null) showBanner(0);
-            renderNews();
-            renderServers();
-            updateDataButtons();
-        } catch (Exception ignored) {
+        } catch (Exception ignored) {}
+        selectedServerKey = prefs.getString(KEY_SELECTED_SERVER, officialServer.key());
+        if (!containsServer(selectedServerKey)) selectedServerKey = officialServer.key();
+    }
+
+    private boolean containsServer(String key) {
+        for (ServerEntry entry : servers) if (entry.key().equalsIgnoreCase(key)) return true;
+        return false;
+    }
+
+    private ServerEntry getSelectedServer() {
+        for (ServerEntry entry : servers) {
+            if (entry.key().equalsIgnoreCase(selectedServerKey)) return entry;
+        }
+        return officialServer != null ? officialServer : new ServerEntry("Lombok Holiday Roleplay [OFFICIAL]", DEFAULT_SERVER_HOST, DEFAULT_SERVER_PORT, true);
+    }
+
+    private void saveServerList() {
+        JSONArray array = new JSONArray();
+        for (ServerEntry entry : servers) {
+            if (entry.official) continue;
+            JSONObject obj = new JSONObject();
+            try {
+                obj.put("name", entry.name);
+                obj.put("host", entry.host);
+                obj.put("port", entry.port);
+                array.put(obj);
+            } catch (Exception ignored) {}
+        }
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .putString(KEY_CUSTOM_SERVERS, array.toString())
+                .putString(KEY_SELECTED_SERVER, selectedServerKey)
+                .apply();
+    }
+
+    private void updateOfficialServer(String name, String host, int port) {
+        if (!isValidServerHost(host) || port < 1 || port > 65535) return;
+        String oldKey = officialServer == null ? "" : officialServer.key();
+        String title = (name == null || name.trim().isEmpty()) ? "Lombok Holiday Roleplay [OFFICIAL]" : name.trim();
+        officialServer = new ServerEntry(title, host.trim(), port, true);
+        if (!servers.isEmpty() && servers.get(0).official) servers.set(0, officialServer);
+        else servers.add(0, officialServer);
+        if (selectedServerKey == null || selectedServerKey.isEmpty() || selectedServerKey.equalsIgnoreCase(oldKey)) {
+            selectedServerKey = officialServer.key();
+        }
+        if (homeServerText != null && selectedServerKey.equalsIgnoreCase(officialServer.key())) {
+            homeServerText.setText(officialServer.name + "  •  " + officialServer.host + ":" + officialServer.port);
+        }
+        refreshServerList();
+    }
+
+    // ----- SA-MP QUERY: status online & jumlah pemain (protokol UDP resmi, opcode 'i') -----
+    private static final class SampInfo {
+        final int players, maxPlayers, pingMs;
+        final String hostname;
+
+        SampInfo(int players, int maxPlayers, int pingMs, String hostname) {
+            this.players = players;
+            this.maxPlayers = maxPlayers;
+            this.pingMs = pingMs;
+            this.hostname = hostname;
         }
     }
 
-    private String httpGet(String u, int timeoutMs) {
-        HttpURLConnection conn = null;
+    private final java.util.Map<String, SampInfo> queryCache = new java.util.HashMap<>();
+    private final java.util.Map<String, Long> queryCacheAt = new java.util.HashMap<>();
+
+    private SampInfo querySamp(String host, int port) {
+        DatagramSocket socket = null;
         try {
-            conn = (HttpURLConnection) new URL(u).openConnection();
-            conn.setConnectTimeout(timeoutMs);
-            conn.setReadTimeout(timeoutMs);
-            conn.setRequestProperty("Cache-Control", "no-cache");
-            if (conn.getResponseCode() != HttpURLConnection.HTTP_OK) return null;
-            try (InputStream in = new BufferedInputStream(conn.getInputStream());
-                 ByteArrayOutputStream bo = new ByteArrayOutputStream()) {
-                byte[] buf = new byte[4096];
-                int n;
-                while ((n = in.read(buf)) != -1) bo.write(buf, 0, n);
-                return bo.toString("UTF-8");
-            }
-        } catch (Exception e) {
+            InetAddress addr = InetAddress.getByName(host);
+            byte[] ip = addr.getAddress();
+            if (ip == null || ip.length != 4) return null;
+            socket = new DatagramSocket();
+            socket.setSoTimeout(2500);
+            byte[] req = new byte[11];
+            req[0] = 'S';
+            req[1] = 'A';
+            req[2] = 'M';
+            req[3] = 'P';
+            System.arraycopy(ip, 0, req, 4, 4);
+            req[8] = (byte) (port & 0xFF);
+            req[9] = (byte) ((port >> 8) & 0xFF);
+            req[10] = 'i';
+            long t0 = System.currentTimeMillis();
+            socket.send(new DatagramPacket(req, req.length, addr, port));
+            byte[] buf = new byte[1024];
+            DatagramPacket resp = new DatagramPacket(buf, buf.length);
+            socket.receive(resp);
+            int ping = (int) (System.currentTimeMillis() - t0);
+            int len = resp.getLength();
+            if (len < 11 + 5 || buf[10] != 'i') return null;
+            int pos = 11 + 1; // lewati flag password
+            int players = (buf[pos] & 0xFF) | ((buf[pos + 1] & 0xFF) << 8);
+            pos += 2;
+            int maxPlayers = (buf[pos] & 0xFF) | ((buf[pos + 1] & 0xFF) << 8);
+            pos += 2;
+            int[] cur = {pos};
+            String hostname = readSampString(buf, len, cur);
+            return new SampInfo(players, maxPlayers, ping, hostname);
+        } catch (Throwable ignored) {
             return null;
         } finally {
-            if (conn != null) conn.disconnect();
+            if (socket != null) socket.close();
         }
     }
 
-    private void updateDataButtons() {
-        if (btnDownloadLite == null) return;
-        boolean hasLite = liteDataUrl != null && !liteDataUrl.isEmpty();
-        boolean hasFull = fullDataUrl != null && !fullDataUrl.isEmpty();
-        btnDownloadLite.setAlpha(hasLite ? 1f : 0.45f);
-        btnDownloadFull.setAlpha(hasFull ? 1f : 0.45f);
-        liteDescText.setText(hasLite
-                ? liteName + (liteSize.isEmpty() ? "" : " \u2022 ~" + liteSize + " MB") + " \u2022 Tanpa OBB"
-                : "Link Data Lite belum dikonfigurasi di data-config.json");
-        fullDescText.setText(hasFull
-                ? fullName + (fullSize.isEmpty() ? "" : " \u2022 ~" + fullSize + " MB") + " \u2022 Tanpa OBB"
-                : "Link Data Full belum dikonfigurasi di data-config.json");
+    private String readSampString(byte[] buf, int len, int[] cur) {
+        int p = cur[0];
+        if (p + 4 > len) return "";
+        int n = (buf[p] & 0xFF) | ((buf[p + 1] & 0xFF) << 8) | ((buf[p + 2] & 0xFF) << 16) | ((buf[p + 3] & 0xFF) << 24);
+        p += 4;
+        if (n < 0 || p + n > len) {
+            cur[0] = len;
+            return "";
+        }
+        cur[0] = p + n;
+        return new String(buf, p, n, java.nio.charset.StandardCharsets.UTF_8);
     }
 
-    // ===================== IN-APP DATA DOWNLOADER =====================
-    private File getPreferredWritableDataDir() {
-        File f = new File(resolveGameDataDir(this));
-        if (!f.exists()) f.mkdirs();
-        if (!f.canWrite()) {
-            File ext = getExternalFilesDir(null);
-            if (ext != null) {
-                ext.mkdirs();
-                return ext;
+    private void applyStatus(TextView tv, SampInfo info) {
+        if (tv == null) return;
+        if (info == null) {
+            tv.setText("\u25CF  OFFLINE  \u2022  tidak merespon");
+            tv.setTextColor(0xFFF87171);
+        } else {
+            tv.setText("\u25CF  ONLINE  \u2022  " + info.players + "/" + info.maxPlayers + " pemain  \u2022  " + info.pingMs + " ms");
+            tv.setTextColor(0xFF34D399);
+        }
+    }
+
+    private void requestSampStatus(final String host, final int port, final TextView target) {
+        if (target == null) return;
+        final String key = host + ":" + port;
+        Long at = queryCacheAt.get(key);
+        if (at != null && System.currentTimeMillis() - at < 20000L) {
+            applyStatus(target, queryCache.get(key));
+            return;
+        }
+        target.setText("\u25CB  Memeriksa server...");
+        target.setTextColor(0xFF94A3B8);
+        new Thread(() -> {
+            final SampInfo info = querySamp(host, port);
+            runOnUiThread(() -> {
+                queryCache.put(key, info);
+                queryCacheAt.put(key, System.currentTimeMillis());
+                applyStatus(target, info);
+            });
+        }).start();
+    }
+
+    private void refreshHomeStatus() {
+        ServerEntry sel = getSelectedServer();
+        if (homeServerStatus != null && sel != null) requestSampStatus(sel.host, sel.port, homeServerStatus);
+    }
+
+    private void refreshServerList() {
+        if (serverListContainer == null) return;
+        serverListContainer.removeAllViews();
+        ServerEntry selected = getSelectedServer();
+        if (homeServerText != null && selected != null) {
+            homeServerText.setText(selected.name + "  •  " + selected.host + ":" + selected.port);
+        }
+        refreshHomeStatus();
+        for (ServerEntry entry : servers) {
+            boolean active = selected != null && entry.key().equalsIgnoreCase(selected.key());
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.HORIZONTAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(12), dp(8), dp(8), dp(8));
+            card.setBackgroundResource(R.drawable.bg_card);
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(-1, -2);
+            cardParams.bottomMargin = dp(8);
+            serverListContainer.addView(card, cardParams);
+
+            LinearLayout detail = new LinearLayout(this);
+            detail.setOrientation(LinearLayout.VERTICAL);
+            detail.setLayoutParams(new LinearLayout.LayoutParams(0, -2, 1f));
+            TextView title = new TextView(this);
+            title.setText(entry.name);
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(13f);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            TextView address = new TextView(this);
+            address.setText(entry.host + ":" + entry.port + (entry.official ? "  •  RESMI" : "  •  KUSTOM"));
+            address.setTextColor(entry.official ? 0xFF38BDF8 : 0xFF94A3B8);
+            address.setTextSize(10f);
+            detail.addView(title);
+            detail.addView(address);
+            TextView status = new TextView(this);
+            status.setTextSize(10f);
+            status.setTypeface(null, android.graphics.Typeface.BOLD);
+            status.setPadding(0, dp(3), 0, 0);
+            detail.addView(status);
+            requestSampStatus(entry.host, entry.port, status);
+            card.addView(detail);
+
+            Button select = new Button(this);
+            select.setAllCaps(false);
+            select.setText(active ? "DIPILIH" : "PILIH");
+            select.setTextSize(10f);
+            select.setTextColor(Color.WHITE);
+            select.setBackgroundResource(active ? R.drawable.bg_button_primary : R.drawable.bg_button_blue);
+            LinearLayout.LayoutParams selectParams = new LinearLayout.LayoutParams(dp(82), dp(36));
+            card.addView(select, selectParams);
+            select.setOnClickListener(v -> {
+                selectedServerKey = entry.key();
+                saveServerList();
+                refreshServerList();
+                Toast.makeText(this, "Server dipilih: " + entry.name, Toast.LENGTH_SHORT).show();
+            });
+
+            if (!entry.official) {
+                Button remove = new Button(this);
+                remove.setAllCaps(false);
+                remove.setText("×");
+                remove.setTextSize(18f);
+                remove.setTextColor(0xFFFCA5A5);
+                remove.setBackgroundResource(R.drawable.bg_button_muted);
+                LinearLayout.LayoutParams removeParams = new LinearLayout.LayoutParams(dp(38), dp(36));
+                removeParams.leftMargin = dp(6);
+                card.addView(remove, removeParams);
+                remove.setContentDescription("Hapus " + entry.name);
+                remove.setOnClickListener(v -> removeServer(entry));
             }
         }
-        return f;
     }
 
-    private void startInAppDataDownload(final String zipUrl, final String label) {
-        if (zipUrl == null || zipUrl.isEmpty()) {
-            Toast.makeText(this, label + " belum dikonfigurasi. Gunakan URL ZIP Custom.", Toast.LENGTH_LONG).show();
-            return;
-        }
-        if (isDownloading) {
-            Toast.makeText(this, "Unduhan sedang berjalan, harap tunggu...", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        isDownloading = true;
-        downloadProgressBar.setIndeterminate(false);
-        downloadProgressBar.setProgress(0);
-        downloadStatusText.setText("Menghubungkan ke server unduhan " + label + "...");
+    private void removeServer(ServerEntry entry) {
+        if (entry == null || entry.official) return;
+        servers.remove(entry);
+        if (selectedServerKey.equalsIgnoreCase(entry.key())) selectedServerKey = officialServer.key();
+        saveServerList();
+        refreshServerList();
+    }
 
-        executor.execute(() -> {
-            File targetDir = getPreferredWritableDataDir();
-            File tempZip = new File(targetDir, "lombok_data_download.zip.part");
-            HttpURLConnection conn = null;
+    private void showAddServerDialog() {
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        form.setPadding(dp(20), dp(8), dp(20), 0);
+        EditText name = new EditText(this);
+        name.setSingleLine(true);
+        name.setHint("Nama server (opsional)");
+        name.setTextColor(Color.WHITE);
+        name.setHintTextColor(0xFF94A3B8);
+        name.setBackgroundResource(R.drawable.bg_input);
+        name.setPadding(dp(12), dp(8), dp(12), dp(8));
+        EditText host = new EditText(this);
+        host.setSingleLine(true);
+        host.setHint("Domain / IPv4, contoh: samp.example.net");
+        host.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        host.setTextColor(Color.WHITE);
+        host.setHintTextColor(0xFF94A3B8);
+        host.setBackgroundResource(R.drawable.bg_input);
+        host.setPadding(dp(12), dp(8), dp(12), dp(8));
+        EditText port = new EditText(this);
+        port.setSingleLine(true);
+        port.setHint("Port UDP (contoh: 7777)");
+        port.setInputType(InputType.TYPE_CLASS_NUMBER);
+        port.setText("7777");
+        port.setTextColor(Color.WHITE);
+        port.setHintTextColor(0xFF94A3B8);
+        port.setBackgroundResource(R.drawable.bg_input);
+        port.setPadding(dp(12), dp(8), dp(12), dp(8));
+        LinearLayout.LayoutParams fieldParams = new LinearLayout.LayoutParams(-1, dp(44));
+        fieldParams.bottomMargin = dp(8);
+        form.addView(name, fieldParams);
+        form.addView(host, fieldParams);
+        form.addView(port, fieldParams);
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                .setTitle("Tambah server SA-MP")
+                .setMessage("Masukkan host dan port UDP. IPv6 belum didukung.")
+                .setView(form)
+                .setPositiveButton("SIMPAN", (dialog, which) -> {
+                    String hostValue = host.getText().toString().trim();
+                    int portValue;
+                    try { portValue = Integer.parseInt(port.getText().toString().trim()); }
+                    catch (Exception e) { portValue = 0; }
+                    if (!isValidServerHost(hostValue) || portValue < 1 || portValue > 65535) {
+                        Toast.makeText(this, "Host atau port tidak valid. Gunakan domain/IPv4 dan port 1–65535.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    String serverName = name.getText().toString().trim();
+                    if (serverName.isEmpty()) serverName = hostValue;
+                    ServerEntry created = new ServerEntry(serverName, hostValue, portValue, false);
+                    if (containsServer(created.key())) {
+                        Toast.makeText(this, "Server tersebut sudah ada di daftar.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    servers.add(created);
+                    selectedServerKey = created.key();
+                    saveServerList();
+                    refreshServerList();
+                    Toast.makeText(this, "Server disimpan dan dipilih.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("BATAL", null)
+                .show();
+    }
+
+    private void renderBanners(JSONArray items) {
+        if (bannerFlipper == null) return;
+        JSONArray source = items;
+        if (source == null || source.length() == 0) {
+            source = new JSONArray();
             try {
-                long existingBytes = tempZip.exists() ? tempZip.length() : 0L;
-                URL url = new URL(zipUrl);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setInstanceFollowRedirects(true);
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(30000);
-                if (existingBytes > 0) {
-                    conn.setRequestProperty("Range", "bytes=" + existingBytes + "-");
-                }
-                int code = conn.getResponseCode();
-                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL && existingBytes > 0) {
-                    tempZip.delete();
-                    existingBytes = 0;
-                    conn.disconnect();
-                    conn = (HttpURLConnection) url.openConnection();
-                    conn.setInstanceFollowRedirects(true);
-                    code = conn.getResponseCode();
-                }
-                if (code != HttpURLConnection.HTTP_OK && code != HttpURLConnection.HTTP_PARTIAL) {
-                    final int errCode = code;
-                    handler.post(() -> {
-                        isDownloading = false;
-                        downloadStatusText.setText("Link unduhan gagal (HTTP " + errCode + "). Coba URL ZIP Custom.");
-                    });
-                    return;
-                }
+                source.put(new JSONObject().put("badge", "LOMBOK HOLIDAY").put("title", "Selamat datang di Lombok Holiday").put("subtitle", "Pilih server, atur kontrol, lalu masuk ke dunia SA-MP."));
+                source.put(new JSONObject().put("badge", "SERVER FAVORIT").put("title", "Simpan server pilihanmu").put("subtitle", "Tambahkan domain atau alamat IPv4 dan pilih server langsung dari launcher."));
+                source.put(new JSONObject().put("badge", "KONTROL LEBIH LUWES").put("title", "Main dengan layar sentuh atau perangkat eksternal").put("subtitle", "Atur FPS, keyboard, mouse, gamepad, dan kontrol multi-sentuh dari menu launcher."));
+            } catch (Exception ignored) {}
+        }
+        bannerFlipper.removeAllViews();
+        for (int i = 0; i < source.length(); i++) {
+            JSONObject item = source.optJSONObject(i);
+            if (item == null) continue;
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setGravity(Gravity.CENTER_VERTICAL);
+            card.setPadding(dp(18), dp(12), dp(18), dp(12));
+            int[] colors = new int[]{0xFF0C4A6E, 0xFF1E3A8A, 0xFF134E4A};
+            GradientDrawable background = new GradientDrawable();
+            background.setColor(colors[i % colors.length]);
+            background.setCornerRadius(dp(24));
+            background.setStroke(dp(1), 0x3338BDF8);
+            card.setBackground(background);
+            TextView badge = new TextView(this);
+            badge.setText(item.optString("badge", "LOMBOK HOLIDAY"));
+            badge.setTextColor(0xFFD8B4FE);
+            badge.setTextSize(9f);
+            badge.setTypeface(null, android.graphics.Typeface.BOLD);
+            TextView title = new TextView(this);
+            title.setText(item.optString("title", "Lombok Holiday"));
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(17f);
+            title.setTypeface(null, android.graphics.Typeface.BOLD);
+            title.setMaxLines(2);
+            TextView subtitle = new TextView(this);
+            subtitle.setText(item.optString("subtitle", "Launcher SA-MP Mobile"));
+            subtitle.setTextColor(0xFFE2E8F0);
+            subtitle.setTextSize(10f);
+            subtitle.setMaxLines(2);
+            card.addView(badge);
+            card.addView(title, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(-1, -2);
+            subtitleParams.topMargin = dp(3);
+            card.addView(subtitle, subtitleParams);
+            bannerFlipper.addView(card, new FrameLayout.LayoutParams(-1, -1));
+        }
+        if (bannerFlipper.getChildCount() == 0) {
+            TextView fallback = new TextView(this);
+            fallback.setText("Lombok Holiday");
+            fallback.setTextColor(Color.WHITE);
+            fallback.setGravity(Gravity.CENTER);
+            bannerFlipper.addView(fallback);
+        }
+        bannerFlipper.setDisplayedChild(0);
+        bannerFlipper.setFlipInterval(6000);
+        bannerFlipper.setInAnimation(this, android.R.anim.fade_in);
+        bannerFlipper.setOutAnimation(this, android.R.anim.fade_out);
+        updateBannerIndicator();
+    }
 
-                long contentLength = conn.getContentLengthLong();
-                long totalBytes = (code == HttpURLConnection.HTTP_PARTIAL && contentLength > 0)
-                        ? (existingBytes + contentLength) : contentLength;
-                boolean append = (code == HttpURLConnection.HTTP_PARTIAL);
+    private void updateBannerIndicator() {
+        if (bannerIndicator == null || bannerFlipper == null) return;
+        int count = bannerFlipper.getChildCount();
+        StringBuilder dots = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) dots.append("   ");
+            dots.append(i == bannerFlipper.getDisplayedChild() ? "●" : "○");
+        }
+        bannerIndicator.setText(dots.toString());
+    }
 
-                try (InputStream in = new BufferedInputStream(conn.getInputStream(), 65536);
-                     FileOutputStream fos = new FileOutputStream(tempZip, append)) {
-                    byte[] buf = new byte[65536];
-                    long downloaded = append ? existingBytes : 0L;
-                    long lastUpdate = System.currentTimeMillis();
-                    long bytesAtLastUpdate = downloaded;
-                    int n;
-                    while ((n = in.read(buf)) != -1) {
-                        fos.write(buf, 0, n);
-                        downloaded += n;
-                        long now = System.currentTimeMillis();
-                        if (now - lastUpdate >= 250) {
-                            long deltaB = downloaded - bytesAtLastUpdate;
-                            double speedMb = (deltaB / 1048576.0) / ((now - lastUpdate) / 1000.0);
-                            int pct = (totalBytes > 0) ? (int) ((downloaded * 100L) / totalBytes) : 0;
-                            final double dlMb = downloaded / 1048576.0;
-                            final double totMb = totalBytes > 0 ? (totalBytes / 1048576.0) : 0.0;
-                            final int fPct = pct;
-                            final double fSpd = speedMb;
-                            handler.post(() -> {
-                                downloadProgressBar.setProgress(fPct);
-                                downloadStatusText.setText(String.format(Locale.ROOT,
-                                        "Mengunduh %s: %.1f / %.1f MB (%d%%) \u2022 %.2f MB/s",
-                                        label, dlMb, totMb, fPct, fSpd));
-                            });
-                            lastUpdate = now;
-                            bytesAtLastUpdate = downloaded;
+    private void renderNews(JSONArray items) {
+        if (newsContainer == null || homeNewsContainer == null) return;
+        newsContainer.removeAllViews();
+        homeNewsContainer.removeAllViews();
+        if (items == null || items.length() == 0) {
+            TextView empty = new TextView(this);
+            empty.setText("Belum ada berita baru. Konten akan muncul di sini saat data news ditambahkan ke data-config.json.");
+            empty.setTextColor(0xFF94A3B8);
+            empty.setTextSize(11f);
+            empty.setPadding(0, dp(12), 0, dp(12));
+            newsContainer.addView(empty);
+            homeNewsContainer.addView(emptyCopy("Belum ada berita terbaru."));
+            return;
+        }
+        for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            addNewsCard(newsContainer, item);
+            if (i < 2) addNewsCard(homeNewsContainer, item);
+        }
+    }
+
+    private TextView emptyCopy(String value) {
+        TextView text = new TextView(this);
+        text.setText(value);
+        text.setTextColor(0xFF94A3B8);
+        text.setTextSize(10f);
+        text.setPadding(0, dp(6), 0, dp(4));
+        return text;
+    }
+
+    private void addNewsCard(LinearLayout container, JSONObject item) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(12), dp(10), dp(12), dp(10));
+        card.setBackgroundResource(R.drawable.bg_info);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.bottomMargin = dp(8);
+        container.addView(card, params);
+        TextView date = new TextView(this);
+        date.setText(item.optString("date", "INFO"));
+        date.setTextColor(0xFFA78BFA);
+        date.setTextSize(9f);
+        date.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView title = new TextView(this);
+        title.setText(item.optString("title", "Info Lombok Holiday"));
+        title.setTextColor(Color.WHITE);
+        title.setTextSize(13f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        TextView body = new TextView(this);
+        body.setText(item.optString("body", ""));
+        body.setTextColor(0xFFCBD5E1);
+        body.setTextSize(10f);
+        card.addView(date);
+        card.addView(title);
+        card.addView(body);
+    }
+
+    private void applyPerformancePreset(int preset) {
+        if (preset == 0) {
+            updateFpsButtons(30);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        } else if (preset == 1) {
+            updateFpsButtons(60);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        } else {
+            updateFpsButtons(120);
+            cbSkyBox.setChecked(false);
+            cbSnow.setChecked(false);
+        }
+        String nick = sanitizeNick(nicknameInput.getText().toString());
+        if (nick.isEmpty()) nick = DEFAULT_NICK;
+        saveAllSettingsToIni(nick);
+        String label = preset == 0 ? "Hemat" : (preset == 1 ? "Seimbang" : "FPS Maksimum");
+        Toast.makeText(this, "Preset " + label + " disimpan. FPS aktual bergantung pada perangkat.", Toast.LENGTH_LONG).show();
+    }
+
+    private File getAppMediaRoot() {
+        try {
+            File[] dirs = getExternalMediaDirs();
+            if (dirs != null && dirs.length > 0 && dirs[0] != null) {
+                if (!dirs[0].exists()) dirs[0].mkdirs();
+                return dirs[0];
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    private boolean ensureMonetLoaderFiles() {
+        File mediaRoot = getAppMediaRoot();
+        if (mediaRoot == null) return false;
+        File loaderRoot = new File(mediaRoot, "monetloader");
+        File installMarker = new File(loaderRoot, ".lombok_monetloader_3.8.0_installed");
+        if (!loaderRoot.exists() && !loaderRoot.mkdirs()) return false;
+        if (!installMarker.exists()) {
+            try (InputStream input = getAssets().open("monetloader-dist.zip");
+                 ZipInputStream zip = new ZipInputStream(new BufferedInputStream(input))) {
+                ZipEntry entry;
+                byte[] buffer = new byte[16384];
+                String rootPath = loaderRoot.getCanonicalPath() + File.separator;
+                while ((entry = zip.getNextEntry()) != null) {
+                    String name = entry.getName().replace('\\', '/');
+                    if (name.startsWith("dist/")) name = name.substring(5);
+                    while (name.startsWith("/")) name = name.substring(1);
+                    if (name.isEmpty() || name.contains("..")) { zip.closeEntry(); continue; }
+                    if (android.os.Process.is64Bit() && name.endsWith("libmoonmonet_rs.so")) { zip.closeEntry(); continue; }
+                    File out = new File(loaderRoot, name);
+                    if (!out.getCanonicalPath().startsWith(rootPath)) { zip.closeEntry(); continue; }
+                    if (entry.isDirectory()) {
+                        out.mkdirs();
+                    } else {
+                        File parent = out.getParentFile();
+                        if (parent != null && !parent.exists()) parent.mkdirs();
+                        try (BufferedOutputStream stream = new BufferedOutputStream(new FileOutputStream(out), 16384)) {
+                            int count;
+                            while ((count = zip.read(buffer)) != -1) stream.write(buffer, 0, count);
+                            stream.flush();
                         }
                     }
-                    fos.flush();
+                    zip.closeEntry();
                 }
+            } catch (Exception e) {
+                return false;
+            }
+            try (FileOutputStream marker = new FileOutputStream(installMarker)) {
+                marker.write("MonetLoader 3.8.0".getBytes(StandardCharsets.UTF_8));
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        File compat = new File(loaderRoot, "compat/profile.json");
+        if (!compat.exists()) {
+            try {
+                File parent = compat.getParentFile();
+                if (parent != null && !parent.exists()) parent.mkdirs();
+                try (FileOutputStream out = new FileOutputStream(compat)) {
+                    out.write(MONETLOADER_PROFILE.getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return true;
+    }
 
+    private void refreshModInfo() {
+        File mediaRoot = getAppMediaRoot();
+        if (mediaRoot != null && modStoragePath != null) {
+            String monet = new File(mediaRoot, "monetloader").getAbsolutePath();
+            String cleo = new File(mediaRoot, "cleo/sa").getAbsolutePath();
+            modStoragePath.setText("MonetLoader: " + monet + "\nCLEO script folder: " + cleo);
+        }
+        if (modRuntimeStatus != null) {
+            boolean enabled = getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_MONETLOADER_ENABLED, false);
+            modRuntimeStatus.setText(enabled
+                    ? "MonetLoader diaktifkan untuk sesi berikutnya. API khusus SA-MP belum diverifikasi pada semua ABI."
+                    : "MonetLoader tersedia sebagai opsi eksperimental. CLEO hanya menerima file; runtime CLEO belum terpasang.");
+        }
+    }
+
+    private void openImportPicker(String target) {
+        pendingImportTarget = target;
+        importFileLauncher.launch(new String[]{"*/*"});
+    }
+
+    private String getDisplayName(Uri uri) {
+        String result = null;
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (column >= 0) result = cursor.getString(column);
+            }
+        } catch (Exception ignored) {}
+        if (result == null || result.trim().isEmpty()) result = uri.getLastPathSegment();
+        return result == null ? "mod" : result;
+    }
+
+    private void importSelectedFile(Uri uri) {
+        final String target = pendingImportTarget;
+        executor.execute(() -> {
+            String displayName = getDisplayName(uri);
+            String safeName = displayName.replaceAll("[^A-Za-z0-9._-]", "_");
+            String lower = safeName.toLowerCase(Locale.ROOT);
+            boolean lua = lower.endsWith(".lua") || lower.endsWith(".luac");
+            boolean cleo = lower.endsWith(".csa") || lower.endsWith(".csi");
+            if (("lua".equals(target) && !lua) || ("cleo".equals(target) && !cleo) || (!lua && !cleo)) {
+                handler.post(() -> Toast.makeText(MainActivity.this, "Format tidak didukung. MonetLoader menerima .lua/.luac; CLEO menerima .csa/.csi.", Toast.LENGTH_LONG).show());
+                return;
+            }
+            try {
+                File mediaRoot = getAppMediaRoot();
+                if (mediaRoot == null) throw new IllegalStateException("Folder Android/media tidak tersedia");
+                File destinationRoot;
+                if (lua) {
+                    if (!ensureMonetLoaderFiles()) throw new IllegalStateException("MonetLoader belum siap");
+                    destinationRoot = new File(mediaRoot, "monetloader");
+                } else {
+                    destinationRoot = new File(mediaRoot, "cleo/sa");
+                    if (!destinationRoot.exists()) destinationRoot.mkdirs();
+                }
+                File destination = new File(destinationRoot, safeName);
+                try (InputStream in = getContentResolver().openInputStream(uri);
+                     BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(destination))) {
+                    if (in == null) throw new IllegalStateException("File tidak bisa dibaca");
+                    byte[] buffer = new byte[16384];
+                    int n;
+                    while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+                    out.flush();
+                }
                 handler.post(() -> {
-                    downloadProgressBar.setIndeterminate(true);
-                    downloadStatusText.setText("Mengekstrak " + label + " ke folder data...");
-                });
-
-                extractZipSmart(tempZip, targetDir);
-                tempZip.delete();
-                provisionSampDirectory(targetDir);
-
-                handler.post(() -> {
-                    isDownloading = false;
-                    downloadProgressBar.setIndeterminate(false);
-                    downloadProgressBar.setProgress(100);
-                    String active = resolveGameDataDir(MainActivity.this);
-                    updateDataStatusLabel(active);
-                    downloadStatusText.setText("Selesai! " + label + " terpasang di: " + active);
-                    Toast.makeText(MainActivity.this, label + " selesai diunduh & diekstrak!", Toast.LENGTH_LONG).show();
+                    refreshModInfo();
+                    String message = lua
+                            ? "Script Lua disalin. Aktifkan MonetLoader dan mulai ulang game untuk memuatnya."
+                            : "Script CLEO disalin ke folder Android/media. Runtime CLEO belum tersedia di build ini.";
+                    Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
                 });
             } catch (Exception e) {
-                final String msg = e.getMessage();
-                handler.post(() -> {
-                    isDownloading = false;
-                    downloadProgressBar.setIndeterminate(false);
-                    downloadStatusText.setText("Unduhan terhenti: " + msg + " (klik lagi untuk lanjut otomatis)");
-                });
+                String message = e.getMessage() == null ? "Gagal menyalin file mod" : e.getMessage();
+                handler.post(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void clearTemporaryFiles() {
+        if (DataDownloadService.isPending(this)) {
+            Toast.makeText(this, "Unduhan sedang berjalan. File sementara tidak dihapus.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean removed = true;
+        File[] leftovers = getPreferredWritableDataDir().listFiles();
+        if (leftovers != null) {
+            for (File f : leftovers) {
+                if (f.getName().startsWith("lombok_data_") && f.getName().endsWith(".zip.part")) {
+                    removed = f.delete() && removed;
+                }
+            }
+        }
+        DataDownloadService.prefs(this).edit().putString(DataDownloadService.K_STATE, "idle").apply();
+        Toast.makeText(this, removed ? "File unduhan sementara dibersihkan. Data game dan mod tidak diubah." : "File sementara tidak dapat dihapus.", Toast.LENGTH_LONG).show();
+    }
+
+    private void refreshPeripheralsStatus() {
+        if (peripheralStatusText == null) return;
+        boolean hasKb = WarGamepad.hasConnectedKeyboard();
+        boolean hasMouse = WarGamepad.hasConnectedMouse();
+        boolean hasPad = WarGamepad.hasConnectedGamepad();
+
+        List<String> names = new ArrayList<>();
+        try {
+            for (int id : InputDevice.getDeviceIds()) {
+                InputDevice d = InputDevice.getDevice(id);
+                if (d != null && !d.isVirtual()) {
+                    int s = d.getSources();
+                    if ((s & InputDevice.SOURCE_GAMEPAD) != 0 || (s & InputDevice.SOURCE_JOYSTICK) != 0 ||
+                        (s & InputDevice.SOURCE_MOUSE) != 0 ||
+                        ((s & InputDevice.SOURCE_KEYBOARD) != 0 && d.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC)) {
+                        names.add(d.getName());
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+
+        String status = String.format(Locale.ROOT,
+                "Status Perangkat: Keyboard Fisik [%s] | Mouse OTG/BT [%s] | Gamepad [%s]%s",
+                hasKb ? "TERHUBUNG" : "SIAP",
+                hasMouse ? "TERHUBUNG" : "SIAP",
+                hasPad ? "TERHUBUNG" : "SIAP",
+                names.isEmpty() ? "" : ("\nPerangkat Terdeteksi: " + String.join(", ", names)));
+        peripheralStatusText.setText(status);
+    }
+
+    private void fetchRemoteDataConfig() {
+        executor.execute(() -> {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(REMOTE_CONFIG_URL).openConnection();
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+                conn.setUseCaches(false);
+                if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                    StringBuilder sb = new StringBuilder();
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                        String line;
+                        while ((line = br.readLine()) != null) sb.append(line);
+                    }
+                    JSONObject obj = new JSONObject(sb.toString());
+                    JSONObject official = obj.optJSONObject("official_server");
+                    String serverName = official == null ? "" : official.optString("name", "");
+                    String serverHost = official == null ? "" : official.optString("host", "");
+                    int serverPort = official == null ? 0 : official.optInt("port", 0);
+                    JSONObject lite = obj.optJSONObject("data_lite");
+                    JSONObject full = obj.optJSONObject("data_full");
+                    String liteUrl = lite == null ? "" : lite.optString("url", "").trim();
+                    String fullUrl = full == null ? "" : full.optString("url", "").trim();
+                    JSONArray banners = obj.optJSONArray("banners");
+                    JSONArray news = obj.optJSONArray("news");
+                    if (isHttpsUrl(liteUrl)) liteDataUrl = liteUrl;
+                    else liteDataUrl = "";
+                    if (isHttpsUrl(fullUrl)) fullDataUrl = fullUrl;
+                    else fullDataUrl = "";
+                    remoteBanners = banners == null ? new JSONArray() : banners;
+                    remoteNews = news == null ? new JSONArray() : news;
+                    handler.post(() -> {
+                        if (isValidServerHost(serverHost) && serverPort > 0 && serverPort <= 65535) {
+                            boolean matchesBuildPin = serverHost.equalsIgnoreCase(DEFAULT_SERVER_HOST) && serverPort == DEFAULT_SERVER_PORT;
+                            updateOfficialServer(serverName, matchesBuildPin ? serverHost : DEFAULT_SERVER_HOST,
+                                    matchesBuildPin ? serverPort : DEFAULT_SERVER_PORT);
+                        }
+                        renderBanners(remoteBanners);
+                        renderNews(remoteNews);
+                    });
+                }
+            } catch (Exception ignored) {
+                // Offline mode: use local banner/news fallbacks and keep launcher usable.
             } finally {
                 if (conn != null) conn.disconnect();
             }
         });
     }
 
-    private void extractZipSmart(File zipFile, File targetRoot) throws Exception {
-        String[] knownRoots = new String[]{"texdb/", "models/", "data/", "anim/", "audio/", "samp/"};
-        try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(zipFile), 65536))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[65536];
-            while ((entry = zis.getNextEntry()) != null) {
-                String rawName = entry.getName().replace('\\', '/');
-                while (rawName.startsWith("/")) rawName = rawName.substring(1);
-                if (rawName.contains("..")) continue;
+    private boolean isHttpsUrl(String value) {
+        if (value == null) return false;
+        String lower = value.trim().toLowerCase(Locale.ROOT);
+        return lower.startsWith("https://");
+    }
 
-                // Normalisasi bila ZIP punya folder pembungkus (misal "com.rockstargames.gtasa/files/texdb/...")
-                String lower = rawName.toLowerCase(Locale.ROOT);
-                for (String kr : knownRoots) {
-                    int idx = lower.indexOf(kr);
-                    if (idx > 0 && rawName.charAt(idx - 1) == '/') {
-                        rawName = rawName.substring(idx);
-                        break;
-                    }
-                }
-
-                File outFile = new File(targetRoot, rawName);
-                // Defense-in-depth: tolak entry yang secara kanonikal keluar dari targetRoot (Zip Slip)
-                String canonicalTarget = targetRoot.getCanonicalPath() + File.separator;
-                if (!outFile.getCanonicalPath().startsWith(canonicalTarget)) continue;
-                if (entry.isDirectory()) {
-                    outFile.mkdirs();
-                } else {
-                    File parent = outFile.getParentFile();
-                    if (parent != null && !parent.exists()) parent.mkdirs();
-                    try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outFile), 65536)) {
-                        int len;
-                        while ((len = zis.read(buffer)) != -1) {
-                            bos.write(buffer, 0, len);
-                        }
-                        bos.flush();
-                    }
-                }
-                zis.closeEntry();
-            }
+    private void beginConfiguredDownload(String url, String label) {
+        setDownloadGroupVisible(true);
+        if (isHttpsUrl(url)) {
+            startInAppDataDownload(url, label);
+        } else {
+            Toast.makeText(this, label + " belum memiliki URL publik. Masukkan URL ZIP yang sudah diunggah.", Toast.LENGTH_LONG).show();
+            showCustomUrlDialog();
         }
     }
 
-    // ===================== STORAGE & DATA DIR =====================
-    private void requestStorageIfNeeded() {
+    private void showCustomUrlDialog() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        final EditText input = new EditText(this);
+        input.setHint("https://example.com/Data-GTA-Lite.zip");
+        input.setText(prefs.getString(KEY_CUSTOM_ZIP_URL, liteDataUrl == null ? "" : liteDataUrl));
+        input.setSingleLine(true);
+
+        new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                .setTitle("Download Data GTA (.zip) dari URL")
+                .setMessage("Masukkan link direct download file .zip Data GTA (Lite/Full). Aplikasi akan otomatis mengunduh dan mengekstrak ke folder data game:")
+                .setView(input)
+                .setPositiveButton("Download & Ekstrak", (d, w) -> {
+                    String url = input.getText().toString().trim();
+                    if (!isHttpsUrl(url)) {
+                        Toast.makeText(this, "URL harus diawali https://", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    prefs.edit().putString(KEY_CUSTOM_ZIP_URL, url).apply();
+                    startInAppDataDownload(url, "Data Custom ZIP");
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private File getPreferredWritableDataDir() {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (!Environment.isExternalStorageManager()) {
-                    new AlertDialog.Builder(this)
-                            .setTitle("Izin Akses File")
-                            .setMessage("Lombok Holiday perlu izin akses file untuk menyimpan data game di /Android/data.")
-                            .setPositiveButton("Buka Izin", (d, w) -> {
-                                try {
-                                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                            Uri.parse("package:" + getPackageName()));
-                                    startActivity(intent);
-                                } catch (Exception e) {
-                                    startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-                                }
-                            })
-                            .setNegativeButton("Nanti", null)
-                            .show();
-                }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(new String[]{
-                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1001);
+            File ext = getExternalFilesDir(null);
+            if (ext != null) {
+                if (!ext.exists()) ext.mkdirs();
+                return ext;
             }
-        } catch (Exception ignored) {
+        } catch (Exception ignored) {}
+        File gta = new File("/storage/emulated/0/GTA/");
+        if (!gta.exists()) gta.mkdirs();
+        return gta;
+    }
+
+    private void startInAppDataDownload(final String zipUrl, final String label) {
+        if (!isHttpsUrl(zipUrl)) {
+            Toast.makeText(this, "URL unduhan belum diatur. Masukkan URL ZIP publik terlebih dahulu.", Toast.LENGTH_LONG).show();
+            showCustomUrlDialog();
+            return;
         }
+        if (DataDownloadService.isPending(this)) {
+            Toast.makeText(this, "Unduhan lain sedang berjalan, tunggu sampai selesai.", Toast.LENGTH_SHORT).show();
+            refreshDownloadUi();
+            return;
+        }
+        DataDownloadService.startJob(this, zipUrl, label, getPreferredWritableDataDir().getAbsolutePath());
+        startDownloadTicker();
+    }
+
+    /** Dipanggil saat app dibuka: lanjutkan unduhan yang terhenti karena app ditutup. */
+    private void resumePendingDownloadIfAny() {
+        if (DataDownloadService.isPending(this)) {
+            DataDownloadService.launch(this);
+            startDownloadTicker();
+        } else {
+            refreshDownloadUi();
+        }
+    }
+
+    private void startDownloadTicker() {
+        handler.removeCallbacks(downloadTicker);
+        handler.post(downloadTicker);
+    }
+
+    private final Runnable downloadTicker = new Runnable() {
+        @Override public void run() {
+            refreshDownloadUi();
+            if (DataDownloadService.isPending(MainActivity.this)) {
+                handler.postDelayed(this, 500L);
+            }
+        }
+    };
+
+    /** Menyamakan UI dengan status unduhan yang tersimpan (aman dipanggil kapan saja). */
+    private void refreshDownloadUi() {
+        if (downloadStatusText == null || downloadProgressBar == null) return;
+        SharedPreferences p = DataDownloadService.prefs(this);
+        String state = p.getString(DataDownloadService.K_STATE, "idle");
+        String msg = p.getString(DataDownloadService.K_MSG, "");
+        long done = p.getLong(DataDownloadService.K_DONE, 0L);
+        long total = p.getLong(DataDownloadService.K_TOTAL, 0L);
+        float speed = p.getFloat(DataDownloadService.K_SPEED, 0f);
+        isDownloading = DataDownloadService.isPending(this);
+
+        if ("downloading".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            int pct = total > 0 ? (int) (done * 100L / total) : 0;
+            downloadProgressBar.setProgress(pct);
+            if (total > 0) {
+                downloadStatusText.setText(String.format(Locale.ROOT,
+                        "%s — %.1f / %.1f MB (%d%%) · %.2f MB/s",
+                        msg, done / 1048576.0, total / 1048576.0, pct, speed));
+            } else {
+                downloadStatusText.setText(msg);
+            }
+        } else if ("extracting".equals(state)) {
+            downloadProgressBar.setIndeterminate(true);
+            downloadStatusText.setText(msg);
+        } else if ("done".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            downloadProgressBar.setProgress(100);
+            downloadStatusText.setText(msg);
+            String active = resolveGameDataDir(this);
+            updateDataStatusLabel(active);
+            if (!"done".equals(lastDownloadState)) {
+                Toast.makeText(this, "Data siap dimainkan!", Toast.LENGTH_LONG).show();
+            }
+        } else if ("error".equals(state)) {
+            downloadProgressBar.setIndeterminate(false);
+            downloadStatusText.setText(msg);
+        } else {
+            downloadProgressBar.setIndeterminate(false);
+        }
+        lastDownloadState = state;
     }
 
     private void onPermissionReady() {
+        if (officialServer == null) loadServerList();
         String dir = resolveGameDataDir(this);
         provisionSampDirectory(new File(dir));
+        loadSavedSettings();
         updateDataStatusLabel(dir);
-        updateDataButtons();
+    }
+
+    private void setDownloadGroupVisible(boolean show) {
+        if (groupDownload == null || cardDataReady == null) return;
+        groupDownload.setVisibility(show ? View.VISIBLE : View.GONE);
+        cardDataReady.setVisibility(show ? View.GONE : View.VISIBLE);
     }
 
     private void updateDataStatusLabel(String dir) {
-        if (dataBadge == null || dataPathText == null) return;
+        if (bugText == null || dataBadgeStatus == null) return;
         File d = new File(dir);
         if (hasGtaCache(d)) {
-            dataBadge.setText("DATA SIAP \u2022 TANPA OBB");
-            dataBadge.setTextColor(C_OK);
-            dataBadge.setBackground(rounded(0x3310B981, 10));
-            dataPathText.setText("Lokasi data: " + dir);
+            dataBadgeStatus.setText("DATA SIAP (TANPA OBB)");
+            dataBadgeStatus.setTextColor(0xFF34D399);
+            dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_success);
+            bugText.setText("Lokasi data aktif: " + dir);
+            if (dataReadyInfo != null) dataReadyInfo.setText("Tersimpan di: " + dir + "\nTombol download disembunyikan. Pakai GANTI DATA untuk mengunduh ulang.");
+            setDownloadGroupVisible(false);
         } else {
-            dataBadge.setText("DATA BELUM ADA");
-            dataBadge.setTextColor(C_WARN);
-            dataBadge.setBackground(rounded(0x33F59E0B, 10));
-            dataPathText.setText("Unduh Data Lite / Full di bawah, atau taruh folder data GTA di /sdcard/GTA/");
-        }
-        if (homeServerLine != null) {
-            homeServerLine.setText("Server: " + SERVER_TITLE + "  \u2022  " + (hasGtaCache(d) ? "Data siap" : "Data belum ada"));
+            dataBadgeStatus.setText("DATA BELUM ADA");
+            dataBadgeStatus.setTextColor(0xFFFBBF24);
+            dataBadgeStatus.setBackgroundResource(R.drawable.bg_chip_warning);
+            bugText.setText("Data GTA belum ditemukan. Pilih DATA LITE / FULL di bawah.");
+            setDownloadGroupVisible(true);
         }
     }
 
@@ -1333,10 +1637,13 @@ public class MainActivity extends AppCompatActivity {
                 if (!p.endsWith("/")) p += "/";
                 candidates.add(p);
             }
-        } catch (Exception ignored) {
-        }
-        candidates.add("/storage/emulated/0/Android/data/" + PACKAGE_ID + "/files/");
+        } catch (Exception ignored) {}
+        candidates.add("/storage/emulated/0/Android/data/com.lombokholiday.mobile/files/");
         candidates.add("/storage/emulated/0/GTA/");
+        candidates.add("/storage/emulated/0/Android/data/com.samp.mobile/files/");
+        candidates.add("/storage/emulated/0/Android/data/com.gta.game/files/");
+        candidates.add("/storage/emulated/0/Android/data/ro.alyn_sampmobile.game/files/");
+        candidates.add("/storage/emulated/0/Android/data/ru.unisamp_mobile.game/files/");
         candidates.add("/storage/emulated/0/Android/data/com.rockstargames.gtasa/files/");
 
         for (String c : candidates) {
@@ -1351,24 +1658,25 @@ public class MainActivity extends AppCompatActivity {
                 String p = ext.getAbsolutePath();
                 return p.endsWith("/") ? p : (p + "/");
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         return "/storage/emulated/0/GTA/";
     }
 
     private void provisionSampDirectory(File baseDir) {
         try {
-            File fontsDir = new File(new File(baseDir, "SAMP"), "fonts");
-            if (!fontsDir.exists()) fontsDir.mkdirs();
-            String[] fontTargets = new String[]{"arial.ttf", "Arial.ttf", "arial_bold.ttf"};
+            File sampDir = new File(baseDir, "SAMP");
+            File fontsDir = new File(sampDir, "fonts");
+            if (!fontsDir.exists()) {
+                fontsDir.mkdirs();
+            }
+            String[] fontTargets = new String[]{ "arial.ttf", "Arial.ttf", "arial_bold.ttf" };
             for (String ft : fontTargets) {
                 File outFont = new File(fontsDir, ft);
                 if (!outFont.exists() || outFont.length() < 1024) {
                     copyBundledFont(outFont);
                 }
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
 
     private void copyBundledFont(File dest) {
@@ -1389,19 +1697,19 @@ public class MainActivity extends AppCompatActivity {
                     fos2.write(buf, 0, n);
                 }
                 fos2.flush();
-            } catch (Exception ignored) {
-            }
+            } catch (Exception ignored) {}
         }
     }
 
-    // ===================== SECURITY =====================
     private boolean verifyOfficialSignature() {
         if (EXPECTED_CERT_SHA256 == null || EXPECTED_CERT_SHA256.isEmpty()) {
             return true;
         }
         try {
-            PackageInfo pkgInfo = getPackageManager().getPackageInfo(getPackageName(),
-                    PackageManager.GET_SIGNING_CERTIFICATES);
+            PackageInfo pkgInfo = getPackageManager().getPackageInfo(
+                    getPackageName(),
+                    PackageManager.GET_SIGNING_CERTIFICATES
+            );
             SigningInfo signingInfo = pkgInfo.signingInfo;
             if (signingInfo == null) return false;
             Signature[] sigs = signingInfo.hasMultipleSigners()
@@ -1434,8 +1742,7 @@ public class MainActivity extends AppCompatActivity {
             } else if (f.exists()) {
                 f.delete();
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) { }
     }
 
     private String sanitizeNick(String raw) {
@@ -1446,10 +1753,29 @@ public class MainActivity extends AppCompatActivity {
         return s;
     }
 
-    // ===================== SETTINGS =====================
     private void loadSavedSettings() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         String savedNick = prefs.getString(KEY_NICKNAME, "");
         String savedPass = prefs.getString(KEY_PASSWORD, "");
+        int fps = prefs.getInt(KEY_FPS, 60);
+        int lines = prefs.getInt(KEY_CHAT_LINES, 7);
+        loadingSavedSettings = true;
+        if (cbVoiceChat != null) cbVoiceChat.setChecked(prefs.getBoolean("setting_voice", true));
+        if (cbFpsCounter != null) cbFpsCounter.setChecked(prefs.getBoolean("setting_fps_counter", true));
+        if (cbFirstPerson != null) cbFirstPerson.setChecked(prefs.getBoolean("setting_first_person", true));
+        if (cbCutout != null) cbCutout.setChecked(prefs.getBoolean("setting_cutout", true));
+        if (cbChatTimestamp != null) cbChatTimestamp.setChecked(prefs.getBoolean("setting_chat_timestamp", false));
+        if (cbAndroidKeyboard != null) cbAndroidKeyboard.setChecked(prefs.getBoolean("setting_android_keyboard", false));
+        if (cbHpArmourText != null) cbHpArmourText.setChecked(prefs.getBoolean("setting_hp_armour", true));
+        if (cbOutfitGuns != null) cbOutfitGuns.setChecked(prefs.getBoolean("setting_outfit_guns", true));
+        if (cbRadarRect != null) cbRadarRect.setChecked(prefs.getBoolean("setting_radar_rect", false));
+        if (cbPcMoney != null) cbPcMoney.setChecked(prefs.getBoolean("setting_pc_money", false));
+        if (cbSkyBox != null) cbSkyBox.setChecked(prefs.getBoolean("setting_skybox", false));
+        if (cbSnow != null) cbSnow.setChecked(prefs.getBoolean("setting_snow", false));
+        if (cbEnableKeyboardMouse != null) cbEnableKeyboardMouse.setChecked(prefs.getBoolean("setting_keyboard_mouse", true));
+        if (cbEnableGamepad != null) cbEnableGamepad.setChecked(prefs.getBoolean("setting_gamepad", true));
+        if (cbMonetLoaderEnabled != null) cbMonetLoaderEnabled.setChecked(prefs.getBoolean(KEY_MONETLOADER_ENABLED, false));
+
         if (savedNick.isEmpty()) {
             File ini = new File(resolveGameDataDir(this), "SAMP/settings.ini");
             if (ini.exists()) {
@@ -1458,7 +1784,7 @@ public class MainActivity extends AppCompatActivity {
                     String line;
                     while ((line = br.readLine()) != null) {
                         String trimmed = line.trim();
-                        if (trimmed.toLowerCase(Locale.ROOT).startsWith("name=")) {
+                        if (trimmed.toLowerCase().startsWith("name=")) {
                             String val = trimmed.substring(5).trim();
                             if (!val.isEmpty() && !val.startsWith("__android_") && !val.equals("Nick_Name")) {
                                 savedNick = val;
@@ -1466,101 +1792,49 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     }
-                } catch (Exception ignored) {
-                }
+                } catch (Exception ignored) { }
             }
         }
+
         if (nicknameInput != null && !savedNick.isEmpty() && !savedNick.equals(DEFAULT_NICK)) {
             nicknameInput.setText(savedNick);
         }
         if (passwordInput != null && !savedPass.isEmpty()) {
             passwordInput.setText(savedPass);
         }
-
-        selectedFont = prefs.getInt(KEY_FONT_SIZE, 30);
-        selectedFps = prefs.getInt(KEY_FPS, 60);
-        selectedChatLines = prefs.getInt(KEY_CHAT_LINES, 7);
-        restyleChips(fpsChips, selectedFps, FPS_VALUES);
-        restyleChips(chatChips, selectedChatLines, CHAT_VALUES);
-        restyleChips(fontChips, selectedFont, FONT_VALUES);
-
-        if (swVoice != null) {
-            swVoice.setChecked(prefs.getBoolean("t_voice", false));
-            swFpsCounter.setChecked(prefs.getBoolean("t_fps", false));
-            swFirstPerson.setChecked(prefs.getBoolean("t_fpp", false));
-            swCutout.setChecked(prefs.getBoolean("t_cutout", true));
-            swAndroidKb.setChecked(prefs.getBoolean("t_akb", false));
-            swHpArmour.setChecked(prefs.getBoolean("t_hp", true));
-            swOutfitGuns.setChecked(prefs.getBoolean("t_outfit", true));
-            swRadarRect.setChecked(prefs.getBoolean("t_radar", false));
-            swPcMoney.setChecked(prefs.getBoolean("t_pcmoney", true));
-            swSkyBox.setChecked(prefs.getBoolean("t_skybox", true));
-            swSnow.setChecked(prefs.getBoolean("t_snow", false));
-            swBooster.setChecked(prefs.getBoolean("t_booster", false));
-            swMLoader.setChecked(modPrefs.getBoolean(KEY_MLOADER, false));
-            swCleo.setChecked(modPrefs.getBoolean(KEY_CLEO, false));
-        }
-    }
-
-    private void resetDefaults() {
-        selectedFps = 60;
-        selectedChatLines = 7;
-        selectedFont = 30;
-        restyleChips(fpsChips, selectedFps, FPS_VALUES);
-        restyleChips(chatChips, selectedChatLines, CHAT_VALUES);
-        restyleChips(fontChips, selectedFont, FONT_VALUES);
-        swVoice.setChecked(false);
-        swFpsCounter.setChecked(false);
-        swFirstPerson.setChecked(false);
-        swCutout.setChecked(true);
-        swAndroidKb.setChecked(false);
-        swHpArmour.setChecked(true);
-        swOutfitGuns.setChecked(true);
-        swRadarRect.setChecked(false);
-        swPcMoney.setChecked(true);
-        swSkyBox.setChecked(true);
-        swSnow.setChecked(false);
-        swBooster.setChecked(false);
-        swMLoader.setChecked(false);
-        swCleo.setChecked(false);
-        Toast.makeText(this, "Pengaturan dikembalikan ke default. Tekan SIMPAN untuk menerapkan.", Toast.LENGTH_SHORT).show();
-    }
-
-    private static String flag(boolean v) {
-        return v ? "true" : "false";
+        updateFpsButtons(fps);
+        updateChatLineButtons(lines);
+        loadingSavedSettings = false;
     }
 
     private boolean saveAllSettingsToIni(String nick) {
         String activeDir = resolveGameDataDir(this);
         String pass = (passwordInput != null) ? passwordInput.getText().toString().trim() : "";
+        ServerEntry server = getSelectedServer();
 
-        boolean booster = swBooster.isChecked();
-        boolean snow = swSnow.isChecked() && !booster;
-        boolean skybox = swSkyBox.isChecked() && !booster;
-        boolean outfit = swOutfitGuns.isChecked() && !booster;
-        boolean mload = swMLoader.isChecked();
-        boolean cleo = swCleo.isChecked();
-
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit()
                 .putString(KEY_NICKNAME, nick)
                 .putString(KEY_PASSWORD, pass)
                 .putInt(KEY_FPS, selectedFps)
                 .putInt(KEY_CHAT_LINES, selectedChatLines)
-                .putInt(KEY_FONT_SIZE, selectedFont)
-                .putBoolean("t_voice", swVoice.isChecked())
-                .putBoolean("t_fps", swFpsCounter.isChecked())
-                .putBoolean("t_fpp", swFirstPerson.isChecked())
-                .putBoolean("t_cutout", swCutout.isChecked())
-                .putBoolean("t_akb", swAndroidKb.isChecked())
-                .putBoolean("t_hp", swHpArmour.isChecked())
-                .putBoolean("t_outfit", swOutfitGuns.isChecked())
-                .putBoolean("t_radar", swRadarRect.isChecked())
-                .putBoolean("t_pcmoney", swPcMoney.isChecked())
-                .putBoolean("t_skybox", swSkyBox.isChecked())
-                .putBoolean("t_snow", swSnow.isChecked())
-                .putBoolean("t_booster", booster)
-                .apply();
-        modPrefs.edit().putBoolean(KEY_MLOADER, mload).putBoolean(KEY_CLEO, cleo).apply();
+                .putBoolean("setting_voice", cbVoiceChat != null && cbVoiceChat.isChecked())
+                .putBoolean("setting_fps_counter", cbFpsCounter != null && cbFpsCounter.isChecked())
+                .putBoolean("setting_first_person", cbFirstPerson != null && cbFirstPerson.isChecked())
+                .putBoolean("setting_cutout", cbCutout != null && cbCutout.isChecked())
+                .putBoolean("setting_chat_timestamp", cbChatTimestamp != null && cbChatTimestamp.isChecked())
+                .putBoolean("setting_android_keyboard", cbAndroidKeyboard != null && cbAndroidKeyboard.isChecked())
+                .putBoolean("setting_hp_armour", cbHpArmourText != null && cbHpArmourText.isChecked())
+                .putBoolean("setting_outfit_guns", cbOutfitGuns != null && cbOutfitGuns.isChecked())
+                .putBoolean("setting_radar_rect", cbRadarRect != null && cbRadarRect.isChecked())
+                .putBoolean("setting_pc_money", cbPcMoney != null && cbPcMoney.isChecked())
+                .putBoolean("setting_skybox", cbSkyBox != null && cbSkyBox.isChecked())
+                .putBoolean("setting_snow", cbSnow != null && cbSnow.isChecked())
+                .putBoolean("setting_keyboard_mouse", cbEnableKeyboardMouse != null && cbEnableKeyboardMouse.isChecked())
+                .putBoolean("setting_gamepad", cbEnableGamepad != null && cbEnableGamepad.isChecked())
+                .putBoolean(KEY_MONETLOADER_ENABLED, cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked())
+                .putString(KEY_SELECTED_SERVER, server.key())
+                .commit();
 
         List<String> targetDirs = new ArrayList<>();
         targetDirs.add(activeDir);
@@ -1570,15 +1844,15 @@ public class MainActivity extends AppCompatActivity {
                 String p = ext.getAbsolutePath() + "/";
                 if (!targetDirs.contains(p)) targetDirs.add(p);
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
         if (!targetDirs.contains("/storage/emulated/0/GTA/")) {
             targetDirs.add("/storage/emulated/0/GTA/");
         }
 
         String iniContent = "[client]\n"
                 + "name=" + nick + "\n"
-                + "port=" + LOCKED_PORT + "\n"
+                + "host=" + server.host + "\n"
+                + "port=" + server.port + "\n"
                 + "password=" + pass + "\n"
                 + "version=0.3.7\n"
                 + "autoaim=false\n\n"
@@ -1587,25 +1861,28 @@ public class MainActivity extends AppCompatActivity {
                 + "online=true\n\n"
                 + "[gui]\n"
                 + "Font=arial.ttf\n"
-                + "FontSize=" + selectedFont + ".0\n"
+                + "FontSize=" + prefFloatString("setting_font_size", 30f) + "\n"
                 + "FontOutline=2\n"
-                + "ChatPosX=325.0\n"
-                + "ChatPosY=25.0\n"
-                + "ChatSizeX=1150.0\n"
-                + "ChatSizeY=220.0\n"
+                + "ChatPosX=" + prefFloatString("setting_chat_pos_x", 325f) + "\n"
+                + "ChatPosY=" + prefFloatString("setting_chat_pos_y", 25f) + "\n"
+                + "ChatSizeX=" + prefFloatString("setting_chat_size_x", 1150f) + "\n"
+                + "ChatSizeY=" + prefFloatString("setting_chat_size_y", 220f) + "\n"
                 + "ChatMaxMessages=" + selectedChatLines + "\n"
+                + "ChatTimestamp=" + (cbChatTimestamp != null && cbChatTimestamp.isChecked() ? "true" : "false") + "\n"
+                + "ScrollSensitivity=" + prefFloatString("setting_scroll_sensitivity", 1.0f) + "\n"
                 + "FPSLimit=" + selectedFps + "\n"
-                + "VoiceChatEnable=" + flag(swVoice.isChecked()) + "\n"
-                + "fps=" + flag(swFpsCounter.isChecked()) + "\n"
-                + "firstperson=" + flag(swFirstPerson.isChecked()) + "\n"
-                + "cutout=" + flag(swCutout.isChecked()) + "\n"
-                + "androidkeyboard=" + flag(swAndroidKb.isChecked()) + "\n"
-                + "hparmourtext=" + flag(swHpArmour.isChecked()) + "\n"
-                + "outfitguns=" + flag(outfit) + "\n"
-                + "radarrect=" + flag(swRadarRect.isChecked()) + "\n"
-                + "pcmoney=" + flag(swPcMoney.isChecked()) + "\n"
-                + "skybox=" + flag(skybox) + "\n"
-                + "snow=" + flag(snow) + "\n";
+                + "VoiceChatEnable=" + (cbVoiceChat != null && cbVoiceChat.isChecked() ? "true" : "false") + "\n"
+                + "fps=" + (cbFpsCounter != null && cbFpsCounter.isChecked() ? "true" : "false") + "\n"
+                + "firstperson=" + (cbFirstPerson != null && cbFirstPerson.isChecked() ? "true" : "false") + "\n"
+                + "cutout=" + (cbCutout != null && cbCutout.isChecked() ? "true" : "false") + "\n"
+                + "androidkeyboard=" + (cbAndroidKeyboard != null && cbAndroidKeyboard.isChecked() ? "true" : "false") + "\n"
+                + "hparmourtext=" + (cbHpArmourText != null && cbHpArmourText.isChecked() ? "true" : "false") + "\n"
+                + "outfitguns=" + (cbOutfitGuns != null && cbOutfitGuns.isChecked() ? "true" : "false") + "\n"
+                + "radarrect=" + (cbRadarRect != null && cbRadarRect.isChecked() ? "true" : "false") + "\n"
+                + "pcmoney=" + (cbPcMoney != null && cbPcMoney.isChecked() ? "true" : "false") + "\n"
+                + "skybox=" + (cbSkyBox != null && cbSkyBox.isChecked() ? "true" : "false") + "\n"
+                + "snow=" + (cbSnow != null && cbSnow.isChecked() ? "true" : "false") + "\n"
+                + toysIniSection();
 
         boolean ok = false;
         for (String dir : targetDirs) {
@@ -1619,79 +1896,256 @@ public class MainActivity extends AppCompatActivity {
                     fos.flush();
                 }
                 ok = true;
-            } catch (Exception ignored) {
-            }
-        }
-        // Folder mod: dibuat hanya bila fitur diaktifkan
-        if (mload || cleo) {
-            File base = new File(activeDir);
-            if (mload) new File(base, "monetloader").mkdirs();
-            if (cleo) new File(base, "cleo").mkdirs();
+            } catch (Exception ignored) {}
         }
         return ok;
     }
 
-    // ===================== GAME LAUNCH =====================
+    private void checkAndRequestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (Environment.isExternalStorageManager()) {
+                storagePermissionGranted = true;
+            } else {
+                requestManageStoragePermission();
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            String[] permissions = new String[]{
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    android.Manifest.permission.RECORD_AUDIO
+            };
+            boolean allGranted = true;
+            for (String perm : permissions) {
+                if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                    allGranted = false;
+                    break;
+                }
+            }
+            if (allGranted) {
+                storagePermissionGranted = true;
+            } else {
+                requestStoragePermissionLauncher.launch(permissions);
+            }
+        } else {
+            storagePermissionGranted = true;
+        }
+    }
+
+    private void requestManageStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                manageStorageLauncher.launch(intent);
+            } catch (Exception e) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                manageStorageLauncher.launch(intent);
+            }
+        }
+    }
+
+    private void setFullScreenMode() {
+        try {
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+            getWindow().setFlags(
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            );
+            getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+            getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams params = getWindow().getAttributes();
+                params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                getWindow().setAttributes(params);
+            }
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().hide();
+            }
+        } catch (Exception ignored) { }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            setFullScreenMode();
+            refreshPeripheralsStatus();
+        }
+    }
+
     private void startGame() {
-        String dataDir = resolveGameDataDir(this);
-        if (!hasGtaCache(new File(dataDir))) {
-            Toast.makeText(this, "Data GTA belum terpasang. Unduh Data Lite/Full di tab Data GTA dulu.", Toast.LENGTH_LONG).show();
+        if (!verifyOfficialSignature()) {
+            markTampered(true);
+            Toast.makeText(this, "APK tidak resmi / telah dimodifikasi!", Toast.LENGTH_LONG).show();
+            finish();
             return;
         }
-        String nick = sanitizeNick(nicknameInput.getText().toString());
-        if (nick.isEmpty()) nick = sanitizeNick(DEFAULT_NICK);
+        String dataDir = resolveGameDataDir(this);
+        GameDataFixer.prepareAndReport(new File(dataDir));
+        updateDataStatusLabel(dataDir);
+        if (!hasGtaCache(new File(dataDir))) {
+            Toast.makeText(this,
+                    "Data GTA SA belum terpasang! Silakan klik tombol 'DOWNLOAD DATA LITE' atau 'DOWNLOAD DATA FULL' di dalam aplikasi terlebih dahulu.",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String rawNick = (nicknameInput != null) ? nicknameInput.getText().toString() : "";
+        String nick = sanitizeNick(rawNick);
+        if (nick.isEmpty()) {
+            nick = sanitizeNick(DEFAULT_NICK);
+        }
         if (nick.length() < 3) {
             Toast.makeText(this, "Nickname minimal 3 karakter (contoh: Nama_Roleplay)", Toast.LENGTH_LONG).show();
             return;
         }
-        nicknameInput.setText(nick);
+        if (nicknameInput != null) {
+            nicknameInput.setText(nick);
+        }
         hideKeyboard(this);
+        ServerEntry server = getSelectedServer();
+        if (server == null) {
+            Toast.makeText(this, "Pilih server terlebih dahulu.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         saveAllSettingsToIni(nick);
+
+        AppLog.i("GAME", "Mulai game | server=" + server.host + ":" + server.port
+                + " | nick=" + nick + " | data=" + dataDir
+                + " | monetloader=" + (cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked())
+                + " | log=" + AppLog.logDirPath());
 
         Intent gameIntent = new Intent(MainActivity.this, SAMP.class);
         gameIntent.putExtra("player_name", nick);
         gameIntent.putExtra("game_data_dir", dataDir);
-        startActivity(gameIntent);
+        gameIntent.putExtra("server_host", server.host);
+        gameIntent.putExtra("server_port", server.port);
+        gameIntent.putExtra("enable_monetloader", cbMonetLoaderEnabled != null && cbMonetLoaderEnabled.isChecked());
+        gameIntent.putExtra("wg_kbm", WarGamepad.sEnableKeyboardMouse);
+        gameIntent.putExtra("wg_pad", WarGamepad.sEnableGamepad);
+        gameIntent.putExtra("wg_sens", WarGamepad.sMouseSensitivity);
+        lastGameIntent = gameIntent;
+        gameLauncher.launch(gameIntent);
+    }
+
+    /** Cuplikan crash terbaru dari proses game (game_crash_*.txt) untuk ditampilkan ke user. */
+    private String latestGameCrashExcerpt() {
+        try {
+            File dir = new File(AppLog.logDirPath());
+            File[] list = dir.listFiles((d, n) -> n.startsWith("game_crash_"));
+            if (list == null || list.length == 0) return "(belum ada detail crash)";
+            File newest = list[0];
+            for (File f : list) if (f.lastModified() > newest.lastModified()) newest = f;
+            byte[] buf = new byte[900];
+            try (java.io.FileInputStream in = new java.io.FileInputStream(newest)) {
+                int n = in.read(buf);
+                return n > 0 ? new String(buf, 0, n, "UTF-8") : "(file crash kosong)";
+            }
+        } catch (Exception e) {
+            return "(gagal membaca detail crash)";
+        }
+    }
+
+    /** Dipanggil saat activity game selesai. Tanpa penanda keluar normal = crash/FC -> buka ulang otomatis. */
+    private void onGameFinished() {
+        File marker = new File(getFilesDir(), GAME_CLEAN_EXIT);
+        boolean cleanExit = marker.exists();
+        marker.delete();
+        if (cleanExit) { lastGameIntent = null; return; }
+        SharedPreferences sp = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        long now = System.currentTimeMillis();
+        int count = sp.getInt("game_crash_count", 0);
+        long windowStart = sp.getLong("game_crash_window", 0L);
+        if (now - windowStart > 5 * 60 * 1000L) { count = 0; windowStart = now; }
+        count++;
+        sp.edit().putInt("game_crash_count", count).putLong("game_crash_window", windowStart).apply();
+        AppLog.e("GAME", "Game berhenti tak terduga (crash/FC) ke-" + count + " dalam 5 menit");
+        if (count <= 3 && lastGameIntent != null) {
+            Toast.makeText(this, "Game sempat crash. Memulai ulang otomatis...", Toast.LENGTH_LONG).show();
+            final Intent again = lastGameIntent;
+            new Handler(Looper.getMainLooper()).postDelayed(() -> gameLauncher.launch(again), 1200);
+        } else {
+            new AlertDialog.Builder(this, R.style.LHDialogTheme)
+                    .setTitle("Game berulang kali crash")
+                    .setMessage("Game berhenti tak terduga beberapa kali.\n\n" + latestGameCrashExcerpt() + "\n\nLog: " + AppLog.logDirPath())
+                    .setPositiveButton("OK", null)
+                    .show();
+        }
+    }
+
+    /** Perbaikan manual: normalisasi varian texdb + cek ulang file inti. Berjalan di background. */
+    private void repairGameData() {
+        final String dir = resolveGameDataDir(this);
+        final File root = new File(dir);
+        if (!root.isDirectory()) {
+            Toast.makeText(this, "Data belum ada. Unduh Data Lite/Full dulu.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        btnRepairData.setEnabled(false);
+        downloadStatusText.setText("Memperbaiki data...");
+        new Thread(() -> {
+            int fixed = 0;
+            String err = null;
+            try {
+                fixed = GameDataFixer.normalizeTexdb(root);
+                GameDataFixer.report(root);
+            } catch (Exception e) {
+                err = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+                AppLog.e("DATA", "Perbaikan data gagal", e);
+            }
+            final int done = fixed;
+            final String msg = err;
+            runOnUiThread(() -> {
+                btnRepairData.setEnabled(true);
+                updateDataStatusLabel(dir);
+                String text = msg == null
+                        ? "Perbaikan selesai: " + done + " file varian dinormalisasi. Detail ada di log DATA."
+                        : "Perbaikan gagal: " + msg;
+                downloadStatusText.setText(text);
+                Toast.makeText(this, msg == null ? "Data sudah diperiksa" : "Perbaikan gagal", Toast.LENGTH_SHORT).show();
+            });
+        }, "lh-repair-data").start();
     }
 
     public static void hideKeyboard(Activity activity) {
         try {
-            InputMethodManager inputManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-            View focused = activity.getCurrentFocus();
-            if (focused != null && inputManager != null) {
-                inputManager.hideSoftInputFromWindow(focused.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+            InputMethodManager inputManager = (InputMethodManager) activity
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            View currentFocusedView = activity.getCurrentFocus();
+            if (currentFocusedView != null && inputManager != null) {
+                inputManager.hideSoftInputFromWindow(currentFocusedView.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
             }
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) { }
     }
 
-    // ===================== PERIPHERALS =====================
-    private void refreshPeripheralsStatus() {
-        if (peripheralStatusText == null) return;
-        StringBuilder sb = new StringBuilder();
-        for (int id : InputDevice.getDeviceIds()) {
-            InputDevice d = InputDevice.getDevice(id);
-            if (d == null || d.isVirtual()) continue;
-            int src = d.getSources();
-            String type = null;
-            if ((src & InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD
-                    || (src & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK) {
-                type = "Gamepad";
-            } else if ((src & InputDevice.SOURCE_MOUSE) == InputDevice.SOURCE_MOUSE) {
-                type = "Mouse";
-            } else if (d.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC) {
-                type = "Keyboard";
-            }
-            if (type != null) {
-                sb.append("\u2022 ").append(type).append(": ").append(d.getName()).append("\n");
-            }
-        }
-        if (sb.length() == 0) {
-            sb.append("Belum ada perangkat eksternal. Sambungkan keyboard/mouse OTG/Bluetooth atau gamepad.");
-        }
-        peripheralStatusText.setText(sb.toString().trim());
-        if (aboutSignatureText != null) {
-            aboutSignatureText.setText("Signature resmi: TERVERIFIKASI");
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshHomeStatus();
+        resumePendingDownloadIfAny();
+        handler.removeCallbacks(bannerTicker);
+        handler.postDelayed(bannerTicker, 6000L);
+    }
+
+    @Override
+    protected void onPause() {
+        handler.removeCallbacks(bannerTicker);
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+        if (isFinishing()) {
+            AppLog.endSession();
         }
     }
 }
