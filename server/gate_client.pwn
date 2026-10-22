@@ -39,7 +39,14 @@ public OnFilterScriptInit()
 
 public OnPlayerConnect(playerid)
 {
+    // Bersihkan timer verifikasi pemain sebelumnya yang masih menggantung di slot ini
+    if (g_VerifyTimer[playerid] != 0)
+    {
+        KillTimer(g_VerifyTimer[playerid]);
+        g_VerifyTimer[playerid] = 0;
+    }
     g_PlayerVerified[playerid] = false;
+    g_PlayerChallenge[playerid] = 0;
 
     new version[32];
     GetPlayerVersion(playerid, version, sizeof(version));
@@ -56,6 +63,18 @@ public OnPlayerConnect(playerid)
 
     SendClientCheck(playerid, CHECK_TYPE_HANDSHAKE, challenge, 0x10, 0x04);
     g_VerifyTimer[playerid] = SetTimerEx("VerifyClientTimeout", 6000, false, "i", playerid);
+    return 1;
+}
+
+public OnPlayerDisconnect(playerid, reason)
+{
+    if (g_VerifyTimer[playerid] != 0)
+    {
+        KillTimer(g_VerifyTimer[playerid]);
+        g_VerifyTimer[playerid] = 0;
+    }
+    g_PlayerVerified[playerid] = false;
+    g_PlayerChallenge[playerid] = 0;
     return 1;
 }
 
