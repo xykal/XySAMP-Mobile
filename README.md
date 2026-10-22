@@ -2,7 +2,7 @@
 
 Launcher/client SA-MP Mobile berbasis proyek open source SA-MP 2.10, disesuaikan untuk Lombok Holiday. Package name Android: `com.lombokholiday.mobile`.
 
-## Fitur v2.1.0
+## Fitur v2.2.0
 
 - APK resmi terpisah untuk `arm64-v8a` dan `armeabi-v7a`, ditandatangani dengan keystore produksi dan R8.
 - Dashboard lanskap dengan sidebar rounded, banner carousel otomatis, berita konfigurasi, dan menu Settings/Controls.
@@ -25,6 +25,20 @@ Launcher menulis host/port server terpilih ke `SAMP/settings.ini`. Handshake pri
 ## Data game
 
 Aplikasi mendukung download ZIP dan ekstraksi ke folder data tanpa OBB. Isi `data_lite.url` dan `data_full.url` di [`data-config.json`](data-config.json) dengan link ZIP langsung (https); nilai saat ini mengarah ke arsip data di Google Drive. URL kosong = tombol download nonaktif di launcher.
+
+## Struktur sumber & build lokal
+
+- `client-patch/ui-v21/` — **source of truth** UI launcher: `MainActivity.java.template`, `main_activity.xml.template`, `drawable/`, dan helper `AppLog.java`, `DataDownloadService.java`, `GameDataFixer.java`, `SidebarLayout.java`. Patch UI dilakukan di sini.
+- `tools/lockdown.py` — patcher build: substitusi branding/host/port/cert, injeksi `lockdown.h` (git-ignored), XOR obfuscation, dan generator `dist/gate_client.pwn`. CI menjalankannya sebelum Gradle build; tree `app/` yang ter-commit disinkronkan dengan output pipeline ini (baseline default resmi).
+- `server/gate_client.pwn` — template filterscript gate handshake dengan placeholder `__PROD_HANDSHAKE_KEY__` (jangan dikompilasi langsung; versi produksi digenerate ke `dist/` oleh `lockdown.py`).
+
+Build lokal:
+
+1. Pasang JDK 17, Android SDK 34, NDK `26.2.11394342`, dan CMake `3.22.1`.
+2. Untuk meniru CI: `python3 tools/lockdown.py --repo . --host <host> --port <port> --key 0x<secret> --app-name "Lombok Holiday" --brand "Lombok Holiday Roleplay" --name Warga_Lombok --package-id com.lombokholiday.mobile --cert-sha256 <sha256>`.
+3. `./gradlew assembleDebug` (atau `assembleRelease` dengan env `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` untuk APK bertanda tangan resmi).
+
+Jangan commit file `.env`/secret — sudah masuk `.gitignore`.
 
 ## Build resmi
 
